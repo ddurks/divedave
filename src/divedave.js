@@ -6,7 +6,7 @@ if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine
     IS_MOBILE = false;
 }
 
-const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = -500;
+const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = -500, SPIN_VELOCITY = 300;
 var config = {
     type: Phaser.AUTO,
     backgroundColor: '#ADD8E6',
@@ -20,8 +20,8 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
-            debug: true
+            gravity: { y: 500 },
+            debug: false
         }
     },
     scene: {
@@ -33,7 +33,7 @@ var config = {
 
 var game = new Phaser.Game(config);
 var board, dave;
-var controls, lastBoardDist, boardY;
+var controls, lastBoardDist, waterLevel, jumping, landedAt = null;
 
 function preload () {
     this.load.image('bg', '../assets/bg.png');
@@ -49,16 +49,21 @@ function create () {
     let water = this.add.image(WIDTH/2, HEIGHT/2, 'water');
     let platform = this.add.image(WIDTH/6, 5*HEIGHT/7, 'platform');
     board = this.physics.add.staticImage(WIDTH/4, HEIGHT/2 + 25, 'board');
-    boardY = board.y - board.height/2;
 
     dave = this.physics.add.sprite(WIDTH/8, HEIGHT/3, 'dave');
     dave.body.setSize(64, 256);
     dave.body.setAllowGravity(true);
-    dave.setCollideWorldBounds(true);
     dave.setFrame(1);
     dave.speed = 300;
     dave.setDrag(250, 1);
+    dave.body.setAngularDrag(100);
     dave.body.setAllowDrag(true);
+    dave.setDepth(10);
+    jumping = false;
+    // dave.setCollideWorldBounds(true);
+    let outerWater = this.add.image(WIDTH/2, HEIGHT/2 + 50, 'water');
+    outerWater.setDepth(11);
+    waterLevel = HEIGHT - 100;
 
     this.anims.create({
         key: 'walkright', 
@@ -73,6 +78,26 @@ function create () {
         frames: this.anims.generateFrameNumbers('dave', { frames: [11, 12, 11, 13] }),
         repeat: -1
     });
+
+    this.anims.create({
+        key: 'jump',
+        frameRate: 6,
+        frames: this.anims.generateFrameNumbers('dave', { frames: [5, 5, 6] })
+    });
+
+    dave.on(Phaser.Animations.Events.ANIMATION_COMPLETE, function() {
+        jumping = false;
+        landedAt = null;
+        dave.setVelocityY(JUMP_VELOCITY);
+        console.log("animation complete");
+    });
+
+    this.physics.add.collider(dave, board, (dave, board) => {
+        if (!landedAt) {
+            landedAt = Date.now();
+            console.log(landedAt);
+        }
+    })
 
     controls = {
         up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W, false),
@@ -97,40 +122,97 @@ function updateBounce() {
         lastBoardDist = daveBoardDist;
         let newRatio = daveBoardDist/board.width;
         newRatio = newRatio <= 1 ? newRatio : 1;
-        console.log(newRatio);
-        dave.body.setBounce(newRatio);
+        // dave.body.setBounce(newRatio);
     }
 }
 
 function playerHandler() {
-    if (IS_MOBILE) {
-        playerMobileMovementHandler();
-    } else {
-        playerMovementHandler();
-    }
-
-    if (dave.body.velocity.y < -25) {
-        if (dave.body.velocity.x < 0) {
-            dave.setFrame(15);
+    checkForReset();
+    if (!jumping) {
+        if (IS_MOBILE) {
+            playerMobileMovementHandler();
         } else {
-            dave.setFrame(6)
+            playerMovementHandler();
         }
-    } else {
-        if (dave.y + dave.height/2 <= boardY-5) {
-            if (dave.body.velocity.x > 0) {
-                dave.anims.play('walkright', true);
-            } else if (dave.body.velocity.x < 0) {
-                dave.anims.play('walkleft', true);
+
+        playerFrameHandler();
+    }
+}
+
+function playerFrameHandler() {
+    if (!jumping) {
+        if(daveIsAboveBoard()) {
+            if (dave.angle !== 0) {
+                dave.setAngle(0);
+            }
+            if(daveIsTouchingBoard()) {
+                if (dave.body.velocity.x > 0) {
+                    dave.anims.play('walkright', true);
+                } else if (dave.body.velocity.x < 0) {
+                    dave.anims.play('walkleft', true);
+                } else {
+                    dave.setFrame(1);
+                }
             } else {
-                dave.setFrame(2);
+                if (dave.body.velocity.y < -50) {
+                    if (dave.body.velocity.x < 0) {
+                        dave.setFrame(15);
+                    } else {
+                        dave.setFrame(6);
+                    }
+                } else {
+                    if (dave.body.velocity.x < 0) {
+                        dave.setFrame(11);
+                    } else {
+                        dave.setFrame(2);
+                    }
+                }
+            }
+        } else {
+            if (dave.body.angularVelocity > SPIN_VELOCITY*3/4) {
+                dave.setFrame(7);
+            } else if (dave.body.angularVelocity < -SPIN_VELOCITY*3/4) {
+                dave.setFrame(7)
+            } else {
+                dave.setFrame(8);
             }
         }
     }
 }
 
+function daveIsAboveBoard() {
+    return (dave.x + dave.width/4 > 0 && dave.x - dave.width/4 < board.x + board.width/2);
+}
+
+function daveIsTouchingBoard() {
+    return dave.y + dave.height/2 >= board.y - (board.height/2);
+}
+
+function daveIsTucked() {
+    console.log(dave.frame.name);
+    return dave.frame.name === 7;
+}
+
+function daveJump() {
+    if (!jumping && dave.anims.getName() !== 'jump') {
+        jumping = true;
+        dave.anims.play('jump', true);
+    }
+}
+
+function checkForReset() {
+    if (dave.y > waterLevel) {
+        console.log(dave.angle, daveIsTucked());
+        dave.body.setAngularVelocity(0);
+        dave.setPosition(WIDTH/8, HEIGHT/3);
+        dave.setAngle(0);
+        dave.setVelocity(0, 0);
+    }
+}
+
 function playerMovementHandler() {
-    if ((controls.up.isDown || controls.space.isDown) && (dave.y + dave.height/2) >= (boardY)) {
-        dave.setVelocityY(JUMP_VELOCITY);
+    if ((controls.up.isDown || controls.space.isDown) && daveIsAboveBoard() && daveIsTouchingBoard()) {
+        daveJump();
     } 
     if (controls.left.isDown) {
         dave.setVelocityX(-dave.speed);
@@ -138,12 +220,12 @@ function playerMovementHandler() {
     if (controls.right.isDown) {
         dave.setVelocityX(dave.speed);
     }
-    if (controls.r.isDown) {
-        dave.body.setAngularVelocity(180);
-    } else if (controls.q.isDown) {
-        dave.body.setAngularVelocity(-180);
-    } else {
-        dave.body.setAngularVelocity(0);
+    if (!daveIsAboveBoard()) {
+        if (controls.r.isDown) {
+            dave.body.setAngularVelocity(SPIN_VELOCITY);
+        } else if (controls.q.isDown) {
+            dave.body.setAngularVelocity(-SPIN_VELOCITY);
+        }
     }
 }
 
