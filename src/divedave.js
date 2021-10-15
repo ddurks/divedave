@@ -23,6 +23,14 @@ getRandomInt = function(min, max) {
     return Math.floor(Math.random() * (max - min) + min);
 }
 
+diff = function (num1, num2) {
+    if (num1 > num2) {
+      return num1 - num2
+    } else {
+      return num2 - num1
+    }
+  }
+
 class MainMenu extends Phaser.Scene {
     constructor() {
         super('MainMenu');
@@ -63,6 +71,10 @@ class DiveScene extends Phaser.Scene {
         this.sceneHeight = data.height;
         this.clouds = new Array();
         this.diveComplete = false;
+        this.sumRotation = 0;
+        this.totalRotations = 0;
+        this.previousAngle = 0;
+        this.currentAngle = 0;
     }
 
     preload() {
@@ -268,16 +280,32 @@ class DiveScene extends Phaser.Scene {
     }
     
     checkForReset() {
-        if (dave.y > waterLevel && ! this.diveComplete) {
-            this.diveComplete = true;
-            console.log(dave.angle, this.daveIsTucked());
-            let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
-            splash.setDepth(14);
-            splash.anims.play('splash');
-            splash.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-                splash.destroy();
-                setTimeout(() => fadeOutScene('DiveScene', this, getRandomInt(1500, 10000)), 500);
-            });
+        if (!this.diveComplete) {
+            let daveRotation = Phaser.Math.Angle.Normalize(dave.rotation)
+            if (daveRotation !== this.currentAngle) {
+                let angleDiff = diff(this.previousAngle, this.currentAngle);
+                if (angleDiff > 5) {
+                    console.log("FLIIP");
+                    this.previousAngle = 0;
+                    angleDiff = diff(this.previousAngle, this.currentAngle);
+                }
+                this.sumRotation += angleDiff;
+                this.totalRotations = this.sumRotation / (2 * Math.PI);
+                this.previousAngle = this.currentAngle;
+                this.currentAngle = daveRotation;
+            }
+            console.log("daveRotation: ", daveRotation, "sumRotation: ", this.sumRotation, "totalRotations: ", this.totalRotations);
+            if (dave.y > waterLevel) {
+                this.diveComplete = true;
+                console.log(dave.angle, this.daveIsTucked());
+                let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
+                splash.setDepth(14);
+                splash.anims.play('splash');
+                splash.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                    splash.destroy();
+                    setTimeout(() => fadeOutScene('DiveScene', this, getRandomInt(1500, 10000)), 500);
+                });
+            }
         }
     }
     
