@@ -56,10 +56,11 @@ class MainMenu extends Phaser.Scene {
     }
 }
 
-const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = -500, SPIN_VELOCITY = 300;
+const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = -500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 250, ANGULAR_DRAG = 150;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
 var springboard, dave;
 var controls, lastBoardDist, waterLevel, jumping, landedAt = null;
+var drag = 50, currentVelocity = MIN_SPIN_VELOCITY, tucked = false;
 
 class DiveScene extends Phaser.Scene {
     constructor() {
@@ -124,12 +125,19 @@ class DiveScene extends Phaser.Scene {
         dave.body.setAllowGravity(true);
         dave.setFrame(1);
         dave.speed = 300;
-        dave.setDrag(250, 1);
-        dave.body.setAngularDrag(100);
+        dave.setDrag(DRAG, 1);
+        dave.body.setAngularDrag(ANGULAR_DRAG);
         dave.body.setAllowDrag(true);
         dave.setDepth(12);
         jumping = false;
         waterLevel = this.sceneHeight - 100;
+
+        this.anims.create({
+            key: 'idle', 
+            frameRate: 1,
+            frames: this.anims.generateFrameNumbers('dave', { frames: [0] }),
+            repeat: -1
+        });
     
         this.anims.create({
             key: 'walkright', 
@@ -175,7 +183,6 @@ class DiveScene extends Phaser.Scene {
             jumping = false;
             landedAt = null;
             dave.setVelocityY(JUMP_VELOCITY);
-            console.log("animation complete");
         });
     
         this.cameras.main.startFollow(dave);
@@ -185,6 +192,7 @@ class DiveScene extends Phaser.Scene {
             if (!landedAt) {
                 landedAt = Date.now();
                 console.log(landedAt);
+                dave.anims.play('idle');
             }
         })
     
@@ -213,6 +221,7 @@ class DiveScene extends Phaser.Scene {
             } else {
                 this.playerMovementHandler();
             }
+            dave.setA
     
             this.playerFrameHandler();
         }
@@ -248,19 +257,19 @@ class DiveScene extends Phaser.Scene {
                     }
                 }
             } else {
-                if (dave.body.angularVelocity > SPIN_VELOCITY*3/4) {
-                    dave.setFrame(7);
-                } else if (dave.body.angularVelocity < -SPIN_VELOCITY*3/4) {
-                    dave.setFrame(7)
-                } else {
-                    dave.setFrame(8);
+                if (!tucked) {
+                    if (dave.angle >= -90 && dave.angle <= 90) {
+                        dave.setFrame(6);
+                    } else {
+                        dave.setFrame(8)
+                    }
                 }
             }
         }
     }
     
     daveIsAboveBoard() {
-        return (dave.x + dave.width/4 > 0 && dave.x - dave.width/2 < springboard.x + springboard.width/2);
+        return (dave.x + dave.width/4 > 0 && dave.x - dave.width/4 < springboard.x + springboard.width/2 - 5);
     }
     
     daveIsTouchingBoard() {
@@ -316,8 +325,10 @@ class DiveScene extends Phaser.Scene {
     }
     
     playerMovementHandler() {
-        if ((controls.up.isDown || controls.space.isDown) && this.daveIsAboveBoard() && this.daveIsTouchingBoard()) {
-            this.daveJump();
+        if ((controls.up.isDown || controls.space.isDown)) {
+            if (this.daveIsAboveBoard() && this.daveIsTouchingBoard()) {
+                this.daveJump();
+            }
         } 
         if (controls.left.isDown) {
             dave.setVelocityX(-dave.speed);
@@ -326,10 +337,21 @@ class DiveScene extends Phaser.Scene {
             dave.setVelocityX(dave.speed);
         }
         if ( (controls.r.isDown || controls.q.isDown) && !this.daveIsAboveBoard()) {
+            tucked = true;
+            dave.setFrame(7);
+            if (currentVelocity < MAX_SPIN_VELOCITY) {
+                currentVelocity+=5;
+                console.log("new velocity: ", currentVelocity);
+            }
             if (controls.r.isDown) {
-                dave.body.setAngularVelocity(SPIN_VELOCITY);
+                dave.body.setAngularVelocity(currentVelocity);
             } else if (controls.q.isDown) {
-                dave.body.setAngularVelocity(-SPIN_VELOCITY);
+                dave.body.setAngularVelocity(-currentVelocity);
+            }
+        } else {
+            if (tucked === true) {
+                tucked = false;
+                currentVelocity = MIN_SPIN_VELOCITY;
             }
         }
     }
@@ -355,15 +377,19 @@ class DiveScene extends Phaser.Scene {
     }
 
     spawnClouds() {
-        for (let i = 0; i < getRandomInt(MIN_CLOUDS, MAX_CLOUDS); i++) {
-            let yMax = this.sceneHeight - 500;
-            let yPos = getRandomInt(0, yMax);
-            let cloud = this.physics.add.sprite(getRandomInt(-256, WIDTH + 256), yPos, 'cloud');
-            cloud.setFrame(getRandomInt(0, 7));
-            cloud.flipX = getRandomInt(0, 1) === 0 ? true : false;
-            cloud.body.setAllowGravity(false);
-            cloud.setVelocityX(getRandomInt(CLOUDMINSPEED, CLOUDMAXSPEED));
-            this.clouds.push(cloud);
+        let segmentSize = 1000;
+        for (let s = segmentSize; s < this.sceneHeight - 500 + 1; s+=segmentSize) {
+            for (let i = 0; i < getRandomInt(MIN_CLOUDS, MAX_CLOUDS); i++) {
+                let yMin = s - segmentSize;
+                let yMax = s;
+                let yPos = getRandomInt(yMin, yMax);
+                let cloud = this.physics.add.sprite(getRandomInt(-256, WIDTH + 256), yPos, 'cloud');
+                cloud.setFrame(getRandomInt(0, 7));
+                cloud.flipX = getRandomInt(0, 1) === 0 ? true : false;
+                cloud.body.setAllowGravity(false);
+                cloud.setVelocityX(getRandomInt(CLOUDMINSPEED, CLOUDMAXSPEED));
+                this.clouds.push(cloud);
+            }
         }
     }
 
