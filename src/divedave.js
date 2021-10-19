@@ -71,6 +71,31 @@ var springboard, dave;
 var controls, lastBoardDist, waterLevel, jumping, landedAt = null, jumpReleasedAt = null;
 var drag = 50, boost = 0, currentVelocity = MIN_SPIN_VELOCITY, tucked = false, tuckCount = 0;
 
+class Info extends Phaser.GameObjects.Group {
+    constructor(scene) {
+        super(scene);
+        this.panel = scene.add.image(WIDTH/2, HEIGHT/2, 'panel');
+        this.panel.setVisible(false);
+        this.panel.setScrollFactor(0);
+        this.panel.setDepth(20);
+    }
+
+    display(scene, strings) {
+        let height = HEIGHT/2 - 150;
+        strings.forEach(string => {
+            let temp = scene.add.text(WIDTH/2, height, string, { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '64px', fontStyle: 'bold'}).setOrigin(0.5);
+            temp.setScrollFactor(0);
+            temp.setDepth(21);
+            height += 100;
+        });
+        this.panel.setVisible(true);
+    }
+
+    close() {
+        this.panel.setVisible(false);
+    }
+}
+
 class DiveScene extends Phaser.Scene {
     constructor() {
         super('DiveScene');
@@ -89,6 +114,7 @@ class DiveScene extends Phaser.Scene {
 
     preload() {
         this.load.image('bg', '../assets/bg.png');
+        this.load.image('panel', '../assets/panel.png');
         this.load.image('landscape', '../assets/landscape.png');
         this.load.image('platformtop', '../assets/platformtop.png');
         this.load.image('platformsection', '../assets/platformsection.png');
@@ -150,6 +176,8 @@ class DiveScene extends Phaser.Scene {
         dave.setDepth(12);
         jumping = false;
         waterLevel = this.sceneHeight - 100;
+
+        this.info = new Info(this);
 
         this.anims.create({
             key: 'idle', 
@@ -230,9 +258,14 @@ class DiveScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S, false),
             right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D, false),
             space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE, false),
+            enter: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER, false),
             r: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R, false),
             q: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q, false),
         };
+
+        this.input.on('pointerdown', () => {
+            this.resetScene();
+        })
 
         controls.up.on('up', () => {
             jumpReleasedAt = Date.now();
@@ -322,7 +355,13 @@ class DiveScene extends Phaser.Scene {
     }
     
     daveIsAboveBoard() {
-        return (dave.x + dave.width/4 > 0 && dave.x - dave.width/4 < springboard.x + springboard.width/2 - 10);
+        let result = (dave.x + dave.width/4 > 0 && dave.x - dave.width/4 < springboard.x + springboard.width/2 - 10) && dave.y + dave.height/2 < springboard.y - springboard.height/2 + 1;
+        if (result) {
+            console.log("reset total rotations");
+            this.sumRotation = 0;
+            this.totalRotations = 0;
+        }
+        return result;
     }
     
     daveIsTouchingBoard() {
@@ -346,6 +385,15 @@ class DiveScene extends Phaser.Scene {
             this.countRotations();
             if (dave.y > waterLevel) {
                 this.diveComplete = true;
+                let heightFromWater = this.sceneHeight - 50 - 797;
+                this.info.display(this, [
+                    "height: " + Math.round(heightFromWater/2/100 * 10) / 10 + "m",
+                    "entry angle: " + Math.round(dave.angle * 10) / 10, 
+                    "tucked: " + this.daveIsTucked(), 
+                    "tuck count: " + tuckCount, 
+                    "totalRotations: " + Math.round(this.totalRotations * 10) / 10,
+                    "(tap/click to dive again)"
+                ]);
                 console.log("entry angle: " + dave.angle, "tucked: " + this.daveIsTucked(), "tuck count: " + tuckCount);
                 console.log("sumRotation (radians): ", this.sumRotation, "totalRotations: ", this.totalRotations);
                 let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
@@ -353,7 +401,6 @@ class DiveScene extends Phaser.Scene {
                 splash.anims.play('splash');
                 splash.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
                     splash.destroy();
-                    setTimeout(() => fadeOutScene('DiveScene', this, getRandomInt(1500, 10000)), 500);
                 });
             }
         }
@@ -377,8 +424,17 @@ class DiveScene extends Phaser.Scene {
             this.currentAngle = daveRotation;
         }
     }
+
+    resetScene() {
+        if (this.diveComplete) {
+            setTimeout(() => fadeOutScene('DiveScene', this, getRandomInt(1500, 10000)), 500); 
+        }
+    }
     
     playerMovementHandler() {
+        if (controls.enter.isDown && this.diveComplete) {
+            this.resetScene();
+        }
         if ((controls.up.isDown || controls.space.isDown)) {
             if (this.daveIsAboveBoard() && this.daveIsTouchingBoard()) {
                 this.daveJump();
@@ -440,8 +496,8 @@ class DiveScene extends Phaser.Scene {
                 let yMax = s;
                 let yPos = getRandomInt(yMin, yMax);
                 let cloud = this.physics.add.sprite(getRandomInt(-256, WIDTH + 256), yPos, 'cloud');
-                cloud.setFrame(getRandomInt(0, 7));
-                cloud.flipX = getRandomInt(0, 1) === 0 ? true : false;
+                cloud.setFrame(getRandomInt(0, 8));
+                cloud.flipX = getRandomInt(0, 2) === 0 ? true : false;
                 cloud.body.setAllowGravity(false);
                 cloud.setVelocityX(getRandomInt(CLOUDMINSPEED, CLOUDMAXSPEED));
                 this.clouds.push(cloud);
