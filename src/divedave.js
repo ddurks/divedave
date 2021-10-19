@@ -67,6 +67,7 @@ class MainMenu extends Phaser.Scene {
 
 const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 150, MAX_BOOST = 200;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
+const MIN_BIRDS = 0, MAX_BIRDS = 3, BIRDMINSPEED = 50, BIRDMAXSPEED = 200;
 var springboard, dave;
 var controls, lastBoardDist, waterLevel, jumping, landedAt = null, jumpReleasedAt = null;
 var drag = 50, boost = 0, currentVelocity = MIN_SPIN_VELOCITY, tucked = false, tuckCount = 0;
@@ -105,6 +106,7 @@ class DiveScene extends Phaser.Scene {
         console.log(data);
         this.sceneHeight = data.height;
         this.clouds = new Array();
+        this.birds = new Array();
         this.diveComplete = false;
         this.sumRotation = 0;
         this.totalRotations = 0;
@@ -113,7 +115,6 @@ class DiveScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('bg', '../assets/bg.png');
         this.load.image('panel', '../assets/panel.png');
         this.load.image('landscape', '../assets/landscape.png');
         this.load.image('platformtop', '../assets/platformtop.png');
@@ -123,6 +124,7 @@ class DiveScene extends Phaser.Scene {
         this.load.spritesheet('water', '../assets/water.png', { frameWidth: 1250, frameHeight: 200, margin: 0, spacing: 0 });
         this.load.spritesheet('dave', '../assets/divedave-full.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });    
         this.load.spritesheet('cloud', 'assets/clouds.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
+        this.load.spritesheet('bird', '../assets/bird.png', { frameWidth: 128, frameHeight: 128, margin: 0, spacing: 0 });
         this.load.spritesheet('splash', 'assets/splash.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
     }
 
@@ -228,6 +230,14 @@ class DiveScene extends Phaser.Scene {
             repeat: 0
         });
 
+        this.anims.create({
+            key: 'fly', 
+            frameRate: 12,
+            frames: this.anims.generateFrameNumbers('bird', { frames: [0, 0, 0, 0, 1, 2, 3, 4, 3, 2, 1] }),
+            repeat: -1
+        });
+        this.spawnBirds();
+
         let water = this.add.sprite(WIDTH/2, this.sceneHeight- 100, 'water');
         water.setDepth(11);
         water.anims.play('idlewater');
@@ -297,6 +307,7 @@ class DiveScene extends Phaser.Scene {
     update() {
         this.physics.world.collide(dave, [springboard]);
         this.handleClouds();
+        this.handleBirds();
         this.playerHandler();
     }
 
@@ -356,8 +367,8 @@ class DiveScene extends Phaser.Scene {
     
     daveIsAboveBoard() {
         let result = (dave.x + dave.width/4 > 0 && dave.x - dave.width/4 < springboard.x + springboard.width/2 - 10) && dave.y + dave.height/2 < springboard.y - springboard.height/2 + 1;
-        if (result) {
-            console.log("reset total rotations");
+        if (result && this.sumRotation !== 0) {
+            console.log('reset rotations');
             this.sumRotation = 0;
             this.totalRotations = 0;
         }
@@ -512,7 +523,38 @@ class DiveScene extends Phaser.Scene {
                 let yPos = getRandomInt(0, yMax);
                 cloud.setPosition(-cloud.width*2, yPos);
                 cloud.setVelocityX(getRandomInt(CLOUDMINSPEED, CLOUDMAXSPEED));
-                cloud.setFrame(getRandomInt(0, 7));
+                cloud.setFrame(getRandomInt(0, 8));
+            }
+        });
+    }
+
+    spawnBirds() {
+        let segmentSize = 1000;
+        for (let s = segmentSize; s < this.sceneHeight - 500 + 1; s+=segmentSize) {
+            for (let i = 0; i < getRandomInt(MIN_BIRDS, MAX_BIRDS); i++) {
+                let yMin = s - segmentSize;
+                let yMax = s;
+                let yPos = getRandomInt(yMin, yMax);
+                let bird = this.physics.add.sprite(getRandomInt(-128, WIDTH + 128), yPos, 'bird');
+                bird.body.setAllowGravity(false);
+                bird.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
+                setTimeout(() => {
+                    if (bird && bird.anims) {
+                        bird.anims.play('fly', true);
+                    }
+                }, getRandomInt(0, 750))
+                this.birds.push(bird);
+            }
+        }
+    }
+
+    handleBirds() {
+        this.birds.forEach( bird => {
+            if (bird.x + bird.width/2 < 0 ) {
+                let yMax = this.sceneHeight - 500;
+                let yPos = getRandomInt(0, yMax);
+                bird.setPosition(WIDTH+bird.width*2, yPos);
+                bird.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
             }
         });
     }
