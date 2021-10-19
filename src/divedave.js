@@ -36,9 +36,18 @@ class MainMenu extends Phaser.Scene {
         super('MainMenu');
     }
 
+    preload() {
+        this.load.image('cover', '../assets/cover.png');
+    }
+
     create() {
         this.input.keyboard.on('keydown', this.handleKey, this);
-        var text = this.add.text(WIDTH/2, HEIGHT/2, 'Dive Dave. Hit Enter To Start', { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '32px '}).setOrigin(0.5);
+        var cover = this.add.image(WIDTH/2, HEIGHT/2  - 100, 'cover');
+        cover.setScale(2);
+        var text = this.add.text(WIDTH/2, HEIGHT/2 + 450, 'start', { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '100px', fontStyle: 'bold'}).setOrigin(0.5);
+        text.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+            this.clickStart(this);
+        })
     }
 
     handleKey(e) {
@@ -385,7 +394,6 @@ class DiveScene extends Phaser.Scene {
             if (!this.daveIsTucked()) {
                 tucked = true;
                 dave.setFrame(7);
-                tuckCount++;
                 console.log(tuckCount);
             }
             if (currentVelocity < MAX_SPIN_VELOCITY) {
