@@ -25,11 +25,11 @@ getRandomInt = function(min, max) {
 
 diff = function (num1, num2) {
     if (num1 > num2) {
-      return num1 - num2
+        return num1 - num2
     } else {
-      return num2 - num1
+        return num2 - num1
     }
-  }
+}
 
 class MainMenu extends Phaser.Scene {
     constructor() {
@@ -65,14 +65,14 @@ class MainMenu extends Phaser.Scene {
     }
 }
 
-const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 125, MAX_BOOST = 200;
+const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 125, MAX_BOOST = 200;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
 const MIN_BIRDS = 0, MAX_BIRDS = 3, BIRDMINSPEED = 50, BIRDMAXSPEED = 200;
 var springboard, dave;
-var controls, lastBoardDist, waterLevel, jumping, landedAt = null, jumpReleasedAt = null;
-var drag = 50, boost = 0, currentVelocity = MIN_SPIN_VELOCITY, currentAngularDrag = ANGULAR_DRAG, tucked = false, tuckCount = 0;
+var controls, waterLevel, jumping, landedAt = null, jumpReleasedAt = null;
+var boost = 0, currentVelocity = MIN_SPIN_VELOCITY, tucked = false, tuckCount = 0;
 
-class Info extends Phaser.GameObjects.Group {
+class InfoPanel extends Phaser.GameObjects.Group {
     constructor(scene) {
         super(scene);
         this.panel = scene.add.image(WIDTH/2, HEIGHT/2, 'panel');
@@ -146,7 +146,7 @@ class DiveScene extends Phaser.Scene {
 
     create() {
         this.physics.world.setBounds(0, 0, WIDTH, this.sceneHeight);
-        let landscape = this.add.image(WIDTH/2, this.sceneHeight-250, 'landscape')
+        this.add.image(WIDTH/2, this.sceneHeight-250, 'landscape');
         let platform = this.add.image(205, 797, 'platformtop');
         platform.setDepth(10);
         for (let i = 897; i < this.sceneHeight - 200; i+=100) {
@@ -182,12 +182,12 @@ class DiveScene extends Phaser.Scene {
         springboard = this.physics.add.sprite(WIDTH/4, HEIGHT/2 + 40, 'springboard');
         springboard.body.setAllowGravity(false);
         springboard.body.setImmovable(true);
-        springboard.setDepth(11)
+        springboard.setDepth(11);
     
         dave = this.physics.add.sprite(WIDTH/8, HEIGHT/3, 'dave');
         dave.body.setSize(64, 256);
         dave.body.setAllowGravity(true);
-        dave.speed = 300;
+        dave.speed = DAVE_SPEED;
         dave.setDrag(DRAG, 1);
         dave.body.setAngularDrag(ANGULAR_DRAG);
         dave.body.setAllowDrag(true);
@@ -195,7 +195,7 @@ class DiveScene extends Phaser.Scene {
         jumping = false;
         waterLevel = this.sceneHeight - 100;
 
-        this.info = new Info(this);
+        this.info = new InfoPanel(this);
 
         this.anims.create({
             key: 'idle', 
@@ -252,6 +252,7 @@ class DiveScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('bird', { frames: [0, 0, 0, 0, 1, 2, 3, 4, 3, 2, 1] }),
             repeat: -1
         });
+        
         this.spawnBirds();
 
         let water = this.add.sprite(WIDTH/2, this.sceneHeight- 100, 'water');
@@ -447,7 +448,6 @@ class DiveScene extends Phaser.Scene {
 
     chooseEmotionFrame(angle) {
         angle = Math.abs(angle);
-
         if (angle < 10 || angle > 170) {
             return 4;
         } else if ( (angle >= 10 && angle < 25) || (angle <= 170 && angle > 155) ) {
