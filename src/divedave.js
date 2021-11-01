@@ -65,12 +65,12 @@ class MainMenu extends Phaser.Scene {
     }
 }
 
-const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 150, MAX_BOOST = 200;
+const WIDTH=1250, HEIGHT=1500, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 125, MAX_BOOST = 200;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
 const MIN_BIRDS = 0, MAX_BIRDS = 3, BIRDMINSPEED = 50, BIRDMAXSPEED = 200;
 var springboard, dave;
 var controls, lastBoardDist, waterLevel, jumping, landedAt = null, jumpReleasedAt = null;
-var drag = 50, boost = 0, currentVelocity = MIN_SPIN_VELOCITY, tucked = false, tuckCount = 0;
+var drag = 50, boost = 0, currentVelocity = MIN_SPIN_VELOCITY, currentAngularDrag = ANGULAR_DRAG, tucked = false, tuckCount = 0;
 
 class Info extends Phaser.GameObjects.Group {
     constructor(scene) {
@@ -79,21 +79,30 @@ class Info extends Phaser.GameObjects.Group {
         this.panel.setVisible(false);
         this.panel.setScrollFactor(0);
         this.panel.setDepth(20);
+        this.daveimage = scene.add.sprite(WIDTH/2, HEIGHT/2 - 250, 'davemotions');
+        this.daveimage.setVisible(false);
+        this.daveimage.setScrollFactor(0);
+        this.daveimage.setScale(0.5);
+        this.daveimage.setFrame(2);
+        this.daveimage.setDepth(21);
     }
 
-    display(scene, strings) {
-        let height = HEIGHT/2 - 150;
+    display(scene, strings, frame) {
+        let height = HEIGHT/2 - 75;
         strings.forEach(string => {
             let temp = scene.add.text(WIDTH/2, height, string, { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '64px', fontStyle: 'bold'}).setOrigin(0.5);
             temp.setScrollFactor(0);
             temp.setDepth(21);
-            height += 100;
+            height += 90;
         });
         this.panel.setVisible(true);
+        this.daveimage.setFrame(frame);
+        this.daveimage.setVisible(true);
     }
 
     close() {
         this.panel.setVisible(false);
+        this.daveimage.setVisible(false);
     }
 }
 
@@ -112,6 +121,12 @@ class DiveScene extends Phaser.Scene {
         this.totalRotations = 0;
         this.previousAngle = 0;
         this.currentAngle = 0;
+        this.stats = {
+            angle: 0,
+            tucked: false,
+            tuckCount: 0,
+            rotations: 0
+        }
     }
 
     preload() {
@@ -122,10 +137,11 @@ class DiveScene extends Phaser.Scene {
         this.load.image('platformbase', '../assets/platformbase.png');
         this.load.spritesheet('springboard', '../assets/board.png', { frameWidth: 440, frameHeight: 64, margin: 0, spacing: 0 });
         this.load.spritesheet('water', '../assets/water.png', { frameWidth: 1250, frameHeight: 200, margin: 0, spacing: 0 });
-        this.load.spritesheet('dave', '../assets/divedave-full.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });    
+        this.load.spritesheet('dave', '../assets/divedave-full.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
         this.load.spritesheet('cloud', 'assets/clouds.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
         this.load.spritesheet('bird', '../assets/bird.png', { frameWidth: 128, frameHeight: 128, margin: 0, spacing: 0 });
         this.load.spritesheet('splash', 'assets/splash.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
+        this.load.spritesheet('davemotions', '../assets/divedave-emotions.png', { frameWidth: 600, frameHeight: 640, margin: 0, spacing: 0 }); 
     }
 
     create() {
@@ -279,6 +295,10 @@ class DiveScene extends Phaser.Scene {
 
         controls.up.on('up', () => {
             jumpReleasedAt = Date.now();
+        });
+
+        this.input.on('pointerup', () => {
+            jumpReleasedAt = Date.now();
         })
 
         tucked = false;
@@ -339,7 +359,7 @@ class DiveScene extends Phaser.Scene {
                         dave.anims.play('idle', true);
                     }
                 } else {
-                    if (dave.body.velocity.y < -50) {
+                    if (dave.body.velocity.y < 0) {
                         if (dave.body.velocity.x < 0) {
                             dave.setFrame(15);
                         } else {
@@ -380,7 +400,10 @@ class DiveScene extends Phaser.Scene {
     }
     
     daveIsTucked() {
-        return dave.frame.name === 7;
+        if (tucked) {
+            dave.setFrame(7)
+        }
+        return dave.frame.name === 7 || tucked;
     }
     
     daveJump() {
@@ -397,16 +420,21 @@ class DiveScene extends Phaser.Scene {
             if (dave.y > waterLevel) {
                 this.diveComplete = true;
                 let heightFromWater = this.sceneHeight - 50 - 797;
+                this.stats = {
+                    height: Math.round(heightFromWater/2/100 * 10) / 10,
+                    angle: Math.round(dave.angle * 10) / 10,
+                    tucked: this.daveIsTucked(),
+                    tuckCount: tuckCount,
+                    rotations: Math.round(this.totalRotations * 10) / 10
+                }
                 this.info.display(this, [
-                    "height: " + Math.round(heightFromWater/2/100 * 10) / 10 + "m",
-                    "entry angle: " + Math.round(dave.angle * 10) / 10, 
-                    "tucked: " + this.daveIsTucked(), 
-                    "tuck count: " + tuckCount, 
-                    "totalRotations: " + Math.round(this.totalRotations * 10) / 10,
+                    "height: " + this.stats.height + "m",
+                    "entry angle: " + this.stats.angle, 
+                    "tucked: " + this.stats.tucked,
+                    "tuck count: " + this.stats.tuckCount,
+                    "totalRotations: " + this.stats.rotations,
                     "(tap/click to dive again)"
-                ]);
-                console.log("entry angle: " + dave.angle, "tucked: " + this.daveIsTucked(), "tuck count: " + tuckCount);
-                console.log("sumRotation (radians): ", this.sumRotation, "totalRotations: ", this.totalRotations);
+                ], this.chooseEmotionFrame(this.stats.angle));
                 let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
                 splash.setDepth(14);
                 splash.anims.play('splash');
@@ -415,6 +443,23 @@ class DiveScene extends Phaser.Scene {
                 });
             }
         }
+    }
+
+    chooseEmotionFrame(angle) {
+        angle = Math.abs(angle);
+
+        if (angle < 10 || angle > 170) {
+            return 4;
+        } else if ( (angle >= 10 && angle < 25) || (angle <= 170 && angle > 155) ) {
+            return 3;
+        } else if ( (angle >= 25 && angle < 45) || (angle <= 155 && angle > 135) ) {
+            return 2;
+        } else if ( (angle >= 45 && angle < 70) || (angle <= 135 && angle > 110) ) {
+            return 1;
+        } else if ( (angle >= 70 && angle < 110) ) {
+            return 0;
+        }
+        return 2;
     }
 
     countRotations() {
@@ -434,6 +479,23 @@ class DiveScene extends Phaser.Scene {
             this.previousAngle = this.currentAngle;
             this.currentAngle = daveRotation;
         }
+    }
+
+    scoreDive() {
+        let scores = [ 10, 10, 10 ];
+        if (this.stats.angle < 0) {
+
+        } else if (this.stats.angle > 0) {
+
+        }
+        scores.forEach(score => {
+            if (this.stats.tucked) {
+                score-=getRandomInt(2,4);
+            }
+            if (this.stats.tuckCount > 1) {
+                score-=tuckCount;
+            }
+        });
     }
 
     resetScene() {
@@ -457,45 +519,65 @@ class DiveScene extends Phaser.Scene {
         if (controls.right.isDown) {
             dave.setVelocityX(dave.speed);
         }
-        if ( (controls.r.isDown || controls.q.isDown) && !this.daveIsAboveBoard()) {
-            if (!this.daveIsTucked()) {
-                tucked = true;
-                dave.setFrame(7);
-                console.log(tuckCount);
-            }
-            if (currentVelocity < MAX_SPIN_VELOCITY) {
-                currentVelocity+=5;
-            }
-            if (controls.r.isDown) {
-                dave.body.setAngularVelocity(currentVelocity);
-            } else if (controls.q.isDown) {
-                dave.body.setAngularVelocity(-currentVelocity);
+        if ( (controls.r.isDown || controls.q.isDown)) {
+            if (!this.daveIsAboveBoard()) {
+                if (!this.daveIsTucked()) {
+                    tucked = true;
+                    tuckCount++;
+                }
+                if (currentVelocity < MAX_SPIN_VELOCITY) {
+                    currentVelocity+=5;
+                } else if (currentVelocity < MAX_SPIN_VELOCITY + 200) {
+                    currentVelocity+=1;
+                }
+                if (controls.r.isDown) {
+                    dave.body.setAngularVelocity(currentVelocity);
+                } else if (controls.q.isDown) {
+                    dave.body.setAngularVelocity(-currentVelocity);
+                }
             }
         } else {
-            if (tucked === true) {
-                tucked = false;
-                currentVelocity = MIN_SPIN_VELOCITY;
-            }
+            tucked = false;
+            currentVelocity = MIN_SPIN_VELOCITY;
         }
     }
     
     playerMobileMovementHandler() {
-        var pointer = game.scene.input.activePointer;
+        var pointer = this.input.activePointer;
         if ((pointer.isDown)) {
             var touchX = pointer.x;
             var touchY = pointer.y;
             var touchWorldPoint = this.cameras.main.getWorldPoint(touchX, touchY);
-            if (touchWorldPoint.y <= GROUNDY-PLAYER_SIZE*GLOBAL_SCALE && dave.body.velocity.y === 0 && dave.y >= GROUNDY - PLAYER_SIZE*GLOBAL_SCALE - GLOBAL_SCALE) {
-                dave.setVelocityY(- JUMP_VELOCITY);
+            if (this.diveComplete) {
+                this.resetScene();
             } else {
-                if (touchWorldPoint.x > dave.body.position.x + PLAYER_SIZE*GLOBAL_SCALE/2) {
-                    dave.setVelocityX(dave.speed);
-                } else if (touchWorldPoint.x < dave.body.position.x - PLAYER_SIZE*GLOBAL_SCALE/2) {
-                    dave.setVelocityX(-dave.speed);
-                } else if (dave.body.velocity.y === 0 && dave.y >= GROUNDY - PLAYER_SIZE*GLOBAL_SCALE - GLOBAL_SCALE) {
-                    dave.setVelocityY(- JUMP_VELOCITY);
+                if (this.daveIsAboveBoard()) {
+                    if (touchWorldPoint.y < dave.y && this.daveIsTouchingBoard()) {
+                        this.daveJump();
+                    } else {
+                        if (touchWorldPoint.x < dave.x - dave.width/2) {
+                            dave.setVelocityX(-dave.speed);
+                        } else if (touchWorldPoint.x > dave.x + dave.width/2) {
+                            dave.setVelocityX(dave.speed);
+                        }
+                    }
+                } else {
+                    if (!this.daveIsTucked()) {
+                        tucked = true;
+                        tuckCount++;
+                    } else {
+                        if (currentVelocity < MAX_SPIN_VELOCITY) {
+                            currentVelocity+=5;
+                        } else if (currentVelocity < MAX_SPIN_VELOCITY + 200) {
+                            currentVelocity+=1;
+                        }
+                    }
+                    dave.body.setAngularVelocity(currentVelocity);
                 }
             }
+        } else {
+            tucked = false;
+            currentVelocity = MIN_SPIN_VELOCITY;
         }
     }
 
