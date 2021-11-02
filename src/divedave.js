@@ -65,7 +65,7 @@ class MainMenu extends Phaser.Scene {
     }
 }
 
-const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 50, MAX_BOOST = 200;
+const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 50, MAX_BOOST = 200, IDLE_DELAY = 1000;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
 const MIN_BIRDS = 0, MAX_BIRDS = 3, BIRDMINSPEED = 50, BIRDMAXSPEED = 200;
 var springboard, dave;
@@ -205,7 +205,7 @@ class DiveScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('dave', { frames: [18, 18, 18, 18, 18, 19, 20, 21] }),
             repeat: -1
         });
-        dave.anims.play('idle', true);
+        setTimeout(dave.anims.play('idle', true), IDLE_DELAY);
     
         this.anims.create({
             key: 'walkright', 
@@ -275,7 +275,7 @@ class DiveScene extends Phaser.Scene {
         this.physics.add.collider(dave, springboard, (dave, springboard) => {
             if (!landedAt) {
                 landedAt = Date.now();
-                dave.anims.play('idle', true);
+                setTimeout(dave.anims.play('idle', true), IDLE_DELAY);
             }
         })
     
@@ -357,7 +357,7 @@ class DiveScene extends Phaser.Scene {
                     } else if (dave.body.velocity.x < 0) {
                         dave.anims.play('walkleft', true);
                     } else {
-                        dave.anims.play('idle', true);
+                        setTimeout(dave.anims.play('idle', true), IDLE_DELAY);
                     }
                 } else {
                     if (dave.body.velocity.y < 0) {
