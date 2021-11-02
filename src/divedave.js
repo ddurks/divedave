@@ -65,7 +65,7 @@ class MainMenu extends Phaser.Scene {
     }
 }
 
-const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 125, MAX_BOOST = 200;
+const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 50, MAX_BOOST = 200;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
 const MIN_BIRDS = 0, MAX_BIRDS = 3, BIRDMINSPEED = 50, BIRDMAXSPEED = 200;
 var springboard, dave;
@@ -75,34 +75,38 @@ var boost = 0, currentVelocity = MIN_SPIN_VELOCITY, tucked = false, tuckCount = 
 class InfoPanel extends Phaser.GameObjects.Group {
     constructor(scene) {
         super(scene);
-        this.panel = scene.add.image(WIDTH/2, HEIGHT/2, 'panel');
-        this.panel.setVisible(false);
-        this.panel.setScrollFactor(0);
-        this.panel.setDepth(20);
-        this.daveimage = scene.add.sprite(WIDTH/2, HEIGHT/2 - 250, 'davemotions');
-        this.daveimage.setVisible(false);
-        this.daveimage.setScrollFactor(0);
-        this.daveimage.setScale(0.5);
-        this.daveimage.setFrame(2);
-        this.daveimage.setDepth(21);
+        this.panel = scene.add.image(WIDTH/2, HEIGHT/2, 'panel').setVisible(false).setScrollFactor(0).setDepth(20);
+        this.daveimage = scene.add.sprite(WIDTH/2, HEIGHT/2 - 250, 'davemotions').setVisible(false).setScrollFactor(0).setScale(2).setFrame(2).setDepth(21);
+        this.score1 = scene.add.image(WIDTH/2 - 275, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
+        this.score2 = scene.add.image(WIDTH/2, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
+        this.score3 = scene.add.image(WIDTH/2 + 275, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
     }
 
-    display(scene, strings, frame) {
-        let height = HEIGHT/2 - 75;
+    display(scene, strings, frame, scores) {
+        let height = HEIGHT/2 - 50;
         strings.forEach(string => {
-            let temp = scene.add.text(WIDTH/2, height, string, { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '64px', fontStyle: 'bold'}).setOrigin(0.5);
-            temp.setScrollFactor(0);
-            temp.setDepth(21);
+            scene.add.text(WIDTH/2, height, string, { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '64px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(21);
             height += 90;
         });
+        let width = WIDTH/2 - 275;
+        scores.forEach(score => {
+            scene.add.text(width, HEIGHT/2 + 325, score, { align: 'center', color: 'red', fontFamily: 'Arial', fontSize: '100px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(23);
+            width += 275;
+        })
         this.panel.setVisible(true);
         this.daveimage.setFrame(frame);
         this.daveimage.setVisible(true);
+        this.score1.setVisible(true);
+        this.score2.setVisible(true);
+        this.score3.setVisible(true);
     }
 
     close() {
         this.panel.setVisible(false);
         this.daveimage.setVisible(false);
+        this.score1.setVisible(false);
+        this.score2.setVisible(true);
+        this.score3.setVisible(true);
     }
 }
 
@@ -117,6 +121,7 @@ class DiveScene extends Phaser.Scene {
         this.clouds = new Array();
         this.birds = new Array();
         this.diveComplete = false;
+        this.readyForReset = false;
         this.sumRotation = 0;
         this.totalRotations = 0;
         this.previousAngle = 0;
@@ -125,7 +130,8 @@ class DiveScene extends Phaser.Scene {
             angle: 0,
             tucked: false,
             tuckCount: 0,
-            rotations: 0
+            rotations: 0,
+            scores: [0, 0, 0]
         }
     }
 
@@ -135,26 +141,24 @@ class DiveScene extends Phaser.Scene {
         this.load.image('platformtop', '../assets/platformtop.png');
         this.load.image('platformsection', '../assets/platformsection.png');
         this.load.image('platformbase', '../assets/platformbase.png');
+        this.load.image('sign', '../assets/sign.png');
         this.load.spritesheet('springboard', '../assets/board.png', { frameWidth: 440, frameHeight: 64, margin: 0, spacing: 0 });
         this.load.spritesheet('water', '../assets/water.png', { frameWidth: 1250, frameHeight: 200, margin: 0, spacing: 0 });
         this.load.spritesheet('dave', '../assets/divedave-full.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
         this.load.spritesheet('cloud', 'assets/clouds.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
         this.load.spritesheet('bird', '../assets/bird.png', { frameWidth: 128, frameHeight: 128, margin: 0, spacing: 0 });
         this.load.spritesheet('splash', 'assets/splash.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
-        this.load.spritesheet('davemotions', '../assets/divedave-emotions.png', { frameWidth: 600, frameHeight: 640, margin: 0, spacing: 0 }); 
+        this.load.spritesheet('davemotions', '../assets/divedave-emotions.png', { frameWidth: 150, frameHeight: 160, margin: 0, spacing: 0 }); 
     }
 
     create() {
         this.physics.world.setBounds(0, 0, WIDTH, this.sceneHeight);
         this.add.image(WIDTH/2, this.sceneHeight-250, 'landscape');
-        let platform = this.add.image(205, 797, 'platformtop');
-        platform.setDepth(10);
+        this.add.image(205, 797, 'platformtop').setDepth(10);
         for (let i = 897; i < this.sceneHeight - 200; i+=100) {
-            let section = this.add.image(205, i, 'platformsection');
-            section.setDepth(9);
+            this.add.image(205, i, 'platformsection').setDepth(9);
         }
-        let platformBase = this.add.image(205, this.sceneHeight - 200, 'platformbase');
-        platformBase.setDepth(10);
+        this.add.image(205, this.sceneHeight - 200, 'platformbase').setDepth(10);
 
         this.spawnClouds();
     
@@ -179,19 +183,17 @@ class DiveScene extends Phaser.Scene {
             heightFromWater--;
         }
     
-        springboard = this.physics.add.sprite(WIDTH/4, HEIGHT/2 + 40, 'springboard');
+        springboard = this.physics.add.sprite(WIDTH/4, HEIGHT/2 + 40, 'springboard').setDepth(11);
         springboard.body.setAllowGravity(false);
         springboard.body.setImmovable(true);
-        springboard.setDepth(11);
     
-        dave = this.physics.add.sprite(WIDTH/8, HEIGHT/3, 'dave');
+        dave = this.physics.add.sprite(WIDTH/8, HEIGHT/3, 'dave').setDepth(12);
         dave.body.setSize(64, 256);
         dave.body.setAllowGravity(true);
         dave.speed = DAVE_SPEED;
         dave.setDrag(DRAG, 1);
         dave.body.setAngularDrag(ANGULAR_DRAG);
         dave.body.setAllowDrag(true);
-        dave.setDepth(12);
         jumping = false;
         waterLevel = this.sceneHeight - 100;
 
@@ -255,11 +257,9 @@ class DiveScene extends Phaser.Scene {
         
         this.spawnBirds();
 
-        let water = this.add.sprite(WIDTH/2, this.sceneHeight- 100, 'water');
-        water.setDepth(11);
+        let water = this.add.sprite(WIDTH/2, this.sceneHeight- 100, 'water').setDepth(11);
         water.anims.play('idlewater');
-        let outerwater = this.add.sprite(WIDTH/2, this.sceneHeight - 50, 'water');
-        outerwater.setDepth(13);
+        let outerwater = this.add.sprite(WIDTH/2, this.sceneHeight - 50, 'water').setDepth(13);
         outerwater.anims.play('idlewater');
     
         dave.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
@@ -389,7 +389,6 @@ class DiveScene extends Phaser.Scene {
     daveIsAboveBoard() {
         let result = (dave.x + dave.width/4 > 0 && dave.x - dave.width/4 < springboard.x + springboard.width/2 - 10) && dave.y + dave.height/2 < springboard.y - springboard.height/2 + 1;
         if (result && this.sumRotation !== 0) {
-            console.log('reset rotations');
             this.sumRotation = 0;
             this.totalRotations = 0;
         }
@@ -417,7 +416,6 @@ class DiveScene extends Phaser.Scene {
     
     checkForReset() {
         if (!this.diveComplete) {
-            this.countRotations();
             if (dave.y > waterLevel) {
                 this.diveComplete = true;
                 let heightFromWater = this.sceneHeight - 50 - 797;
@@ -426,23 +424,26 @@ class DiveScene extends Phaser.Scene {
                     angle: Math.round(dave.angle * 10) / 10,
                     tucked: this.daveIsTucked(),
                     tuckCount: tuckCount,
-                    rotations: Math.round(this.totalRotations * 10) / 10
+                    rotations: Math.round(this.totalRotations * 10) / 10,
+                    scores: [0, 0, 0]
                 }
+                this.scoreDive();
                 this.info.display(this, [
                     "height: " + this.stats.height + "m",
                     "entry angle: " + this.stats.angle, 
-                    "tucked: " + this.stats.tucked,
-                    "tuck count: " + this.stats.tuckCount,
-                    "totalRotations: " + this.stats.rotations,
-                    "(tap/click to dive again)"
-                ], this.chooseEmotionFrame(this.stats.angle));
+                    "rotations: " + this.stats.rotations
+                ], this.chooseEmotionFrame(this.stats.angle), this.stats.scores);
                 let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
                 splash.setDepth(14);
                 splash.anims.play('splash');
                 splash.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
                     splash.destroy();
                 });
+                setTimeout(() => {
+                    this.readyForReset = true;
+                }, 1000);
             }
+            this.countRotations();
         }
     }
 
@@ -482,24 +483,13 @@ class DiveScene extends Phaser.Scene {
     }
 
     scoreDive() {
-        let scores = [ 10, 10, 10 ];
-        if (this.stats.angle < 0) {
-
-        } else if (this.stats.angle > 0) {
-
-        }
-        scores.forEach(score => {
-            if (this.stats.tucked) {
-                score-=getRandomInt(2,4);
-            }
-            if (this.stats.tuckCount > 1) {
-                score-=tuckCount;
-            }
+        this.stats.scores.forEach( (score, index, scores) => {
+            scores[index] = 10;
         });
     }
 
     resetScene() {
-        if (this.diveComplete) {
+        if (this.diveComplete && this.readyForReset) {
             setTimeout(() => fadeOutScene('DiveScene', this, getRandomInt(1500, 10000)), 500); 
         }
     }
