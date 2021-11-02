@@ -205,7 +205,7 @@ class DiveScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('dave', { frames: [18, 18, 18, 18, 18, 19, 20, 21] }),
             repeat: -1
         });
-        setTimeout(dave.anims.play('idle', true), IDLE_DELAY);
+        setTimeout(() => dave.anims.play('idle', true), IDLE_DELAY);
     
         this.anims.create({
             key: 'walkright', 
@@ -275,7 +275,7 @@ class DiveScene extends Phaser.Scene {
         this.physics.add.collider(dave, springboard, (dave, springboard) => {
             if (!landedAt) {
                 landedAt = Date.now();
-                setTimeout(dave.anims.play('idle', true), IDLE_DELAY);
+                setTimeout(() => dave.anims.play('idle', true), IDLE_DELAY);
             }
         })
     
@@ -357,7 +357,7 @@ class DiveScene extends Phaser.Scene {
                     } else if (dave.body.velocity.x < 0) {
                         dave.anims.play('walkleft', true);
                     } else {
-                        setTimeout(dave.anims.play('idle', true), IDLE_DELAY);
+                        setTimeout(() => dave.anims.play('idle', true), IDLE_DELAY);
                     }
                 } else {
                     if (dave.body.velocity.y < 0) {
