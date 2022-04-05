@@ -142,6 +142,10 @@ class DiveScene extends Phaser.Scene {
         this.load.image('platformsection', '../assets/platformsection.png');
         this.load.image('platformbase', '../assets/platformbase.png');
         this.load.image('sign', '../assets/sign.png');
+        this.load.bitmapFont('Arial', '../assets/fonts/Arial20.png', '../assets/fonts/Arial20.xml');
+        this.load.bitmapFont('green-arial', '../assets/fonts/green-arial.png', '../assets/fonts/green-arial.xml');
+        this.load.bitmapFont('yellow-arial', '../assets/fonts/yellow-arial.png', '../assets/fonts/yellow-arial.xml');
+        this.load.bitmapFont('red-arial', '../assets/fonts/red-arial.png', '../assets/fonts/red-arial.xml');
         this.load.spritesheet('springboard', '../assets/board.png', { frameWidth: 440, frameHeight: 64, margin: 0, spacing: 0 });
         this.load.spritesheet('water', '../assets/water.png', { frameWidth: 1250, frameHeight: 200, margin: 0, spacing: 0 });
         this.load.spritesheet('dave', '../assets/divedave-spritesheet-extruded.png', { frameWidth: 256, frameHeight: 256, margin: 1, spacing: 2 });
@@ -165,20 +169,19 @@ class DiveScene extends Phaser.Scene {
         let heightFromWater = this.sceneHeight - 50 - 797;
         this.add.text(WIDTH - 250, 797 - 10, "   " + Math.round(heightFromWater/2/100 * 10) / 10 + "m", { color: 'white', fontFamily: 'Arial', fontSize: '50px', fontStyle: 'bold'});
         heightFromWater--;
-        let curr
         for (let i = 798; i < this.sceneHeight - 50; i++) {
-            let labelColor = 'red';
+            let labelColor = 'red-arial';
             let currHeight = heightFromWater/2/100;
             if (currHeight < 25) {
-                labelColor = 'yellow';
+                labelColor = 'yellow-arial';
             }
             if (currHeight < 10) {
-                labelColor = 'green'
+                labelColor = 'green-arial'
             }
             if ( heightFromWater%200 === 0 ) {
-                this.add.text(WIDTH - 250, i, "-- " + currHeight, { color: labelColor, fontFamily: 'Arial', fontSize: '32px', fontStyle: 'bold'});
+                this.add.bitmapText(WIDTH - 250, i, labelColor, "-- " + currHeight, 32).setActive(false);
             } else if ( heightFromWater%20 === 0 ) {
-                this.add.text(WIDTH - 250, i, "-", { color: labelColor, fontFamily: 'Arial', fontSize: '32px'});
+                this.add.bitmapText(WIDTH - 250, i, labelColor, "-", 32).setActive(false);
             }
             heightFromWater--;
         }
@@ -260,7 +263,7 @@ class DiveScene extends Phaser.Scene {
         water.anims.play('idlewater');
         let outerwater = this.add.sprite(WIDTH/2, this.sceneHeight - 50, 'water').setDepth(13);
         outerwater.anims.play('idlewater');
-    
+
         dave.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
             jumping = false;
             this.calculateBoost();
@@ -488,7 +491,7 @@ class DiveScene extends Phaser.Scene {
 
     resetScene() {
         if (this.diveComplete && this.readyForReset) {
-            setTimeout(() => fadeOutScene('DiveScene', this, getRandomInt(1500, 10000)), 500); 
+            this.scene.restart({ height: getRandomInt(1500, 10000) }); 
         }
     }
     
