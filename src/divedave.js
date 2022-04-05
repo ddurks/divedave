@@ -144,7 +144,7 @@ class DiveScene extends Phaser.Scene {
         this.load.image('sign', '../assets/sign.png');
         this.load.spritesheet('springboard', '../assets/board.png', { frameWidth: 440, frameHeight: 64, margin: 0, spacing: 0 });
         this.load.spritesheet('water', '../assets/water.png', { frameWidth: 1250, frameHeight: 200, margin: 0, spacing: 0 });
-        this.load.spritesheet('dave', '../assets/divedave-full.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
+        this.load.spritesheet('dave', '../assets/divedave-spritesheet-extruded.png', { frameWidth: 256, frameHeight: 256, margin: 1, spacing: 2 });
         this.load.spritesheet('cloud', 'assets/clouds.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
         this.load.spritesheet('bird', '../assets/bird.png', { frameWidth: 128, frameHeight: 128, margin: 0, spacing: 0 });
         this.load.spritesheet('splash', 'assets/splash.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
@@ -205,7 +205,6 @@ class DiveScene extends Phaser.Scene {
             frames: this.anims.generateFrameNumbers('dave', { frames: [18, 18, 18, 18, 18, 19, 20, 21] }),
             repeat: -1
         });
-        setTimeout(() => dave.anims.play('idle', true), IDLE_DELAY);
     
         this.anims.create({
             key: 'walkright', 
@@ -275,7 +274,6 @@ class DiveScene extends Phaser.Scene {
         this.physics.add.collider(dave, springboard, (dave, springboard) => {
             if (!landedAt) {
                 landedAt = Date.now();
-                setTimeout(() => dave.anims.play('idle', true), IDLE_DELAY);
             }
         })
     
@@ -356,8 +354,8 @@ class DiveScene extends Phaser.Scene {
                         dave.anims.play('walkright', true);
                     } else if (dave.body.velocity.x < 0) {
                         dave.anims.play('walkleft', true);
-                    } else {
-                        setTimeout(() => dave.anims.play('idle', true), IDLE_DELAY);
+                    } else if (dave.anims.getName() !== 'idle') {
+                        dave.anims.play('idle', true);
                     }
                 } else {
                     if (dave.body.velocity.y < 0) {
