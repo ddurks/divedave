@@ -166,10 +166,11 @@ class DiveScene extends Phaser.Scene {
 
         this.spawnClouds();
     
-        let heightFromWater = this.sceneHeight - 50 - 797;
+        waterLevel = this.sceneHeight - 100;
+        let heightFromWater = waterLevel - 797;
         this.add.text(WIDTH - 250, 797 - 10, "   " + Math.round(heightFromWater/2/100 * 10) / 10 + "m", { color: 'white', fontFamily: 'Arial', fontSize: '50px', fontStyle: 'bold'});
         heightFromWater--;
-        for (let i = 798; i < this.sceneHeight - 50; i++) {
+        for (let i = 798; i < waterLevel; i++) {
             let labelColor = 'red-arial';
             let currHeight = heightFromWater/2/100;
             if (currHeight < 25) {
@@ -179,9 +180,9 @@ class DiveScene extends Phaser.Scene {
                 labelColor = 'green-arial'
             }
             if ( heightFromWater%200 === 0 ) {
-                this.add.bitmapText(WIDTH - 250, i, labelColor, "-- " + currHeight, 32).setActive(false);
+                this.add.bitmapText(WIDTH - 250, i, labelColor, "-- " + currHeight, 32).setDepth(14).setActive(false);
             } else if ( heightFromWater%20 === 0 ) {
-                this.add.bitmapText(WIDTH - 250, i, labelColor, "-", 32).setActive(false);
+                this.add.bitmapText(WIDTH - 250, i, labelColor, "-", 32).setDepth(14).setActive(false);
             }
             heightFromWater--;
         }
@@ -191,6 +192,7 @@ class DiveScene extends Phaser.Scene {
         springboard.body.setImmovable(true);
     
         dave = this.physics.add.sprite(WIDTH/8, HEIGHT/3, 'dave').setDepth(12);
+        dave.setOrigin(0.5, 0.5);
         dave.body.setSize(64, 256);
         dave.body.setAllowGravity(true);
         dave.speed = DAVE_SPEED;
@@ -198,7 +200,6 @@ class DiveScene extends Phaser.Scene {
         dave.body.setAngularDrag(ANGULAR_DRAG);
         dave.body.setAllowDrag(true);
         jumping = false;
-        waterLevel = this.sceneHeight - 100;
 
         this.info = new InfoPanel(this);
 
@@ -419,7 +420,7 @@ class DiveScene extends Phaser.Scene {
         if (!this.diveComplete) {
             if (dave.y > waterLevel) {
                 this.diveComplete = true;
-                let heightFromWater = this.sceneHeight - 50 - 797;
+                let heightFromWater = waterLevel - 797;
                 this.stats = {
                     height: Math.round(heightFromWater/2/100 * 10) / 10,
                     angle: Math.round(dave.angle * 10) / 10,
