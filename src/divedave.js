@@ -81,9 +81,10 @@ class InfoPanel extends Phaser.GameObjects.Group {
         this.score1 = scene.add.image(WIDTH/2 - 275, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
         this.score2 = scene.add.image(WIDTH/2, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
         this.score3 = scene.add.image(WIDTH/2 + 275, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
+        this.tryAgain = scene.add.text(WIDTH/2, HEIGHT-100, (IS_MOBILE ? "tap" : "click") + " to dive again", { color: 'red', fontFamily: 'Arial', fontSize: '65px', fontStyle: 'bold'}).setOrigin(0.5).setDepth(22).setVisible(false);
     }
 
-    display(scene, strings, frame, scores) {
+    display(scene, strings, frame, scores, sceneHeight) {
         let height = HEIGHT/2 - 50;
         strings.forEach(string => {
             scene.add.text(WIDTH/2, height, string, { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '64px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(21);
@@ -94,6 +95,8 @@ class InfoPanel extends Phaser.GameObjects.Group {
             scene.add.text(width, HEIGHT/2 + 325, score, { align: 'center', color: 'red', fontFamily: 'Arial', fontSize: '100px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(23);
             width += 275;
         })
+        this.tryAgain.setPosition(WIDTH/2, sceneHeight - 100);
+        this.tryAgain.setVisible(true);
         this.panel.setVisible(true);
         this.daveimage.setFrame(frame);
         this.daveimage.setVisible(true);
@@ -103,6 +106,7 @@ class InfoPanel extends Phaser.GameObjects.Group {
     }
 
     close() {
+        this.tryAgain.setVisible(false);
         this.panel.setVisible(false);
         this.daveimage.setVisible(false);
         this.score1.setVisible(false);
@@ -172,7 +176,7 @@ class DiveScene extends Phaser.Scene {
     
         waterLevel = this.sceneHeight - 100;
         let heightFromWater = waterLevel - 797;
-        this.add.text(WIDTH - 250, 797 - 10, "   " + Math.round(heightFromWater/2/100 * 10) / 10 + "m", { color: 'white', fontFamily: 'Arial', fontSize: '50px', fontStyle: 'bold'});
+        this.add.text(WIDTH - 250, 797 - 10, "   " + Math.round(heightFromWater/2/100 * 10) / 10 + "m", { color: 'black', fontFamily: 'Arial', fontSize: '50px', fontStyle: 'bold'});
         heightFromWater--;
         for (let i = 798; i < waterLevel; i++) {
             let labelColor = 'red-arial';
@@ -441,7 +445,7 @@ class DiveScene extends Phaser.Scene {
                     "height: " + this.stats.height + "m",
                     "entry angle: " + this.stats.angle, 
                     "rotations: " + this.stats.rotations
-                ], this.stats.emotionFrame, this.stats.scores);
+                ], this.stats.emotionFrame, this.stats.scores, this.sceneHeight);
                 let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
                 splash.setDepth(14);
                 splash.anims.play('splash');
