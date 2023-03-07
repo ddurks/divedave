@@ -65,7 +65,8 @@ class MainMenu extends Phaser.Scene {
     }
 }
 
-const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 300, DRAG = 500, ANGULAR_DRAG = 50, MAX_BOOST = 200, IDLE_DELAY = 1000;
+const GRAVITY = 500;
+const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 500, DRAG = 500, ANGULAR_DRAG = 100, MAX_BOOST = 200, IDLE_DELAY = 1000;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
 const MIN_BIRDS = 0, MAX_BIRDS = 3, BIRDMINSPEED = 50, BIRDMAXSPEED = 200;
 var springboard, dave;
@@ -133,6 +134,7 @@ class DiveScene extends Phaser.Scene {
             rotations: 0,
             scores: [0, 0, 0]
         }
+        this.timerStarted = false;
     }
 
     preload() {
@@ -165,6 +167,8 @@ class DiveScene extends Phaser.Scene {
         this.add.image(205, this.sceneHeight - 200, 'platformbase').setDepth(10);
 
         this.spawnClouds();
+
+        this.calculateGameLogic();
     
         waterLevel = this.sceneHeight - 100;
         let heightFromWater = waterLevel - 797;
@@ -289,7 +293,6 @@ class DiveScene extends Phaser.Scene {
             space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE, false),
             enter: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER, false),
             r: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R, false),
-            q: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q, false),
         };
 
         this.input.on('pointerdown', () => {
@@ -418,7 +421,11 @@ class DiveScene extends Phaser.Scene {
     
     checkForReset() {
         if (!this.diveComplete) {
-            if (dave.y > waterLevel) {
+            if (dave.body.velocity.y > 0 && (dave.x - dave.width/4 > springboard.x + springboard.width/2 - 10) && !this.timerStarted) {
+                this.timerStart = Date.now();
+                this.timerStarted = true;
+            }
+            if (dave.y > waterLevel - 15) {
                 this.diveComplete = true;
                 let heightFromWater = waterLevel - 797;
                 this.stats = {
@@ -434,7 +441,7 @@ class DiveScene extends Phaser.Scene {
                     "height: " + this.stats.height + "m",
                     "entry angle: " + this.stats.angle, 
                     "rotations: " + this.stats.rotations
-                ], this.chooseEmotionFrame(this.stats.angle), this.stats.scores);
+                ], this.stats.emotionFrame, this.stats.scores);
                 let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
                 splash.setDepth(14);
                 splash.anims.play('splash');
@@ -449,20 +456,11 @@ class DiveScene extends Phaser.Scene {
         }
     }
 
-    chooseEmotionFrame(angle) {
-        angle = Math.abs(angle);
-        if (angle < 10 || angle > 170) {
-            return 4;
-        } else if ( (angle >= 10 && angle < 25) || (angle <= 170 && angle > 155) ) {
-            return 3;
-        } else if ( (angle >= 25 && angle < 45) || (angle <= 155 && angle > 135) ) {
-            return 2;
-        } else if ( (angle >= 45 && angle < 70) || (angle <= 135 && angle > 110) ) {
-            return 1;
-        } else if ( (angle >= 70 && angle < 110) ) {
-            return 0;
-        }
-        return 2;
+    calculateGameLogic() {
+        let time = Math.sqrt(2 * (this.sceneHeight - 250) / GRAVITY);
+        let maxFlips = time * (MAX_SPIN_VELOCITY/360);
+        this.goalRotations = (getRandomInt(1, maxFlips*2)/2.0);
+        this.add.text(WIDTH - 25, 25, "GOAL: " + this.goalRotations + (this.goalRotations < 1.5 ? " FLIP" : " FLIPS"), { color: 'darkgreen', fontFamily: 'Arial', fontSize: '65px', fontStyle: 'bold'}).setOrigin(1,0).setDepth(14).setActive(false);
     }
 
     countRotations() {
@@ -484,10 +482,53 @@ class DiveScene extends Phaser.Scene {
         }
     }
 
+    chooseEmotionFrame(angle) {
+        angle = Math.abs(angle);
+        if (angle < 10 || angle > 170) {
+            return 4;
+        } else if ( (angle >= 10 && angle < 25) || (angle <= 170 && angle > 155) ) {
+            return 3;
+        } else if ( (angle >= 25 && angle < 45) || (angle <= 155 && angle > 135) ) {
+            return 2;
+        } else if ( (angle >= 45 && angle < 70) || (angle <= 135 && angle > 110) ) {
+            return 1;
+        } else if ( (angle >= 70 && angle < 110) ) {
+            return 0;
+        }
+        return 2;
+    }
+
     scoreDive() {
-        this.stats.scores.forEach( (score, index, scores) => {
-            scores[index] = 10;
-        });
+        if (Math.abs(this.stats.rotations - this.goalRotations) < 0.25) {
+            this.stats.emotionFrame = this.chooseEmotionFrame(this.stats.angle);
+            this.stats.scores.forEach( (score, index, scores) => {
+                switch(this.stats.emotionFrame) {
+                    case 4:
+                        scores[index] = 10 - getRandomInt(0,1)/2.0 - (tuckCount - 1);
+                        break;
+                    case 3:
+                        scores[index] = 10 - getRandomInt(3,6)/2.0 - (tuckCount - 1) ;
+                        break;
+                    case 2:
+                        scores[index] = 10 - getRandomInt(7,10)/2.0 - (tuckCount - 1);
+                        break;  
+                    case 1:
+                        scores[index] = 10 - getRandomInt(10,15)/2.0 - (tuckCount - 1);
+                        break;
+                    case 0:
+                        scores[index] = 10 - getRandomInt(14,18)/2.0 - (tuckCount - 1);
+                        break;
+                }
+            });
+            if (tuckCount > 1) {
+                this.stats.emotionFrame = this.stats.emotionFrame - 1;
+            }
+        } else {
+            this.stats.emotionFrame = 0;
+            this.stats.scores.forEach( (score, index, scores) => {
+                scores[index] = 0;
+            });
+        }
     }
 
     resetScene() {
@@ -511,21 +552,19 @@ class DiveScene extends Phaser.Scene {
         if (controls.right.isDown) {
             dave.setVelocityX(dave.speed);
         }
-        if ( (controls.r.isDown || controls.q.isDown)) {
+        if ( (controls.r.isDown)) {
             if (!this.daveIsAboveBoard()) {
                 if (!this.daveIsTucked()) {
                     tucked = true;
                     tuckCount++;
                 }
-                if (currentVelocity < MAX_SPIN_VELOCITY) {
+                if (currentVelocity < MAX_SPIN_VELOCITY - 200) {
                     currentVelocity+=5;
-                } else if (currentVelocity < MAX_SPIN_VELOCITY + 200) {
+                } else if (currentVelocity < MAX_SPIN_VELOCITY) {
                     currentVelocity+=1;
                 }
                 if (controls.r.isDown) {
                     dave.body.setAngularVelocity(currentVelocity);
-                } else if (controls.q.isDown) {
-                    dave.body.setAngularVelocity(-currentVelocity);
                 }
             }
         } else {
@@ -558,9 +597,9 @@ class DiveScene extends Phaser.Scene {
                         tucked = true;
                         tuckCount++;
                     } else {
-                        if (currentVelocity < MAX_SPIN_VELOCITY) {
+                        if (currentVelocity < MAX_SPIN_VELOCITY - 200) {
                             currentVelocity+=5;
-                        } else if (currentVelocity < MAX_SPIN_VELOCITY + 200) {
+                        } else if (currentVelocity < MAX_SPIN_VELOCITY) {
                             currentVelocity+=1;
                         }
                     }
@@ -647,7 +686,7 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 500 },
+            gravity: { y: GRAVITY },
             debug: false
         }
     },
