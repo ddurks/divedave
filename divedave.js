@@ -37,15 +37,57 @@ class MainMenu extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('cover', '../assets/cover.png');
+        this.load.image('cover', 'assets/cover.png');
+        this.load.image('panel', 'assets/panel.png');
+    }
+
+    displayInstructions(strings) {
+        this.add.image(WIDTH/2, HEIGHT/2 - 45, 'panel').setVisible(true).setScrollFactor(0).setDepth(20);
+        let height = HEIGHT/2 - 450;
+        strings.forEach(string => {
+            this.add.text(WIDTH/2, height, string, { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '55px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(21);
+            height += 75;
+        });
     }
 
     create() {
+        let instructionStrings = IS_MOBILE ? 
+            [
+                "touch left and right", 
+                "to move dave",
+                "",
+                "touch above dave to jump", 
+                "while above the board",
+                "",
+                "jump quickly multiple times",
+                "near the end of the board",
+                "to jump higher",
+                "",
+                "touch anywhere to flip",
+                "once dave has left the board"
+            ] : [
+                "[A] and [D] keys",
+                "to move dave",
+                "",
+                "[W] key to jump",
+                "while above the board",
+                "",
+                "jump quickly multiple times",
+                "near the end of the board", 
+                "to jump higher",
+                "",
+                "[R] key to flip",
+                "once dave has left the board"
+            ];
         this.input.keyboard.on('keydown', this.handleKey, this);
         var cover = this.add.image(WIDTH/2, HEIGHT/2  - 100, 'cover');
         cover.setScale(2);
-        var text = this.add.text(WIDTH/2, HEIGHT/2 + 450, 'start', { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '100px', fontStyle: 'bold'}).setOrigin(0.5);
-        text.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+        var instructions = this.add.text(WIDTH/2, HEIGHT/2 + 425, 'controls', { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '75px', fontStyle: 'bold'}).setOrigin(0.5);
+        instructions.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+            this.displayInstructions(instructionStrings);
+        })
+        var startText = this.add.text(WIDTH/2, HEIGHT/2 + 550, 'start', { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '100px', fontStyle: 'bold'}).setOrigin(0.5);
+        startText.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             this.clickStart(this);
         })
     }
@@ -66,29 +108,31 @@ class MainMenu extends Phaser.Scene {
 }
 
 const GRAVITY = 500;
-const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 500, DRAG = 500, ANGULAR_DRAG = 100, MAX_BOOST = 200, IDLE_DELAY = 1000;
+const WIDTH=1250, HEIGHT=1500, DAVE_SPEED = 300, JUMP_VELOCITY = 500, MIN_SPIN_VELOCITY = 75, MAX_SPIN_VELOCITY = 500, DRAG = 500, ANGULAR_DRAG = 125, MAX_BOOST = 200, IDLE_DELAY = 1000;
 const MIN_CLOUDS = 7, MAX_CLOUDS = 15, CLOUDMINSPEED = 35, CLOUDMAXSPEED = 85;
 const MIN_BIRDS = 0, MAX_BIRDS = 3, BIRDMINSPEED = 50, BIRDMAXSPEED = 200;
 var springboard, dave;
 var controls, waterLevel, jumping, landedAt = null, jumpReleasedAt = null;
 var boost = 0, currentVelocity = MIN_SPIN_VELOCITY, tucked = false, tuckCount = 0;
+var streak = 0, avgScore = 0, totalScore = 0;
 
 class InfoPanel extends Phaser.GameObjects.Group {
     constructor(scene) {
         super(scene);
         this.panel = scene.add.image(WIDTH/2, HEIGHT/2, 'panel').setVisible(false).setScrollFactor(0).setDepth(20);
-        this.daveimage = scene.add.sprite(WIDTH/2, HEIGHT/2 - 250, 'davemotions').setVisible(false).setScrollFactor(0).setScale(2).setFrame(2).setDepth(21);
+        this.daveimage = scene.add.sprite(WIDTH/2, HEIGHT/2 - 175, 'davemotions').setVisible(false).setScrollFactor(0).setScale(2).setFrame(2).setDepth(21);
         this.score1 = scene.add.image(WIDTH/2 - 275, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
         this.score2 = scene.add.image(WIDTH/2, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
         this.score3 = scene.add.image(WIDTH/2 + 275, HEIGHT/2 + 325, 'sign').setVisible(false).setScrollFactor(0).setDepth(22);
         this.tryAgain = scene.add.text(WIDTH/2, HEIGHT-100, (IS_MOBILE ? "tap" : "click") + " to dive again", { color: 'red', fontFamily: 'Arial', fontSize: '65px', fontStyle: 'bold'}).setOrigin(0.5).setDepth(22).setVisible(false);
     }
 
-    display(scene, strings, frame, scores, sceneHeight) {
-        let height = HEIGHT/2 - 50;
+    display(scene, result, strings, frame, scores, sceneHeight) {
+        let height = HEIGHT/2;
+        scene.add.text(WIDTH/2, height - 375, result, { align: 'center', color: result === 'FAILED DIVE' ? 'red' : 'green', fontFamily: 'Arial', fontSize: '80px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(21);
         strings.forEach(string => {
-            scene.add.text(WIDTH/2, height, string, { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '64px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(21);
-            height += 90;
+            scene.add.text(WIDTH/2, height, string, { align: 'center', color: (string.includes('rotations') && result === 'FAILED DIVE') ? 'red': 'white', fontFamily: 'Arial', fontSize: '64px', fontStyle: 'bold'}).setOrigin(0.5).setScrollFactor(0).setDepth(21);
+            height += 75;
         });
         let width = WIDTH/2 - 275;
         scores.forEach(score => {
@@ -121,7 +165,6 @@ class DiveScene extends Phaser.Scene {
     }
 
     init(data) {
-        console.log(data);
         this.sceneHeight = data.height;
         this.clouds = new Array();
         this.birds = new Array();
@@ -142,23 +185,23 @@ class DiveScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('panel', '../assets/panel.png');
-        this.load.image('landscape', '../assets/landscape.png');
-        this.load.image('platformtop', '../assets/platformtop.png');
-        this.load.image('platformsection', '../assets/platformsection.png');
-        this.load.image('platformbase', '../assets/platformbase.png');
-        this.load.image('sign', '../assets/sign.png');
-        this.load.bitmapFont('Arial', '../assets/fonts/Arial20.png', '../assets/fonts/Arial20.xml');
-        this.load.bitmapFont('green-arial', '../assets/fonts/green-arial.png', '../assets/fonts/green-arial.xml');
-        this.load.bitmapFont('yellow-arial', '../assets/fonts/yellow-arial.png', '../assets/fonts/yellow-arial.xml');
-        this.load.bitmapFont('red-arial', '../assets/fonts/red-arial.png', '../assets/fonts/red-arial.xml');
-        this.load.spritesheet('springboard', '../assets/board.png', { frameWidth: 440, frameHeight: 64, margin: 0, spacing: 0 });
-        this.load.spritesheet('water', '../assets/water.png', { frameWidth: 1250, frameHeight: 200, margin: 0, spacing: 0 });
-        this.load.spritesheet('dave', '../assets/divedave-spritesheet-extruded.png', { frameWidth: 256, frameHeight: 256, margin: 1, spacing: 2 });
+        this.load.image('landscape', 'assets/landscape.png');
+        this.load.image('platformtop', 'assets/platformtop.png');
+        this.load.image('platformsection', 'assets/platformsection.png');
+        this.load.image('platformbase', 'assets/platformbase.png');
+        this.load.image('sign', 'assets/sign.png');
+        this.load.bitmapFont('Arial', 'assets/fonts/Arial20.png', 'assets/fonts/Arial20.xml');
+        this.load.bitmapFont('black-arial', 'assets/fonts/black-arial.png', 'assets/fonts/black-arial.xml');
+        this.load.bitmapFont('green-arial', 'assets/fonts/green-arial.png', 'assets/fonts/green-arial.xml');
+        this.load.bitmapFont('yellow-arial', 'assets/fonts/yellow-arial.png', 'assets/fonts/yellow-arial.xml');
+        this.load.bitmapFont('red-arial', 'assets/fonts/red-arial.png', 'assets/fonts/red-arial.xml');
+        this.load.spritesheet('springboard', 'assets/board.png', { frameWidth: 440, frameHeight: 64, margin: 0, spacing: 0 });
+        this.load.spritesheet('water', 'assets/water.png', { frameWidth: 1250, frameHeight: 200, margin: 0, spacing: 0 });
+        this.load.spritesheet('dave', 'assets/divedave-spritesheet-extruded.png', { frameWidth: 256, frameHeight: 256, margin: 1, spacing: 2 });
         this.load.spritesheet('cloud', 'assets/clouds.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
-        this.load.spritesheet('bird', '../assets/bird.png', { frameWidth: 128, frameHeight: 128, margin: 0, spacing: 0 });
+        this.load.spritesheet('bird', 'assets/bird.png', { frameWidth: 128, frameHeight: 128, margin: 0, spacing: 0 });
         this.load.spritesheet('splash', 'assets/splash.png', { frameWidth: 256, frameHeight: 256, margin: 0, spacing: 0 });
-        this.load.spritesheet('davemotions', '../assets/divedave-emotions.png', { frameWidth: 150, frameHeight: 160, margin: 0, spacing: 0 }); 
+        this.load.spritesheet('davemotions', 'assets/divedave-emotions.png', { frameWidth: 150, frameHeight: 160, margin: 0, spacing: 0 }); 
     }
 
     create() {
@@ -172,11 +215,14 @@ class DiveScene extends Phaser.Scene {
 
         this.spawnClouds();
 
+        this.add.image(125, 110, 'sign').setRotation(Math.PI).setDepth(14).setScrollFactor(0);
+        this.runningStreak = this.add.bitmapText(125, 135, 'black-arial', "streak: " + streak, 30).setOrigin(0.5).setScrollFactor(0).setDepth(14).setActive(false);
+        this.runningScore = this.add.bitmapText(125, 75, 'black-arial', "score: " + totalScore, 30).setOrigin(0.5).setScrollFactor(0).setDepth(14).setActive(false);
         this.calculateGameLogic();
     
         waterLevel = this.sceneHeight - 100;
         let heightFromWater = waterLevel - 797;
-        this.add.text(WIDTH - 250, 797 - 10, "   " + Math.round(heightFromWater/2/100 * 10) / 10 + "m", { color: 'black', fontFamily: 'Arial', fontSize: '50px', fontStyle: 'bold'});
+        this.add.bitmapText(WIDTH - 200, 797 - 10, 'black-arial', "   " + Math.round(heightFromWater/2/100 * 10) / 10 + "m", 50).setDepth(14).setActive(false);
         heightFromWater--;
         for (let i = 798; i < waterLevel; i++) {
             let labelColor = 'red-arial';
@@ -440,8 +486,10 @@ class DiveScene extends Phaser.Scene {
                     rotations: Math.round(this.totalRotations * 10) / 10,
                     scores: [0, 0, 0]
                 }
-                this.scoreDive();
-                this.info.display(this, [
+                let result = this.scoreDive();
+                this.runningStreak.setText("streak: " + streak)
+                this.runningScore.setText("score: " + totalScore)
+                this.info.display(this, result, [
                     "height: " + this.stats.height + "m",
                     "entry angle: " + this.stats.angle, 
                     "rotations: " + this.stats.rotations
@@ -464,7 +512,7 @@ class DiveScene extends Phaser.Scene {
         let time = Math.sqrt(2 * (this.sceneHeight - 250) / GRAVITY);
         let maxFlips = time * (MAX_SPIN_VELOCITY/360);
         this.goalRotations = (getRandomInt(1, maxFlips*2)/2.0);
-        this.add.text(WIDTH - 25, 25, "GOAL: " + this.goalRotations + (this.goalRotations < 1.5 ? " FLIP" : " FLIPS"), { color: 'darkgreen', fontFamily: 'Arial', fontSize: '65px', fontStyle: 'bold'}).setOrigin(1,0).setDepth(14).setActive(false);
+        this.add.bitmapText(WIDTH - 25, 25, 'green-arial', "GOAL: " + this.goalRotations + (this.goalRotations < 1.5 ? " FLIP" : " FLIPS"), 65).setOrigin(1,0).setScrollFactor(0).setDepth(14).setActive(false);
     }
 
     countRotations() {
@@ -527,11 +575,18 @@ class DiveScene extends Phaser.Scene {
             if (tuckCount > 1) {
                 this.stats.emotionFrame = this.stats.emotionFrame - 1;
             }
+            streak++;
+            totalScore = totalScore + this.stats.scores[0] + this.stats.scores[1] + this.stats.scores[2];
+            return 'SUCCESS';
         } else {
             this.stats.emotionFrame = 0;
             this.stats.scores.forEach( (score, index, scores) => {
                 scores[index] = 0;
             });
+            streak = 0;
+            totalScore = 0;
+            avgScore = 0;
+            return 'FAILED DIVE'
         }
     }
 

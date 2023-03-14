@@ -5,6 +5,17 @@ const generator = require('@rtpa/phaser-bitmapfont-generator');
     //generate textures
     await generator.TextStyle2BitmapFont({
         path: './mydir',
+        fileName: 'black-arial',
+        textStyle: {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: 'black',
+        }
+    });
+
+    //generate textures
+    await generator.TextStyle2BitmapFont({
+        path: './mydir',
         fileName: 'red-arial',
         textStyle: {
             fontFamily: 'Arial',
