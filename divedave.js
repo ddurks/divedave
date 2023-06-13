@@ -436,6 +436,7 @@ class DiveScene extends Phaser.Scene {
 
         tucked = false;
         tuckCount = 0;
+        this.lastFlipNumber = 0;
     }
 
     calculateBoost() {
@@ -609,6 +610,14 @@ class DiveScene extends Phaser.Scene {
             this.totalRotations = this.sumRotation / (2 * Math.PI);
             this.previousAngle = this.currentAngle;
             this.currentAngle = daveRotation;
+            if (this.totalRotations > this.lastFlipNumber) {
+                let diff = this.totalRotations - this.lastFlipNumber;
+                if (diff >= 1) {
+                    let roundedRotations = Math.round(this.totalRotations);
+                    this.add.bitmapText(dave.x, dave.y, 'red-arial', roundedRotations, 75).setDepth(14).setActive(false);
+                    this.lastFlipNumber = roundedRotations;
+                }
+            }
         }
     }
 
