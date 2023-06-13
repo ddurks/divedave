@@ -31,6 +31,8 @@ diff = function (num1, num2) {
     }
 }
 
+var CHALLENGE_MODE = true;
+
 class MainMenu extends Phaser.Scene {
     constructor() {
         super('MainMenu');
@@ -39,6 +41,9 @@ class MainMenu extends Phaser.Scene {
     preload() {
         this.load.image('cover', 'assets/cover.png');
         this.load.image('panel', 'assets/panel.png');
+        this.load.image('controls-help', 'assets/controls-help.png');
+        this.load.image('arcade', 'assets/arcade.png');
+        this.load.image('challenge', 'assets/challenge.png');
     }
 
     displayInstructions(strings) {
@@ -53,43 +58,48 @@ class MainMenu extends Phaser.Scene {
     create() {
         let instructionStrings = IS_MOBILE ? 
             [
-                "touch left and right", 
+                "touch left and right buttons", 
                 "to move dave",
                 "",
-                "touch above dave to jump", 
+                "touch the jump button to jump", 
                 "while above the board",
                 "",
                 "jump quickly multiple times",
                 "near the end of the board",
                 "to jump higher",
                 "",
-                "touch anywhere to flip",
+                "touch the flip button to flip",
                 "once dave has left the board"
             ] : [
-                "[A] and [D] keys",
+                "[A] and [D] or [<] [>] arrow keys",
                 "to move dave",
                 "",
-                "[W] key to jump",
+                "[W] or [^] arrow key to jump",
                 "while above the board",
                 "",
                 "jump quickly multiple times",
                 "near the end of the board", 
                 "to jump higher",
                 "",
-                "[R] key to flip",
+                "[R] [^] or [space] to flip",
                 "once dave has left the board"
             ];
         this.input.keyboard.on('keydown', this.handleKey, this);
-        var cover = this.add.image(WIDTH/2, HEIGHT/2  - 100, 'cover');
+        var cover = this.add.image(WIDTH/2, HEIGHT/2  - 150, 'cover');
         cover.setScale(2);
-        var instructions = this.add.text(WIDTH/2, HEIGHT/2 + 425, 'controls', { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '75px', fontStyle: 'bold'}).setOrigin(0.5);
+        var instructions = this.add.image(WIDTH - 100, 100, 'controls-help').setOrigin(0.5).setScale(0.5);
         instructions.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             this.displayInstructions(instructionStrings);
-        })
-        var startText = this.add.text(WIDTH/2, HEIGHT/2 + 550, 'start', { align: 'center', color: 'white', fontFamily: 'Arial', fontSize: '100px', fontStyle: 'bold'}).setOrigin(0.5);
+        });
+        var startText = this.add.image(WIDTH/2 - 200, HEIGHT/2 + 500, 'arcade').setOrigin(0.5).setScale(0.5);
         startText.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+            CHALLENGE_MODE = false;
             this.clickStart(this);
-        })
+        });
+        var startChallengeText = this.add.image(WIDTH/2 + 200, HEIGHT/2 + 500, 'challenge').setOrigin(0.5).setScale(0.5);
+        startChallengeText.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+            this.clickStart(this);
+        });
     }
 
     handleKey(e) {
@@ -159,6 +169,60 @@ class InfoPanel extends Phaser.GameObjects.Group {
     }
 }
 
+class MobileControls {
+    constructor(scene) {
+        this.leftButton = scene.add.existing(new ControlButton(scene, 200, HEIGHT - 200, 'controls-left'));
+        this.rightButton = scene.add.existing(new ControlButton(scene, 500, HEIGHT - 200, 'controls-right'));
+        this.jumpButton = scene.add.existing(new ControlButton(scene, WIDTH - 200, HEIGHT - 200, 'controls-jump'));
+        this.flipButton = scene.add.existing(new ControlButton(scene, WIDTH - 200, HEIGHT - 200, 'controls-flip'));
+        this.flipButton.setVisible(false);
+    }
+
+    setVisible(visible) {
+        this.leftButton.setVisible(visible);
+        this.rightButton.setVisible(visible);
+        this.jumpButton.setVisible(visible);
+        this.flipButton.setVisible(visible);
+    }
+
+    jumpControls() {
+        this.jumpButton.setVisible(true);
+        this.flipButton.setVisible(false);
+    }
+
+    flipControls() {
+        this.flipButton.setVisible(true);
+        this.jumpButton.setVisible(false);
+    }
+}
+
+class ControlButton extends Phaser.GameObjects.Image
+{
+    constructor(scene, x, y, texture, frame = null)
+    {
+        super(scene, x, y, texture, frame);
+
+        this.setInteractive();
+        this.setScrollFactor(0)
+        this.setScale(0.5);
+        this.setDepth(14);
+        this.isDown = false;
+
+        this.onPressed = null;
+        this.onReleased = null;
+
+        this.on('pointerdown', () => { this.isDown = true; });
+        this.on('pointerup', () => { this.pointerUp(); });
+        this.on('pointerout', () => { this.pointerUp(); });
+    }
+
+    pointerUp()
+    {
+        this.isDown = false;
+        if(this.onReleased != null) this.onReleased();
+    }
+}
+
 class DiveScene extends Phaser.Scene {
     constructor() {
         super('DiveScene');
@@ -190,6 +254,10 @@ class DiveScene extends Phaser.Scene {
         this.load.image('platformsection', 'assets/platformsection.png');
         this.load.image('platformbase', 'assets/platformbase.png');
         this.load.image('sign', 'assets/sign.png');
+        this.load.image('controls-right', 'assets/controls-right.png');
+        this.load.image('controls-left', 'assets/controls-left.png');
+        this.load.image('controls-flip', 'assets/controls-flip.png');
+        this.load.image('controls-jump', 'assets/controls-jump.png');
         this.load.bitmapFont('Arial', 'assets/fonts/Arial20.png', 'assets/fonts/Arial20.xml');
         this.load.bitmapFont('black-arial', 'assets/fonts/black-arial.png', 'assets/fonts/black-arial.xml');
         this.load.bitmapFont('green-arial', 'assets/fonts/green-arial.png', 'assets/fonts/green-arial.xml');
@@ -256,6 +324,10 @@ class DiveScene extends Phaser.Scene {
         jumping = false;
 
         this.info = new InfoPanel(this);
+        this.mobileControls = new MobileControls(this);
+        if (!IS_MOBILE) {
+            this.mobileControls.setVisible(false);
+        }
 
         this.anims.create({
             key: 'idle', 
@@ -343,6 +415,7 @@ class DiveScene extends Phaser.Scene {
             space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE, false),
             enter: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER, false),
             r: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R, false),
+            cursors: this.input.keyboard.createCursorKeys(),
         };
 
         this.input.on('pointerdown', () => {
@@ -353,9 +426,13 @@ class DiveScene extends Phaser.Scene {
             jumpReleasedAt = Date.now();
         });
 
-        this.input.on('pointerup', () => {
+        controls.cursors.up.on('up', () => {
             jumpReleasedAt = Date.now();
         })
+
+        this.input.on('pointerup', () => {
+            jumpReleasedAt = Date.now();
+        });
 
         tucked = false;
         tuckCount = 0;
@@ -494,6 +571,7 @@ class DiveScene extends Phaser.Scene {
                     "entry angle: " + this.stats.angle, 
                     "rotations: " + this.stats.rotations
                 ], this.stats.emotionFrame, this.stats.scores, this.sceneHeight);
+                this.mobileControls.setVisible(false);
                 let splash = this.add.sprite(dave.x, waterLevel - 100, 'splash');
                 splash.setDepth(14);
                 splash.anims.play('splash');
@@ -592,7 +670,18 @@ class DiveScene extends Phaser.Scene {
 
     resetScene() {
         if (this.diveComplete && this.readyForReset) {
-            this.scene.restart({ height: getRandomInt(1500, 10000) }); 
+            if (!CHALLENGE_MODE) {
+                this.scene.restart({ height: getRandomInt(1500, 10000) }); 
+            } else {
+                if (totalScore === 0) {
+                    this.scene.restart({ height: 1500 });
+                } else {
+                    let streakMultiplier = 1+((2*streak)/((2*streak)+100));
+                    let newSceneHeight = this.sceneHeight += getRandomInt(0, 500);
+                    // console.log(this.sceneHeight, newSceneHeight, streakMultiplier);
+                    this.scene.restart({ height: newSceneHeight * streakMultiplier });
+                }
+            }
         }
     }
     
@@ -600,18 +689,18 @@ class DiveScene extends Phaser.Scene {
         if (controls.enter.isDown && this.diveComplete) {
             this.resetScene();
         }
-        if ((controls.up.isDown || controls.space.isDown)) {
+        if ((controls.up.isDown || controls.space.isDown || controls.cursors.up.isDown)) {
             if (this.daveIsAboveBoard() && this.daveIsTouchingBoard()) {
                 this.daveJump();
             }
         } 
-        if (controls.left.isDown) {
+        if (controls.left.isDown || controls.cursors.left.isDown) {
             dave.setVelocityX(-dave.speed);
         }
-        if (controls.right.isDown) {
+        if (controls.right.isDown || controls.cursors.right.isDown) {
             dave.setVelocityX(dave.speed);
         }
-        if ( (controls.r.isDown)) {
+        if ( controls.r.isDown || controls.space.isDown || controls.cursors.up.isDown) {
             if (!this.daveIsAboveBoard()) {
                 if (!this.daveIsTucked()) {
                     tucked = true;
@@ -622,36 +711,37 @@ class DiveScene extends Phaser.Scene {
                 } else if (currentVelocity < MAX_SPIN_VELOCITY) {
                     currentVelocity+=1;
                 }
-                if (controls.r.isDown) {
-                    dave.body.setAngularVelocity(currentVelocity);
-                }
+                dave.body.setAngularVelocity(currentVelocity);
             }
         } else {
             tucked = false;
             currentVelocity = MIN_SPIN_VELOCITY;
         }
     }
-    
+
     playerMobileMovementHandler() {
-        var pointer = this.input.activePointer;
-        if ((pointer.isDown)) {
-            var touchX = pointer.x;
-            var touchY = pointer.y;
-            var touchWorldPoint = this.cameras.main.getWorldPoint(touchX, touchY);
+        if (!this.diveComplete) {
+            if (this.daveIsAboveBoard()) {
+                this.mobileControls.jumpControls();
+            } else {
+                this.mobileControls.flipControls();
+            }
+        }
+        if (this.mobileControls.leftButton.isDown || this.mobileControls.rightButton.isDown || this.mobileControls.jumpButton.isDown || this.mobileControls.flipButton.isDown) {
             if (this.diveComplete) {
                 this.resetScene();
             } else {
                 if (this.daveIsAboveBoard()) {
-                    if (touchWorldPoint.y < dave.y && this.daveIsTouchingBoard()) {
+                    if (this.mobileControls.jumpButton.isDown && this.daveIsTouchingBoard()) {
                         this.daveJump();
-                    } else {
-                        if (touchWorldPoint.x < dave.x - dave.width/2) {
-                            dave.setVelocityX(-dave.speed);
-                        } else if (touchWorldPoint.x > dave.x + dave.width/2) {
-                            dave.setVelocityX(dave.speed);
-                        }
                     }
-                } else {
+                    if (this.mobileControls.leftButton.isDown) {
+                        dave.setVelocityX(-dave.speed);
+                    }
+                    if (this.mobileControls.rightButton.isDown) {
+                        dave.setVelocityX(dave.speed);
+                    }
+                } else if (this.mobileControls.flipButton.isDown) {
                     if (!this.daveIsTucked()) {
                         tucked = true;
                         tuckCount++;
@@ -748,6 +838,9 @@ var config = {
             gravity: { y: GRAVITY },
             debug: false
         }
+    },
+    input :{
+        activePointers:3,
     },
     dom: {
 		createContainer: true
