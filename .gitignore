@@ -2,3 +2,6 @@
 **/app.bundle.js
 users.txt
 **/node_modules/**
+promo/*.mov
+*.DS_Store
+*.xcuserstate

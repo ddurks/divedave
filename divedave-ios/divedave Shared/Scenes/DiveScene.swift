@@ -514,45 +514,47 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
     var lastFlipNumber: Double = 0
     var goalRotations: Int = 3 // Adjust this to set the goal for rotations
     func countRotations() {
-        // Normalize Dave's rotation within [0, 2 * PI]
-        let daveRotation = (dave.zRotation.truncatingRemainder(dividingBy: 2 * .pi) + 2 * .pi).truncatingRemainder(dividingBy: 2 * .pi)
-        
-        if daveRotation != currentAngle {
-            // Calculate the angle difference
-            var angleDiff = abs(previousAngle - currentAngle)
+        if (tuckCount >= 1) {
+            // Normalize Dave's rotation within [0, 2 * PI]
+            let daveRotation = (dave.zRotation.truncatingRemainder(dividingBy: 2 * .pi) + 2 * .pi).truncatingRemainder(dividingBy: 2 * .pi)
             
-            // Handle large angle jumps due to wrapping from 0 to 2π or vice versa
-            if angleDiff > 5 {
-                if daveRotation < 1 {
-                    previousAngle = 0
-                } else if daveRotation > 5 {
-                    previousAngle = 2 * .pi
+            if daveRotation != currentAngle {
+                // Calculate the angle difference
+                var angleDiff = abs(previousAngle - currentAngle)
+                
+                // Handle large angle jumps due to wrapping from 0 to 2π or vice versa
+                if angleDiff > 5 {
+                    if daveRotation < 1 {
+                        previousAngle = 0
+                    } else if daveRotation > 5 {
+                        previousAngle = 2 * .pi
+                    }
+                    angleDiff = abs(previousAngle - currentAngle)
                 }
-                angleDiff = abs(previousAngle - currentAngle)
-            }
-            
-            // Accumulate rotation and update total rotations
-            sumRotation += angleDiff
-            totalRotations = sumRotation / (2 * .pi)
-            
-            // Update angles for next calculation
-            previousAngle = currentAngle
-            currentAngle = daveRotation
-            
-            // Check for completed rotations and display rotation count
-            if totalRotations > lastFlipNumber {
-                let rotationDifference = totalRotations - lastFlipNumber
-                if rotationDifference >= 1 {
-                    let roundedRotations = round(totalRotations)
-                    
-                    // Display rotation count near `dave`'s position
-                    let rotationLabel = createRotationLabel(text: "\(Int(roundedRotations))", fontColor: roundedRotations > Double(goalRotations) ? .red : .green)
-                    rotationLabel.position = dave.position
-                    rotationLabel.zPosition = 14
-                    addChild(rotationLabel)
-                    
-                    // Update the last counted flip number
-                    lastFlipNumber = roundedRotations
+                
+                // Accumulate rotation and update total rotations
+                sumRotation += angleDiff
+                totalRotations = sumRotation / (2 * .pi)
+                
+                // Update angles for next calculation
+                previousAngle = currentAngle
+                currentAngle = daveRotation
+                
+                // Check for completed rotations and display rotation count
+                if totalRotations > lastFlipNumber {
+                    let rotationDifference = totalRotations - lastFlipNumber
+                    if rotationDifference >= 1 {
+                        let roundedRotations = round(totalRotations)
+                        
+                        // Display rotation count near `dave`'s position
+                        let rotationLabel = createRotationLabel(text: "\(Int(roundedRotations))", fontColor: roundedRotations > Double(goalRotations) ? .red : .green)
+                        rotationLabel.position = dave.position
+                        rotationLabel.zPosition = 14
+                        addChild(rotationLabel)
+                        
+                        // Update the last counted flip number
+                        lastFlipNumber = roundedRotations
+                    }
                 }
             }
         }
