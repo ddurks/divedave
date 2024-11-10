@@ -8,18 +8,16 @@
 import SpriteKit
 
 class MainMenuScene: SKScene {
-    private var startArcadeButton: SKSpriteNode!
-    private var startChallengeButton: SKSpriteNode!
+    private var startArcadeButton: MenuButton!
+    private var startChallengeButton: MenuButton!
+    private var instructionsButton: MenuButton!
     private var loadingLabel: SKLabelNode!
-    private var instructionsButton: SKSpriteNode!
     private var coverImage: SKSpriteNode!
     private var instructionPanel: SKSpriteNode!
-    private var instructionLabels: [SKLabelNode] = []
-    private var highScoreLabel: SKLabelNode!
-    private var instructionStrings: [String] = []
+    private var instructionsImage: SKSpriteNode!
     private var isShowingInstructions = false
-    private var isPreloading = false
     private var userClickedStart = false
+    private var loadingDave: SKSpriteNode!
     
     override func didMove(to view: SKView) {
     }
@@ -33,28 +31,35 @@ class MainMenuScene: SKScene {
         coverImage.zPosition = 1
         addChild(coverImage)
 
-        // Instructions button
-        instructionsButton = SKSpriteNode(imageNamed: "controls-help")
-        instructionsButton.setScale(0.75 * scaleFactorHeight)
-        instructionsButton.position = CGPoint(x: self.size.width - instructionsButton.size.width / 2, y: self.size.height - instructionsButton.size.height)
-        instructionsButton.name = "instructionsButton"
-        addChild(instructionsButton)
-
         // Start arcade button
-        startArcadeButton = SKSpriteNode(imageNamed: "arcade")
-        startArcadeButton.setScale(0.75 * scaleFactorHeight)
-        startArcadeButton.position = CGPoint(x: 3 * self.size.width / 4, y: startArcadeButton.size.height)
-        startArcadeButton.name = "startArcade"
+        startArcadeButton = MenuButton(imageNamed: "arcade",
+                                       position: CGPoint(x: self.size.width / 2 + self.size.width / 5, y: self.size.height / 5),
+                                       scale: 0.75 * scaleFactorHeight,
+                                       name: "startArcade") { [weak self] in
+            self?.startGame(challengeMode: false)
+        }
         addChild(startArcadeButton)
 
         // Start challenge button
-        startChallengeButton = SKSpriteNode(imageNamed: "challenge")
-        startChallengeButton.setScale(0.75 * scaleFactorHeight)
-        startChallengeButton.position = CGPoint(x: self.size.width / 4, y: startChallengeButton.size.height)
-        startChallengeButton.name = "startChallenge"
+        startChallengeButton = MenuButton(imageNamed: "challenge",
+                                          position: CGPoint(x: self.size.width / 2 - self.size.width / 5, y: self.size.height / 5),
+                                          scale: 0.75 * scaleFactorHeight,
+                                          name: "startChallenge") { [weak self] in
+            self?.startGame(challengeMode: true)
+        }
         addChild(startChallengeButton)
         
-        loadingLabel = SKLabelNode(text: "Loading...")
+        setUpLoadingStuff()
+        setupInstructions()
+        
+        highScore = UserDefaults.standard.integer(forKey: HIGH_SCORE)
+        if highScore > 0 {
+            displayHighScore(highScore)
+        }
+    }
+    
+    func setUpLoadingStuff() {
+        loadingLabel = SKLabelNode(text: "loading...")
         loadingLabel.fontName = "Arial-BoldMT"
         loadingLabel.fontSize = 30
         loadingLabel.fontColor = .white
@@ -63,45 +68,36 @@ class MainMenuScene: SKScene {
         loadingLabel.isHidden = true;
         addChild(loadingLabel)
         
-        // Prepare the instruction strings
-        instructionStrings = [
-            "touch left and right buttons",
-            "to move dave",
-            "touch the jump button to jump",
-            "while above the board",
-            "jump quickly multiple times",
-            "near the end of the board",
-            "to jump higher",
-            "touch the flip button to flip",
-            "once dave has left the board"
-        ]
+        loadingDave = SKSpriteNode(imageNamed: "divedave-crouched")
+        loadingDave.setScale(scaleFactorHeight)
+        loadingDave.position = CGPoint(x: loadingLabel.position.x, y: loadingLabel.position.y + loadingDave.size.height)
+        loadingDave.isHidden = true;
+        addChild(loadingDave)
     }
 
     func setupInstructions() {
-        // Instruction panel (initially hidden)
+        instructionsButton = MenuButton(imageNamed: "controls-help",
+                                        position: CGPoint(x: self.size.width - 100, y: self.size.height - 100),
+                                        scale: 0.75 * scaleFactorHeight,
+                                        name: "instructionsButton") { [weak self] in
+            self?.showInstructions()
+        }
+        addChild(instructionsButton)
+        
         instructionPanel = SKSpriteNode(imageNamed: "panel")
+        let aspectRatio = instructionPanel.size.width / instructionPanel.size.height
         instructionPanel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
-        instructionPanel.size.width = coverImage.size.width
-        instructionPanel.size.height = coverImage.size.height
-        instructionPanel.zPosition = 2
+        instructionPanel.size = CGSize(width: WIDTH, height: WIDTH / aspectRatio)
+        instructionPanel.zPosition = 5
         instructionPanel.isHidden = true
         addChild(instructionPanel)
-
-        // Instruction text labels (initially hidden)
-        var height = self.size.height / 2 + (450 * scaleFactorHeight)
-        for text in instructionStrings {
-            let instructionLabel = SKLabelNode(text: text)
-            instructionLabel.fontName = "Arial-BoldMT"
-            instructionLabel.fontSize = 25
-            instructionLabel.fontColor = .white
-            instructionLabel.position = CGPoint(x: self.size.width / 2, y: height)
-            instructionLabel.zPosition = 3
-            instructionLabel.horizontalAlignmentMode = .center
-            instructionLabel.isHidden = true
-            addChild(instructionLabel)
-            instructionLabels.append(instructionLabel)
-            height -= 35
-        }
+        
+        instructionsImage = SKSpriteNode(imageNamed: "controls")
+        instructionsImage.size = CGSize(width: WIDTH, height: WIDTH / aspectRatio)
+        instructionsImage.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+        instructionsImage.zPosition = 6
+        instructionsImage.isHidden = true
+        addChild(instructionsImage)
     }
 
     func showInstructions() {
@@ -110,7 +106,15 @@ class MainMenuScene: SKScene {
         
         // Reveal the instruction panel and all labels
         instructionPanel.isHidden = false
-        instructionLabels.forEach { $0.isHidden = false }
+        instructionsImage.isHidden = false
+    }
+    
+    func hideInstructions() {
+        guard isShowingInstructions else { return }
+        isShowingInstructions = false
+        
+        instructionPanel.isHidden = true
+        instructionsImage.isHidden = true
     }
 
     func startGame(challengeMode: Bool) {
@@ -128,24 +132,59 @@ class MainMenuScene: SKScene {
         startArcadeButton.isHidden = true
         startChallengeButton.isHidden = true
         loadingLabel.isHidden = false
+        loadingDave.isHidden = false
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        NSLog("Touch began")
         if let touch = touches.first {
             let location = touch.location(in: self)
             let touchedNode = self.atPoint(location)
             
-            switch touchedNode.name {
-            case "instructionsButton":
-                showInstructions()
-            case "startArcade":
-                startGame(challengeMode: false)
-            case "startChallenge":
-                startGame(challengeMode: true)
-            default:
-                break
+            if let button = touchedNode as? MenuButton {
+                button.triggerAction()
             }
         }
+    }
+    
+    private func displayHighScore(_ highScore: Int) {
+        NSLog("highScore: \(highScore)")
+        // Add the sign image
+        let sign = SKSpriteNode(imageNamed: "sign-xl")
+        sign.setScale(scaleFactorHeight * 2)
+        let signPosition = CGPoint(x: (sign.size.width / 1.5), y: HEIGHT - (sign.size.height / 8))
+        sign.position = signPosition
+        sign.zRotation = .pi
+        sign.zPosition = 20
+        addChild(sign)
+        
+        // Add "YOUR CHALLENGE" label
+        let challengeLabel = SKLabelNode(fontNamed: "Arial")
+        challengeLabel.text = "YOUR CHALLENGE"
+        challengeLabel.fontColor = .black
+        challengeLabel.fontSize = 20 * scaleFactorHeight * 2
+        challengeLabel.position = CGPoint(x: (sign.size.width / 1.5), y: HEIGHT - (sign.size.height / 5) - (60 * scaleFactorHeight * 2))
+        challengeLabel.zPosition = 24
+        challengeLabel.horizontalAlignmentMode = .center
+        addChild(challengeLabel)
+        
+        // Add "HIGH SCORE" label
+        let highScoreLabel = SKLabelNode(fontNamed: "Arial")
+        highScoreLabel.text = "HIGH SCORE"
+        highScoreLabel.fontColor = .black
+        highScoreLabel.fontSize = 30 * scaleFactorHeight * 2
+        highScoreLabel.position = CGPoint(x: (sign.size.width / 1.5), y: HEIGHT - (sign.size.height / 5) - (90 * scaleFactorHeight * 2))
+        highScoreLabel.zPosition = 24
+        highScoreLabel.horizontalAlignmentMode = .center
+        addChild(highScoreLabel)
+        
+        // Add the high score value
+        let scoreLabel = SKLabelNode(fontNamed: "Arial")
+        scoreLabel.text = "\(highScore)"
+        scoreLabel.fontColor = .black
+        scoreLabel.fontSize = 50 * scaleFactorHeight * 2
+        scoreLabel.position = CGPoint(x: (sign.size.width / 1.5), y: HEIGHT - (sign.size.height / 5) - (150 * scaleFactorHeight * 2))
+        scoreLabel.zPosition = 24
+        scoreLabel.horizontalAlignmentMode = .center
+        addChild(scoreLabel)
     }
 }
