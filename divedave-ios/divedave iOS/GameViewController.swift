@@ -48,6 +48,8 @@ class GameViewController: UIViewController {
             SKTexture(imageNamed: "arcade"),
             SKTexture(imageNamed: "controls-help"),
             SKTexture(imageNamed: "landscape"),
+            SKTexture(imageNamed: "getting-out-spritesheet"),
+            SKTexture(imageNamed: "climbdave"),
             SKTexture(imageNamed: "divedave_spritesheet_extruded"),
             SKTexture(imageNamed: "water"),
             SKTexture(imageNamed: "board"),
@@ -78,7 +80,6 @@ class GameViewController: UIViewController {
             // Present the scene on the main thread once setup is complete
             DispatchQueue.main.async {
                 mainMenuScene.setupMenu()
-                mainMenuScene.setupInstructions()
                 skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
             }
         }

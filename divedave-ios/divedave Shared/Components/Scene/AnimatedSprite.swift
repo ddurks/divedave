@@ -29,7 +29,7 @@ class AnimatedSprite: SKSpriteNode {
     }
     
     // Load frames from a spritesheet
-    func loadFrames(from texture: SKTexture, frameWidth: CGFloat, frameHeight: CGFloat, margin: CGFloat, spacing: CGFloat) -> [SKTexture] {
+    func loadFrames(from texture: SKTexture, frameWidth: CGFloat, frameHeight: CGFloat, margin: CGFloat = 0, spacing: CGFloat = 0) -> [SKTexture] {
         var frames: [SKTexture] = []
         
         let rows = Int((texture.size().height - margin + spacing) / (frameHeight + spacing))
@@ -69,7 +69,7 @@ class AnimatedSprite: SKSpriteNode {
     }
     
     // Play a defined animation by name
-    func playAnimation(name: String, timePerFrame: TimeInterval = 0.125, repeatForever: Bool = true, completion: (() -> Void)? = nil) {
+    func playAnimation(name: String, timePerFrame: TimeInterval = 0.125, repeatForever: Bool = true, delay: TimeInterval = 0.0, completion: (() -> Void)? = nil) {
         // Check if the animation is already playing
         if currentAnimation == name { return }
         
@@ -86,11 +86,14 @@ class AnimatedSprite: SKSpriteNode {
         if repeatForever {
             action = SKAction.repeatForever(animationAction)
         } else {
-            // Run the completion block after the animation finishes
+            let waitAction = SKAction.wait(forDuration: delay)
+
             let completionAction = SKAction.run {
                 completion?()
             }
-            action = SKAction.sequence([animationAction, completionAction])
+            
+            NSLog("delay: \(delay)")
+            action = delay > 0 ? SKAction.sequence([waitAction, animationAction, completionAction]) : SKAction.sequence([animationAction, completionAction])
         }
         
         self.run(action, withKey: name)
