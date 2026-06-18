@@ -5,13 +5,6 @@
 //  Created by David Durkin on 10/29/24.
 //
 
-//
-//  ControlButton.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 10/29/24.
-//
-
 import SpriteKit
 
 enum SpriteType {
