@@ -53,9 +53,11 @@ class MainMenuScene: SKScene {
         setupInstructions()
         
         highScore = UserDefaults.standard.integer(forKey: HIGH_SCORE)
-        if highScore > 0 {
-            displayHighScore(highScore)
+        let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, highScore)
+        if bestScore > 0 {
+            displayHighScore(bestScore)
         }
+        displayMetaStats()
     }
     
     func setUpLoadingStuff() {
@@ -146,6 +148,35 @@ class MainMenuScene: SKScene {
         }
     }
     
+    private func displayMetaStats() {
+        // Anchor the meta stats below the high-score sign on the left side of
+        // the screen. Sized to feel comparable to the existing menu labels
+        // without crowding the cover image.
+        let sign = SKSpriteNode(imageNamed: "sign-xl")
+        sign.setScale(scaleFactorHeight * 2)
+        let baseX = sign.size.width / 1.5
+        let baseY = HEIGHT - (sign.size.height / 5) - (220 * scaleFactorHeight * 2)
+        let lineSpacing: CGFloat = 28 * scaleFactorHeight * 2
+
+        let streakLabel = SKLabelNode(fontNamed: "Arial")
+        streakLabel.text = "LONGEST STREAK: \(StatsStore.longestStreak)"
+        streakLabel.fontColor = .black
+        streakLabel.fontSize = 18 * scaleFactorHeight * 2
+        streakLabel.position = CGPoint(x: baseX, y: baseY)
+        streakLabel.zPosition = 24
+        streakLabel.horizontalAlignmentMode = .center
+        addChild(streakLabel)
+
+        let divesLabel = SKLabelNode(fontNamed: "Arial")
+        divesLabel.text = "TOTAL DIVES: \(StatsStore.totalDives)"
+        divesLabel.fontColor = .black
+        divesLabel.fontSize = 18 * scaleFactorHeight * 2
+        divesLabel.position = CGPoint(x: baseX, y: baseY - lineSpacing)
+        divesLabel.zPosition = 24
+        divesLabel.horizontalAlignmentMode = .center
+        addChild(divesLabel)
+    }
+
     private func displayHighScore(_ highScore: Int) {
         NSLog("highScore: \(highScore)")
         // Add the sign image
