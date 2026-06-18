@@ -399,14 +399,14 @@ class Atmosphere {
         let color: SKColor
         if cameraY <= startY {
             color = startColor
-        } else if cameraY > startY && cameraY <= middleY {
+        } else if cameraY <= middleY {
             // Interpolate between startColor and middleColor
             let t = (cameraY - startY) / (middleY - startY)
-            color = interpolateColor(from: startColor, to: middleColor, fraction: t)
-        } else if cameraY > middleY && cameraY <= endY {
+            color = Atmosphere.interpolateColor(from: startColor, to: middleColor, fraction: t)
+        } else if cameraY <= endY {
             // Interpolate between middleColor and endColor
             let t = (cameraY - middleY) / (endY - middleY)
-            color = interpolateColor(from: middleColor, to: endColor, fraction: t)
+            color = Atmosphere.interpolateColor(from: middleColor, to: endColor, fraction: t)
         } else {
             color = endColor
         }
@@ -415,22 +415,23 @@ class Atmosphere {
         self.scene.backgroundColor = color
     }
 
-    // Helper function to interpolate between two colors
-    func interpolateColor(from color1: SKColor, to color2: SKColor, fraction: CGFloat) -> SKColor {
-        let clampedFraction = max(0, min(1, fraction))
-
-        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
-        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
-
-        color1.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
-        color2.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
-
-        let r = r1 + (r2 - r1) * clampedFraction
-        let g = g1 + (g2 - g1) * clampedFraction
-        let b = b1 + (b2 - b1) * clampedFraction
-        let a = a1 + (a2 - a1) * clampedFraction
-
-        return SKColor(red: r, green: g, blue: b, alpha: a)
+    /// SIMD-based linear color interpolation. Replaces the previous version which
+    /// allocated 8 CGFloat outparams per call. Static — no instance state used.
+    static func interpolateColor(from color1: SKColor, to color2: SKColor, fraction: CGFloat) -> SKColor {
+        let t = Float(max(0, min(1, fraction)))
+        let a = simdComponents(color1)
+        let b = simdComponents(color2)
+        let mixed = a + (b - a) * SIMD4<Float>(repeating: t)
+        return SKColor(red: CGFloat(mixed.x),
+                       green: CGFloat(mixed.y),
+                       blue: CGFloat(mixed.z),
+                       alpha: CGFloat(mixed.w))
     }
 
+    /// Extract RGBA components into a SIMD4<Float>. Hot path — kept tiny.
+    private static func simdComponents(_ color: SKColor) -> SIMD4<Float> {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return SIMD4<Float>(Float(r), Float(g), Float(b), Float(a))
+    }
 }
