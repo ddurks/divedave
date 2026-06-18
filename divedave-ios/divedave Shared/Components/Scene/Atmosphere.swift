@@ -52,6 +52,9 @@ struct AtmosphereLayer {
     /// (1 - parallaxFactor) * cameraDelta as a counter-offset on entity Y, so far
     /// layers appear to lag behind near ones.
     let parallaxFactor: CGFloat
+    /// Hard cap on total entities ever alive in this layer. Procedural extension stops
+    /// adding once this is reached and instead recycles low-Y entities upward.
+    let maxCount: Int
 }
 
 /// Per-entity bookkeeping for the generic recycle pass.
@@ -80,6 +83,8 @@ class Atmosphere {
     /// Last observed camera Y; used to compute frame-over-frame deltas for parallax.
     /// Initialised lazily on the first update() so the first frame doesn't snap.
     private var lastCameraY: CGFloat?
+    /// Highest Y already populated per layer. Procedural extension extends this upward.
+    private var spawnedCeilingByLayer: [CGFloat] = []
 
     init(scene: SKScene, sceneHeight: CGFloat, startY: CGFloat, middleY: CGFloat, endY: CGFloat) {
         self.scene = scene
@@ -90,6 +95,7 @@ class Atmosphere {
 
         self.layers = Atmosphere.defaultLayers(sceneHeight: sceneHeight, middleY: middleY, endY: endY)
         self.entitiesByLayer = Array(repeating: [], count: layers.count)
+        self.spawnedCeilingByLayer = layers.map { $0.yRange.upperBound }
 
         for (idx, layer) in layers.enumerated() {
             spawn(layer: layer, layerIndex: idx)
@@ -129,7 +135,8 @@ class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
                 randomRotation: true,
-                parallaxFactor: 0.15
+                parallaxFactor: 0.15,
+                maxCount: 600
             ),
             // Clouds (below middleY). Random frame, drifts right.
             AtmosphereLayer(
@@ -144,7 +151,8 @@ class Atmosphere {
                 scaleRange: 1.0...2.0,
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
-                parallaxFactor: 0.5
+                parallaxFactor: 0.5,
+                maxCount: 200
             ),
             // Birds (below middleY). Drift left.
             AtmosphereLayer(
@@ -163,7 +171,8 @@ class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
                 randomRotation: false,
-                parallaxFactor: 0.8
+                parallaxFactor: 0.8,
+                maxCount: 80
             ),
             // Planes (middleY..endY). Drift left.
             AtmosphereLayer(
@@ -178,7 +187,8 @@ class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
-                parallaxFactor: 0.8
+                parallaxFactor: 0.8,
+                maxCount: 80
             ),
             // UFOs (above endY). Drift left.
             AtmosphereLayer(
@@ -193,7 +203,8 @@ class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
-                parallaxFactor: 1.0
+                parallaxFactor: 1.0,
+                maxCount: 80
             )
         ]
     }
@@ -216,6 +227,7 @@ class Atmosphere {
             guard yMin < yMax else { continue }
 
             for _ in 0..<count {
+                if entitiesByLayer[layerIndex].count >= layer.maxCount { return }
                 let yPos = CGFloat.random(in: yMin...yMax)
                 spawnEntity(in: layer, layerIndex: layerIndex, atY: yPos)
             }
@@ -312,7 +324,48 @@ class Atmosphere {
                 }
                 recycle(entity: entity, layer: layer)
             }
+
+            // Procedural extension: as camera nears top of populated band, push the
+            // ceiling upward by one segment so high-altitude layers keep populated.
+            extendIfNeeded(layerIndex: layerIndex, layer: layer, cameraY: cameraY)
         }
+    }
+
+    /// When camera approaches `spawnedCeilingByLayer[i]`, spawn (or recycle) a new
+    /// segment-sized batch above it. Hard cap honoured per `layer.maxCount`.
+    private func extendIfNeeded(layerIndex: Int, layer: AtmosphereLayer, cameraY: CGFloat) {
+        let ceiling = spawnedCeilingByLayer[layerIndex]
+        // Trigger when camera is within ~1.5 screen heights of the ceiling.
+        guard cameraY + HEIGHT * 1.5 >= ceiling else { return }
+
+        let newSlabBottom = ceiling
+        let newSlabTop = ceiling + layer.segmentSize
+        let count = Int.random(in: layer.countRange)
+
+        if entitiesByLayer[layerIndex].count < layer.maxCount {
+            // Headroom: spawn a fresh batch above the existing ceiling.
+            for _ in 0..<count {
+                if entitiesByLayer[layerIndex].count >= layer.maxCount { break }
+                let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
+                spawnEntity(in: layer, layerIndex: layerIndex, atY: yPos)
+            }
+        } else {
+            // Cap reached: recycle the lowest entities upward into the new slab.
+            let sortedByY = entitiesByLayer[layerIndex].sorted { $0.node.position.y < $1.node.position.y }
+            let toRecycle = min(count, sortedByY.count)
+            var recycled = 0
+            for entity in sortedByY {
+                if recycled >= toRecycle { break }
+                if entity.node.position.y >= newSlabBottom { break } // already high enough
+                let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
+                let xLow = -layer.xPadding
+                let xHigh = WIDTH + layer.xPadding
+                entity.node.position = CGPoint(x: CGFloat.random(in: xLow...xHigh), y: yPos)
+                recycled += 1
+            }
+        }
+
+        spawnedCeilingByLayer[layerIndex] = newSlabTop
     }
 
     /// Wrap entity horizontally based on its layer motion, or do nothing for stationary layers.
