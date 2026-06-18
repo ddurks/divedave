@@ -283,37 +283,36 @@ class Atmosphere {
     // MARK: - Update / recycle
 
     func update() {
-        // Per-layer recycle. Still per-motion-type — generic recycle pass lands in a follow-up commit.
         for (layerIndex, layer) in layers.enumerated() {
-            switch layer.motion {
-            case .stationary:
-                continue
-            case let .driftRight(minSpeed, maxSpeed):
-                for entity in entitiesByLayer[layerIndex] {
-                    let node = entity.node
-                    if node.position.x >= WIDTH + entity.halfWidth {
-                        let yMin = layer.yRange.lowerBound
-                        let yMax = min(layer.yRange.upperBound, middleY)
-                        let yPos = CGFloat.random(in: yMin...max(yMin, yMax))
-                        node.position = CGPoint(x: -entity.halfWidth * 4, y: yPos)
-                        node.physicsBody?.velocity = CGVector(dx: CGFloat.random(in: minSpeed...maxSpeed), dy: 0)
-                        if let sprite = node as? AnimatedSprite {
-                            sprite.texture = sprite.frames.randomElement()
-                        }
-                    }
-                }
-            case let .driftLeft(minSpeed, maxSpeed):
-                for entity in entitiesByLayer[layerIndex] {
-                    let node = entity.node
-                    if node.position.x + entity.halfWidth < 0 {
-                        let yMin = layer.yRange.lowerBound
-                        let yMax = layer.yRange.upperBound
-                        let yPos = CGFloat.random(in: yMin...max(yMin, yMax))
-                        node.position = CGPoint(x: WIDTH + entity.halfWidth * 4, y: yPos)
-                        node.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: minSpeed...maxSpeed), dy: 0)
-                    }
-                }
+            for entity in entitiesByLayer[layerIndex] {
+                recycle(entity: entity, layer: layer)
             }
+        }
+    }
+
+    /// Wrap entity horizontally based on its layer motion, or do nothing for stationary layers.
+    private func recycle(entity: AtmosphereEntity, layer: AtmosphereLayer) {
+        let node = entity.node
+        switch layer.motion {
+        case .stationary:
+            return
+        case let .driftRight(minSpeed, maxSpeed):
+            guard node.position.x >= WIDTH + entity.halfWidth else { return }
+            let yMin = layer.yRange.lowerBound
+            let yMax = min(layer.yRange.upperBound, middleY)
+            let yPos = CGFloat.random(in: yMin...max(yMin, yMax))
+            node.position = CGPoint(x: -entity.halfWidth * 4, y: yPos)
+            node.physicsBody?.velocity = CGVector(dx: CGFloat.random(in: minSpeed...maxSpeed), dy: 0)
+            if let sprite = node as? AnimatedSprite {
+                sprite.texture = sprite.frames.randomElement()
+            }
+        case let .driftLeft(minSpeed, maxSpeed):
+            guard node.position.x + entity.halfWidth < 0 else { return }
+            let yMin = layer.yRange.lowerBound
+            let yMax = layer.yRange.upperBound
+            let yPos = CGFloat.random(in: yMin...max(yMin, yMax))
+            node.position = CGPoint(x: WIDTH + entity.halfWidth * 4, y: yPos)
+            node.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: minSpeed...maxSpeed), dy: 0)
         }
     }
 
