@@ -277,7 +277,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         dave.defineAnimation(name: "idle", frameIndices: [18, 18, 18, 18, 18, 19, 20, 21], timePerFrame: 0.125)
         dave.defineAnimation(name: "walkRight", frameIndices: [2, 3, 2, 4], timePerFrame: 0.166)
         dave.defineAnimation(name: "walkLeft", frameIndices: [11, 12, 11, 13], timePerFrame: 0.166)
-        dave.defineAnimation(name: "jump", frameIndices: [5, 5, 6], timePerFrame: 0.083, repeatForever: false)
+        dave.defineAnimation(name: "jump", frameIndices: [5, 5, 6], timePerFrame: 0.1, repeatForever: false)
     }
     
     func setupClimbDave(x: CGFloat, y: CGFloat) {
@@ -381,7 +381,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         water.position = CGPoint(x: WIDTH / 2, y: water.size.height / 2)
         water.zPosition = 6
         addChild(water)
-        water.playAnimation(name: "idle", timePerFrame: 0.25)
+        water.playAnimation(name: "idle")
         
         gettingoutdave = AnimatedSprite(
             spritesheetName: "getting-out-spritesheet",
@@ -392,7 +392,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
             scale: 1.0
         )
 
-        gettingoutdave.defineAnimation(name: "getOut", frameIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27], timePerFrame: 0.25)
+        gettingoutdave.defineAnimation(name: "getOut", frameIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27], timePerFrame: 0.125, repeatForever: false)
 
         gettingoutdave.size = CGSize(width: WIDTH, height: WIDTH / aspectRatio)
         gettingoutdave.position = CGPoint(x: WIDTH / 2, y: landscape.size.height / 2)
@@ -450,11 +450,11 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
     func daveJump() {
         guard !jumping else { return }
         if (dave.currentAnimation != "jump") {
-            springboard.playAnimation(name: "flex", timePerFrame: 0.25, repeatForever: false) {
-                self.springboard.currentAnimation = nil
+            springboard.playAnimation(name: "flex") {
+                self.springboard.clearCurrentAnimation()
             }
             jumping = true
-            dave.playAnimation(name: "jump", timePerFrame: 0.1, repeatForever: false) { [weak self] in
+            dave.playAnimation(name: "jump") { [weak self] in
                 guard let self = self else { return }
                 
                 jumping = false
@@ -553,7 +553,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
                 }
             } else if !tucked {
                 dave.texture = dave.zRotation >= -CGFloat.pi / 2 && dave.zRotation <= CGFloat.pi / 2 ? dave.frames[6] : dave.frames[8]
-                dave.currentAnimation = nil
+                dave.clearCurrentAnimation()
             }
         }
     }
@@ -613,9 +613,9 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
                 diveComplete = true
                 splash.position = CGPoint(x: dave.position.x, y: waterLevel + 100*scaleFactorHeight)
                 splash.isHidden = false
-                splash.playAnimation(name: "splash", timePerFrame: 0.125, repeatForever: false) {
+                splash.playAnimation(name: "splash") {
                     self.splash.isHidden = true
-                    self.splash.currentAnimation = nil
+                    self.splash.clearCurrentAnimation()
                 }
             
                 // Calculate height, angle, and other stats
@@ -646,7 +646,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
                     self.readyForReset = true
                     
                     self.gettingoutdave.isHidden = false
-                    self.gettingoutdave.playAnimation(name: "getOut", timePerFrame: 0.125, repeatForever: false) {
+                    self.gettingoutdave.playAnimation(name: "getOut") {
                         self.climbdave.physicsBody?.velocity.dy = 50
                         self.gettingoutdave.isHidden = true
                         self.climbdave.playAnimation(name: "climb")

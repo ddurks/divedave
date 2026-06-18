@@ -78,7 +78,7 @@ class Atmosphere {
                         
                         let delay = Double.random(in: 0.0...0.75)
                         star.run(SKAction.wait(forDuration: delay)) {
-                            star.playAnimation(name: "sparkle", timePerFrame: 0.25, repeatForever: true)
+                            star.playAnimation(name: "sparkle")
                         }
 
                         stars.append(star)
@@ -115,7 +115,7 @@ class Atmosphere {
                     // Add delayed animation
                     let delay = CGFloat.random(in: 0...0.75)
                     bird.run(SKAction.wait(forDuration: TimeInterval(delay))) {
-                        bird.playAnimation(name: "fly", repeatForever: true)
+                        bird.playAnimation(name: "fly")
                     }
                     birds.append(bird)
                     scene.addChild(bird)
