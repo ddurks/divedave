@@ -112,7 +112,7 @@ class HUD {
     }
     
     func setRunningStreak(streak: Int) {
-        runningScoreLabel.text = "streak: \(streak)"
+        runningStreakLabel.text = "streak: \(streak)"
     }
     
     func setGoalFlips(flips: Double) {
