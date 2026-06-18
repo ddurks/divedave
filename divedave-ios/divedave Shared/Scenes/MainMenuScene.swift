@@ -18,9 +18,6 @@ class MainMenuScene: SKScene {
     private var isShowingInstructions = false
     private var userClickedStart = false
     private var loadingDave: SKSpriteNode!
-    
-    override func didMove(to view: SKView) {
-    }
 
     func setupMenu() {
         // Cover image
@@ -139,9 +136,11 @@ class MainMenuScene: SKScene {
         if let touch = touches.first {
             let location = touch.location(in: self)
             let touchedNode = self.atPoint(location)
-            
+
             if let button = touchedNode as? MenuButton {
                 button.triggerAction()
+            } else if isShowingInstructions && touchedNode !== instructionsImage && touchedNode !== instructionPanel {
+                hideInstructions()
             }
         }
     }
