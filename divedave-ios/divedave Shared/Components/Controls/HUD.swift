@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class HUD {
+final class HUD {
     // Button nodes
     var leftButton: ControlButton
     var rightButton: ControlButton
@@ -84,11 +84,11 @@ class HUD {
         menuButton.defineAnimation(name: "clicked", frameIndices: [1, 2, 3, 4, 4, 3, 2, 1, 0, 1], timePerFrame: 0.125, repeatForever: false)
 
         
-        menuButton.onPressed = { [self] in
+        menuButton.onPressed = { [weak self] in
             print("Animated button pressed")
             // Play an animation when the button is pressed
-            self.menuButton.playAnimation(named: "clicked", timePerFrame: 0.125, repeatForever: false) {
-                self.onMenuPressed?()
+            self?.menuButton.playAnimation(named: "clicked", timePerFrame: 0.125, repeatForever: false) {
+                self?.onMenuPressed?()
             }
         }
         camera.addChild(menuButton)
@@ -101,7 +101,7 @@ class HUD {
         camera.addChild(runningStreakLabel)
         
         // High score label
-        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(HEIGHT / 4)), zPosition: 20, fontColor: customGreen)
+        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(HEIGHT / 4)), zPosition: 20, fontColor: Game.customGreen)
         highScoreLabel.horizontalAlignmentMode = .center
         highScoreLabel.isHidden = true
         camera.addChild(highScoreLabel)
@@ -112,7 +112,7 @@ class HUD {
     }
     
     func setRunningStreak(streak: Int) {
-        runningScoreLabel.text = "streak: \(streak)"
+        runningStreakLabel.text = "streak: \(streak)"
     }
     
     func setGoalFlips(flips: Double) {
