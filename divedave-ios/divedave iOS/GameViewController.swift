@@ -33,7 +33,7 @@ class GameViewController: UIViewController {
             }
             
             skView.ignoresSiblingOrder = true
-            skView.showsPhysics = true
+//            skView.showsPhysics = true
             skView.showsFPS = true
             skView.showsNodeCount = true
         }
