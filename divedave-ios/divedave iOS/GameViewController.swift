@@ -19,10 +19,12 @@ class GameViewController: UIViewController {
             scaleFactorHeight = HEIGHT / DEFAULT_HEIGHT
             scaleFactorWidth = WIDTH / DEFAULT_WIDTH
             
+            #if DEBUG
             NSLog("WIDTH: \(WIDTH)")
             NSLog("HEIGHT: \(HEIGHT)")
             NSLog("scaleFactorHeight: \(scaleFactorHeight)")
             NSLog("scaleFactorWidth: \(scaleFactorWidth)")
+            #endif
             
             // Preload assets for MainMenuScene while showing LoadingScene
             preloadAllAssets {

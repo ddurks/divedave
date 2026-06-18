@@ -75,7 +75,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func setupHUD(view: SKView, camera: SKCameraNode) {
+        #if DEBUG
         NSLog("self.size: \(self.size)")
+        #endif
         hud = HUD(view: view, camera: camera, sceneSize: self.size, scaleFactorHeight: scaleFactorHeight)
         hud.onMenuPressed = self.prepareAndPresentMainMenuScene
     }
@@ -103,7 +105,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         goalRotations = randomHalfFlips
         hud.setGoalFlips(flips: goalRotations)
         
+        #if DEBUG
         NSLog("DiveHeight: \(diveHeight), Time (approximated): \(time), Total Rotation (radians): \(totalRotation), Max Flips: \(maxFlips), Half-Flips (integer): \(halfFlips), Random Half-Flips: \(randomHalfFlips), Goal Rotations: \(goalRotations)")
+        #endif
     }
 
     func setupScene() {
@@ -155,7 +159,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func setupHeightLabels() {
+        #if DEBUG
         NSLog("water level: \(waterLevel)")
+        #endif
         
         var y = waterLevel
         var currentMeter = 1  // Start at 0 meters from the water level
@@ -332,7 +338,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             if landedAt == nil {
                 landedAt = Date()
                 dave.playAnimation(name: "idle")
-                NSLog("LANDED AT \(landedAt)")
+                #if DEBUG
+                NSLog("LANDED AT \(String(describing: landedAt))")
+                #endif
             }
         }
     }
@@ -617,7 +625,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 stats.tuckCount = tuckCount
                 stats.rotations = round(totalRotations * 10) / 10
                 
+                #if DEBUG
                 NSLog("stats: \(stats)")
+                #endif
                 
                 // Display the InfoPanel with calculated stats
                 let result = scoreDive()

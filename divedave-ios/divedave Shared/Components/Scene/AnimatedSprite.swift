@@ -97,7 +97,9 @@ final class AnimatedSprite: SKSpriteNode {
                 completion?()
             }
 
+            #if DEBUG
             NSLog("delay: \(delay)")
+            #endif
             action = delay > 0 ? SKAction.sequence([waitAction, animationAction, completionAction]) : SKAction.sequence([animationAction, completionAction])
         }
 
