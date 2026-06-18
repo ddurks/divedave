@@ -726,6 +726,11 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func scoreDive() -> String {
+        // Persist per-dive meta-progression (every dive, success or fail)
+        StatsStore.totalDives += 1
+        StatsStore.totalFlips += Int(stats.rotations)
+        StatsStore.maxHeightReached = max(StatsStore.maxHeightReached, Int(platformHeight))
+
         // Check if the rotations are within the goal range
         if abs(stats.rotations - goalRotations) < 0.25 {
             // Set emotion frame based on the angle
@@ -758,11 +763,22 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
             streak += 1
             totalScore += stats.scores.reduce(0, +)
 
+            // Track longest streak across runs
+            StatsStore.longestStreak = max(StatsStore.longestStreak, streak)
+
+            // Update per-mode high score in the new store (legacy write below
+            // is intentionally preserved — Lane E owns its removal).
+            if CHALLENGE_MODE {
+                StatsStore.challengeHigh = max(StatsStore.challengeHigh, totalScore)
+            } else {
+                StatsStore.arcadeHigh = max(StatsStore.arcadeHigh, totalScore)
+            }
+
             if CHALLENGE_MODE && totalScore > highScore {
                 highScore = totalScore
                 UserDefaults.standard.set(highScore, forKey: HIGH_SCORE)
                 highScoreSession = true
-                
+
                 // Display high score text briefly
                 hud.highScoreLabel.isHidden = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
