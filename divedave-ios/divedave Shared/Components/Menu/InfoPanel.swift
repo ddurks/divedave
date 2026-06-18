@@ -8,7 +8,7 @@
 import SceneKit
 import SpriteKit
 
-class InfoPanel {
+final class InfoPanel {
     private var baseDepth: CGFloat
     private var panel: SKSpriteNode
     private var daveImage: AnimatedSprite
@@ -73,7 +73,7 @@ class InfoPanel {
 
     func display(result: String, strings: [String], frame: Int, scores: [Int]?) {
         var height = HEIGHT / 2 + (5 * scaleFactorHeight)
-        let resultLabel = SKLabelNode(fontNamed: (result == "FAILED DIVE" || result == "GAME OVER") ? "Arial-BoldMT" : "Arial-BoldMT")
+        let resultLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
         resultLabel.text = result
         resultLabel.fontSize = 80 * scaleFactorHeight
         resultLabel.position = CGPoint(x: WIDTH / 2, y: height + (350 * scaleFactorHeight))

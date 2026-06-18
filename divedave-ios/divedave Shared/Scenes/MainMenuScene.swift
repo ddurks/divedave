@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class MainMenuScene: SKScene {
+final class MainMenuScene: SKScene {
     private var startArcadeButton: MenuButton!
     private var startChallengeButton: MenuButton!
     private var instructionsButton: MenuButton!
@@ -18,9 +18,6 @@ class MainMenuScene: SKScene {
     private var isShowingInstructions = false
     private var userClickedStart = false
     private var loadingDave: SKSpriteNode!
-    
-    override func didMove(to view: SKView) {
-    }
 
     func setupMenu() {
         // Cover image
@@ -52,7 +49,7 @@ class MainMenuScene: SKScene {
         setUpLoadingStuff()
         setupInstructions()
         
-        highScore = UserDefaults.standard.integer(forKey: HIGH_SCORE)
+        highScore = UserDefaults.standard.integer(forKey: Game.highScoreKey)
         let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, highScore)
         if bestScore > 0 {
             displayHighScore(bestScore)
@@ -141,9 +138,11 @@ class MainMenuScene: SKScene {
         if let touch = touches.first {
             let location = touch.location(in: self)
             let touchedNode = self.atPoint(location)
-            
+
             if let button = touchedNode as? MenuButton {
                 button.triggerAction()
+            } else if isShowingInstructions && touchedNode !== instructionsImage && touchedNode !== instructionPanel {
+                hideInstructions()
             }
         }
     }

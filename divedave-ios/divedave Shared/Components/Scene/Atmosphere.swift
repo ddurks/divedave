@@ -70,7 +70,7 @@ private final class AtmosphereEntity {
     }
 }
 
-class Atmosphere {
+final class Atmosphere {
     private let scene: SKScene
     private let sceneHeight: CGFloat
     private let startY: CGFloat
@@ -127,7 +127,7 @@ class Atmosphere {
                                       frameIndices: [0, 0, 0, 0, 0, 1, 2, 3],
                                       timePerFrame: 0.25),
                 motion: .stationary,
-                countRange: (MIN_CLOUDS * 2)...(MAX_CLOUDS * 2),
+                countRange: (Game.minClouds * 2)...(Game.maxClouds * 2),
                 yRange: max(endY, cloudBandStart)...cloudBandEnd,
                 segmentSize: segment,
                 xPadding: 0,
@@ -142,8 +142,8 @@ class Atmosphere {
             AtmosphereLayer(
                 name: "clouds",
                 kind: .randomFrameSprite(spritesheet: "clouds", frameWidth: 256, frameHeight: 256),
-                motion: .driftRight(minSpeed: CLOUD_MIN_SPEED, maxSpeed: CLOUD_MAX_SPEED),
-                countRange: MIN_CLOUDS...MAX_CLOUDS,
+                motion: .driftRight(minSpeed: Game.cloudMinSpeed, maxSpeed: Game.cloudMaxSpeed),
+                countRange: Game.minClouds...Game.maxClouds,
                 yRange: cloudBandStart...min(middleY, cloudBandEnd),
                 segmentSize: segment,
                 xPadding: 256 * scaleFactorHeight,
@@ -162,8 +162,8 @@ class Atmosphere {
                                       animationName: "fly",
                                       frameIndices: [0, 0, 0, 0, 1, 2, 3, 4, 3, 2, 1],
                                       timePerFrame: 0.83),
-                motion: .driftLeft(minSpeed: BIRD_MIN_SPEED, maxSpeed: BIRD_MAX_SPEED),
-                countRange: MIN_BIRDS...MAX_BIRDS,
+                motion: .driftLeft(minSpeed: Game.birdMinSpeed, maxSpeed: Game.birdMaxSpeed),
+                countRange: Game.minBirds...Game.maxBirds,
                 yRange: birdBandStart...min(middleY, birdBandEnd),
                 segmentSize: segment,
                 xPadding: 128 * scaleFactorHeight,
@@ -178,8 +178,8 @@ class Atmosphere {
             AtmosphereLayer(
                 name: "planes",
                 kind: .staticSprite(imageName: "plane"),
-                motion: .driftLeft(minSpeed: BIRD_MIN_SPEED, maxSpeed: BIRD_MAX_SPEED),
-                countRange: MIN_BIRDS...MAX_BIRDS,
+                motion: .driftLeft(minSpeed: Game.birdMinSpeed, maxSpeed: Game.birdMaxSpeed),
+                countRange: Game.minBirds...Game.maxBirds,
                 yRange: max(middleY, birdBandStart)...min(endY, birdBandEnd),
                 segmentSize: segment,
                 xPadding: 128 * scaleFactorHeight,
@@ -194,8 +194,8 @@ class Atmosphere {
             AtmosphereLayer(
                 name: "ufos",
                 kind: .staticSprite(imageName: "ufo"),
-                motion: .driftLeft(minSpeed: BIRD_MIN_SPEED, maxSpeed: BIRD_MAX_SPEED),
-                countRange: MIN_BIRDS...MAX_BIRDS,
+                motion: .driftLeft(minSpeed: Game.birdMinSpeed, maxSpeed: Game.birdMaxSpeed),
+                countRange: Game.minBirds...Game.maxBirds,
                 yRange: max(endY, birdBandStart)...cloudBandEnd,
                 segmentSize: segment,
                 xPadding: 128 * scaleFactorHeight,

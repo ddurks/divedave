@@ -5,13 +5,6 @@
 //  Created by David Durkin on 10/29/24.
 //
 
-//
-//  ControlButton.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 10/29/24.
-//
-
 import SpriteKit
 
 enum SpriteType {
@@ -19,7 +12,7 @@ enum SpriteType {
     case animatedSprite(spritesheetName: String, frameWidth: CGFloat, frameHeight: CGFloat, margin: CGFloat, spacing: CGFloat, frameIndex: Int = 0)
 }
 
-class ControlButton: SKNode {
+final class ControlButton: SKNode {
     // Track button state
     var isDown = false
     var onPressed: (() -> Void)?
@@ -107,7 +100,9 @@ class ControlButton: SKNode {
         if case .staticSprite(let textureName) = spriteType, textureName == "controls-jump" {
             jumpReleasedAt = Date()
             Haptics.impact(.medium)
-            NSLog("jumpReleasedAt: \(jumpReleasedAt)")
+            #if DEBUG
+            NSLog("jumpReleasedAt: \(String(describing: jumpReleasedAt))")
+            #endif
         }
     }
     

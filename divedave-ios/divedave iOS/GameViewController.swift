@@ -20,10 +20,12 @@ class GameViewController: UIViewController {
             scaleFactorHeight = HEIGHT / DEFAULT_HEIGHT
             scaleFactorWidth = WIDTH / DEFAULT_WIDTH
             
+            #if DEBUG
             NSLog("WIDTH: \(WIDTH)")
             NSLog("HEIGHT: \(HEIGHT)")
             NSLog("scaleFactorHeight: \(scaleFactorHeight)")
             NSLog("scaleFactorWidth: \(scaleFactorWidth)")
+            #endif
             
             // Preload assets for MainMenuScene while showing LoadingScene
             preloadAllAssets {
@@ -62,27 +64,12 @@ class GameViewController: UIViewController {
         SKTexture.preload(texturesToPreload, withCompletionHandler: completion)
     }
     
-    func presentMainMenuScene() {
-        if let skView = self.view as? SKView {
-            let mainMenuScene = MainMenuScene(size: skView.bounds.size)
-            mainMenuScene.scaleMode = .aspectFill
-            skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
-        }
-    }
-    
     func prepareAndPresentMainMenuScene(skView: SKView) {
-        // Create the MainMenuScene instance
+        // Create and present the MainMenuScene instance
         let mainMenuScene = MainMenuScene(size: skView.bounds.size)
-        
-        // Run setup code in the background before presenting the scene
-        DispatchQueue.global(qos: .userInitiated).async {
-            mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
-            mainMenuScene.scaleMode = .aspectFill
-            // Present the scene on the main thread once setup is complete
-            DispatchQueue.main.async {
-                mainMenuScene.setupMenu()
-                skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
-            }
-        }
+        mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
+        mainMenuScene.scaleMode = .aspectFill
+        mainMenuScene.setupMenu()
+        skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 }
