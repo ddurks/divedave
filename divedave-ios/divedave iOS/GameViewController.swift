@@ -61,14 +61,6 @@ class GameViewController: UIViewController {
         SKTexture.preload(texturesToPreload, withCompletionHandler: completion)
     }
     
-    func presentMainMenuScene() {
-        if let skView = self.view as? SKView {
-            let mainMenuScene = MainMenuScene(size: skView.bounds.size)
-            mainMenuScene.scaleMode = .aspectFill
-            skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
-        }
-    }
-    
     func prepareAndPresentMainMenuScene(skView: SKView) {
         // Create the MainMenuScene instance
         let mainMenuScene = MainMenuScene(size: skView.bounds.size)

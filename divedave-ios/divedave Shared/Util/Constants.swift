@@ -11,8 +11,6 @@ import SpriteKit
 // Game Modes and Gravity
 let GRAVITY: CGFloat = 2
 let DAVE_MASS: CGFloat = 1.0
-let JUMP_IMPULSE: CGFloat = 8000
-let WALK_IMPULSE: CGFloat = 1500
 
 // Default Game Dimensions
 let DEFAULT_WIDTH: CGFloat = 1250
@@ -26,9 +24,7 @@ let JUMP_VELOCITY: CGFloat = 200
 let MIN_SPIN_VELOCITY: CGFloat = 2
 let MAX_SPIN_VELOCITY: CGFloat = 12
 let DRAG: CGFloat = 0.96
-let ANGULAR_DRAG: CGFloat = 1
 let MAX_BOOST: CGFloat = 100
-let IDLE_DELAY: CGFloat = 1.0
 
 // Cloud and Bird Constants
 let MIN_CLOUDS = 5

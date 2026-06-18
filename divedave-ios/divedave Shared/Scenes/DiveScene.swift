@@ -263,7 +263,6 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         dave.physicsBody?.isDynamic = true
         dave.physicsBody?.mass = DAVE_MASS
         dave.physicsBody?.affectedByGravity = true          // Enable gravity
-        dave.physicsBody?.angularDamping = ANGULAR_DRAG     // Equivalent to setAngularDrag
         dave.physicsBody?.restitution = 0.0                 // Prevent bouncing
         dave.physicsBody?.friction = 0.0                    // Prevent friction against surfaces
         
