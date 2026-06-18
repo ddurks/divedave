@@ -12,7 +12,8 @@ import GameplayKit
 class GameViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        Haptics.prepare()
+
         if let skView = self.view as? SKView {
             WIDTH = skView.bounds.size.width
             HEIGHT = skView.bounds.size.height

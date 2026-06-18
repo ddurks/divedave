@@ -106,6 +106,7 @@ class ControlButton: SKNode {
         
         if case .staticSprite(let textureName) = spriteType, textureName == "controls-jump" {
             jumpReleasedAt = Date()
+            Haptics.impact(.medium)
             NSLog("jumpReleasedAt: \(jumpReleasedAt)")
         }
     }
