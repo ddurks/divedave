@@ -7,11 +7,6 @@
 
 import SpriteKit
 
-struct PhysicsCategory {
-    static let dave: UInt32 = 0x1 << 0
-    static let springboard: UInt32 = 0x1 << 1
-}
-
 struct DiveStats {
     var height: Double = 0.0
     var angle: Double = 0.0
@@ -32,7 +27,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     var diveComplete = false
     var landedAt: Date? = nil
     var boost: CGFloat = 0
-    var currentVelocity: CGFloat = MIN_SPIN_VELOCITY
+    var currentVelocity: CGFloat = Game.minSpinVelocity
     var tucked = false
     var tuckCount = 0
     var sumRotation = 0.0
@@ -52,7 +47,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var atmosphere: Atmosphere!
     
     override func didMove(to view: SKView) {
-        physicsWorld.gravity = CGVector(dx: 0, dy: -GRAVITY)
+        physicsWorld.gravity = CGVector(dx: 0, dy: -Game.gravity)
         physicsWorld.contactDelegate = self
         self.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
         diveComplete = false
@@ -91,10 +86,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
     func calculateGameLogic() {
         let diveHeight = (platformHeight * scaleFactorHeight)
-        let time = approximateFallTime(from: diveHeight, to: waterLevel, gravity: GRAVITY) / 10
+        let time = approximateFallTime(from: diveHeight, to: waterLevel, gravity: Game.gravity) / 10
         
         // Calculate maximum number of flips based on the total rotation in radians
-        let totalRotation = time * (MIN_SPIN_VELOCITY * 3)
+        let totalRotation = time * (Game.minSpinVelocity * 3)
         let maxFlips = totalRotation / (2 * Double.pi)
         
         // Generate a random goal rotation value in terms of half rotations
@@ -176,12 +171,12 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         // Loop until y reaches the springboard position
         while y < maxY {
             // Set label color based on height
-            var labelColor: SKColor = customRed
+            var labelColor: SKColor = Game.customRed
             if currentMeter < 25 {
-                labelColor = customYellow
+                labelColor = Game.customYellow
             }
             if currentMeter < 10 {
-                labelColor = customGreen
+                labelColor = Game.customGreen
             }
             
             let labelPosition = CGPoint(x: 5*WIDTH/6, y: CGFloat(y))
@@ -246,8 +241,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     func setupDave() {
         // Initialize dave as an AnimatedSprite with the spritesheet, frame size, and scaling factor
         dave = AnimatedSprite(spritesheetName: "divedave-spritesheet-extruded",
-                              frameWidth: DEFAULT_DAVE_HEIGHT,
-                              frameHeight: DEFAULT_DAVE_HEIGHT,
+                              frameWidth: Game.defaultDaveHeight,
+                              frameHeight: Game.defaultDaveHeight,
                               margin: 1,
                               spacing: 2,
                               scale: scaleFactorHeight)
@@ -259,14 +254,14 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         // Add physics body to `dave`
         dave.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: dave.size.width/4, height: dave.size.height))
         dave.physicsBody?.isDynamic = true
-        dave.physicsBody?.mass = DAVE_MASS
+        dave.physicsBody?.mass = Game.daveMass
         dave.physicsBody?.affectedByGravity = true          // Enable gravity
         dave.physicsBody?.restitution = 0.0                 // Prevent bouncing
         dave.physicsBody?.friction = 0.0                    // Prevent friction against surfaces
         
-        dave.physicsBody?.categoryBitMask = PhysicsCategory.dave
-        dave.physicsBody?.contactTestBitMask = PhysicsCategory.springboard
-        dave.physicsBody?.collisionBitMask = PhysicsCategory.springboard
+        dave.physicsBody?.categoryBitMask = PhysicsCategory.dave.rawValue
+        dave.physicsBody?.contactTestBitMask = PhysicsCategory.springboard.rawValue
+        dave.physicsBody?.collisionBitMask = PhysicsCategory.springboard.rawValue
         
         // Add `dave` to the scene
         addChild(dave)
@@ -280,8 +275,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     
     func setupClimbDave(x: CGFloat, y: CGFloat) {
         climbdave = AnimatedSprite(spritesheetName: "climbdave",
-                              frameWidth: DEFAULT_DAVE_HEIGHT,
-                              frameHeight: DEFAULT_DAVE_HEIGHT,
+                              frameWidth: Game.defaultDaveHeight,
+                              frameHeight: Game.defaultDaveHeight,
                               scale: scaleFactorHeight)
         climbdave.position = CGPoint(x: x - (5*climbdave.size.width/7), y: y + climbdave.size.height/3)
         climbdave.zPosition = 5
@@ -314,7 +309,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         springboard.physicsBody?.affectedByGravity = false
         springboard.physicsBody?.restitution = 0.0
         springboard.physicsBody?.friction = 0.0
-        springboard.physicsBody?.categoryBitMask = PhysicsCategory.springboard
+        springboard.physicsBody?.categoryBitMask = PhysicsCategory.springboard.rawValue
 
         addChild(springboard)
     }
@@ -332,8 +327,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         let bodies = (contact.bodyA.categoryBitMask, contact.bodyB.categoryBitMask)
         
         // Check if the contact is between `dave` and `springboard`
-        if (bodies == (PhysicsCategory.dave, PhysicsCategory.springboard)) ||
-           (bodies == (PhysicsCategory.springboard, PhysicsCategory.dave)) {
+        if (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
+           (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
             daveIsTouchingBoardBool = true
             if landedAt == nil {
                 landedAt = Date()
@@ -348,8 +343,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     func didEnd(_ contact: SKPhysicsContact) {
         let bodies = (contact.bodyA.categoryBitMask, contact.bodyB.categoryBitMask)
         
-        if (bodies == (PhysicsCategory.dave, PhysicsCategory.springboard)) ||
-           (bodies == (PhysicsCategory.springboard, PhysicsCategory.dave)) {
+        if (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
+           (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
                 daveIsTouchingBoardBool = false
         }
     }
@@ -461,7 +456,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 calculateBoost()
                 landedAt = nil
                 
-                dave.physicsBody?.velocity.dy = JUMP_VELOCITY + boost;
+                dave.physicsBody?.velocity.dy = Game.jumpVelocity + boost;
             }
         }
     }
@@ -473,11 +468,11 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         
         // Determine the boost based on the quickness of the jump release
         if quickness < 125 {
-            boost = MAX_BOOST
+            boost = Game.maxBoost
         } else if quickness < 250 {
-            boost = MAX_BOOST - 50
+            boost = Game.maxBoost - 50
         } else if quickness < 350 {
-            boost = MAX_BOOST - 100
+            boost = Game.maxBoost - 100
         } else {
             boost = 0
         }
@@ -515,7 +510,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         guard let physicsBody = dave.physicsBody else { return }
         
         // Apply damping only to the x component of the velocity
-        let newVelocityX = physicsBody.velocity.dx * DRAG
+        let newVelocityX = physicsBody.velocity.dx * Game.drag
         physicsBody.velocity = CGVector(dx: newVelocityX, dy: physicsBody.velocity.dy)
     }
 
@@ -528,9 +523,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     dave.zRotation = 0
                 }
                 if daveIsTouchingBoardBool {
-                    if let velocity = dave.physicsBody?.velocity.dx, velocity > (DAVE_SPEED/10) {
+                    if let velocity = dave.physicsBody?.velocity.dx, velocity > (Game.daveSpeed/10) {
                         dave.playAnimation(name: "walkRight")
-                    } else if let velocity = dave.physicsBody?.velocity.dx, velocity < -(DAVE_SPEED/10) {
+                    } else if let velocity = dave.physicsBody?.velocity.dx, velocity < -(Game.daveSpeed/10) {
                         dave.playAnimation(name: "walkLeft")
                     } else {
                         dave.playAnimation(name: "idle")
@@ -575,11 +570,11 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 //                NSLog("DIVE COMPLETE") // Implement this to reset the scene
             } else {
                 if hud?.leftButton.isDown == true {
-                    dave.physicsBody?.velocity.dx = -DAVE_SPEED
+                    dave.physicsBody?.velocity.dx = -Game.daveSpeed
                     
                 }
                 if hud?.rightButton.isDown == true {
-                    dave.physicsBody?.velocity.dx = DAVE_SPEED
+                    dave.physicsBody?.velocity.dx = Game.daveSpeed
                 }
                 if daveIsAboveBoard() {
                     if hud?.jumpButton.isDown == true && daveIsTouchingBoardBool {
@@ -590,10 +585,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                         tucked = true
                         tuckCount += 1
                     } else {
-                        if currentVelocity < MAX_SPIN_VELOCITY/2 {
-                            currentVelocity += (MAX_SPIN_VELOCITY/100)
-                        } else if currentVelocity < MAX_SPIN_VELOCITY {
-                            currentVelocity += (MIN_SPIN_VELOCITY/100)
+                        if currentVelocity < Game.maxSpinVelocity/2 {
+                            currentVelocity += (Game.maxSpinVelocity/100)
+                        } else if currentVelocity < Game.maxSpinVelocity {
+                            currentVelocity += (Game.minSpinVelocity/100)
                         }
                     }
                     dave.physicsBody?.angularVelocity = -currentVelocity
@@ -601,7 +596,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             }
         } else {
             tucked = false
-            currentVelocity = MIN_SPIN_VELOCITY
+            currentVelocity = Game.minSpinVelocity
         }
     }
     
@@ -705,7 +700,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                         let roundedRotations = round(totalRotations)
                         
                         // Display rotation count near `dave`'s position
-                        let rotationLabel = createRotationLabel(text: "\(Int(roundedRotations))", fontColor: roundedRotations > Double(goalRotations) ? customRed : customGreen)
+                        let rotationLabel = createRotationLabel(text: "\(Int(roundedRotations))", fontColor: roundedRotations > Double(goalRotations) ? Game.customRed : Game.customGreen)
                         rotationLabel.position = dave.position
                         rotationLabel.zPosition = 4
                         addChild(rotationLabel)
@@ -761,7 +756,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
             if CHALLENGE_MODE && totalScore > highScore {
                 highScore = totalScore
-                UserDefaults.standard.set(highScore, forKey: HIGH_SCORE)
+                UserDefaults.standard.set(highScore, forKey: Game.highScoreKey)
                 highScoreSession = true
                 
                 // Display high score text briefly

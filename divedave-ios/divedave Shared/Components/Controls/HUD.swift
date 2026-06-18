@@ -101,7 +101,7 @@ final class HUD {
         camera.addChild(runningStreakLabel)
         
         // High score label
-        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(HEIGHT / 4)), zPosition: 20, fontColor: customGreen)
+        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(HEIGHT / 4)), zPosition: 20, fontColor: Game.customGreen)
         highScoreLabel.horizontalAlignmentMode = .center
         highScoreLabel.isHidden = true
         camera.addChild(highScoreLabel)

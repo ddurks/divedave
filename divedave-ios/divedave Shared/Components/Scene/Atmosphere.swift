@@ -40,7 +40,7 @@ final class Atmosphere {
 
     private func spawnCloudsAndStars() {
         for segment in stride(from: cloudSegmentSize + 500 * scaleFactorHeight, to: sceneHeight + cloudSegmentSize, by: cloudSegmentSize) {
-            let cloudCount = Int.random(in: MIN_CLOUDS...MAX_CLOUDS)
+            let cloudCount = Int.random(in: Game.minClouds...Game.maxClouds)
             let yMin = segment - cloudSegmentSize
             let yMax = segment
             let starMult = 1
@@ -57,7 +57,7 @@ final class Atmosphere {
                     cloud.physicsBody = SKPhysicsBody(rectangleOf: cloud.size)
                     cloud.physicsBody?.affectedByGravity = false
                     cloud.physicsBody?.linearDamping = 0.0
-                    cloud.physicsBody?.velocity = CGVector(dx: CGFloat.random(in: CLOUD_MIN_SPEED...CLOUD_MAX_SPEED), dy: 0)
+                    cloud.physicsBody?.velocity = CGVector(dx: CGFloat.random(in: Game.cloudMinSpeed...Game.cloudMaxSpeed), dy: 0)
                     cloud.physicsBody?.collisionBitMask = 0
                     cloud.physicsBody?.categoryBitMask = 0
                     cloud.texture = cloud.frames.randomElement()
@@ -91,7 +91,7 @@ final class Atmosphere {
 
     private func spawnBirdsPlanesAndUFOs() {
         for segment in stride(from: birdSegmentSize, to: sceneHeight - 500 * scaleFactorHeight, by: birdSegmentSize) {
-            let birdCount = Int.random(in: MIN_BIRDS...MAX_BIRDS)
+            let birdCount = Int.random(in: Game.minBirds...Game.maxBirds)
             let yMin = segment - birdSegmentSize
             let yMax = segment
             
@@ -108,7 +108,7 @@ final class Atmosphere {
                     bird.physicsBody = SKPhysicsBody(rectangleOf: bird.size)
                     bird.physicsBody?.affectedByGravity = false
                     bird.physicsBody?.linearDamping = 0.0
-                    bird.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: BIRD_MIN_SPEED...BIRD_MAX_SPEED), dy: 0)
+                    bird.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: Game.birdMinSpeed...Game.birdMaxSpeed), dy: 0)
                     bird.physicsBody?.collisionBitMask = 0
                     bird.physicsBody?.categoryBitMask = 0
 
@@ -128,7 +128,7 @@ final class Atmosphere {
                     plane.physicsBody = SKPhysicsBody(rectangleOf: plane.size)
                     plane.physicsBody?.affectedByGravity = false
                     plane.physicsBody?.linearDamping = 0.0
-                    plane.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: BIRD_MIN_SPEED...BIRD_MAX_SPEED), dy: 0)
+                    plane.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: Game.birdMinSpeed...Game.birdMaxSpeed), dy: 0)
                     plane.physicsBody?.collisionBitMask = 0
                     plane.physicsBody?.categoryBitMask = 0
                     planes.append(plane)
@@ -142,7 +142,7 @@ final class Atmosphere {
                     ufo.physicsBody = SKPhysicsBody(rectangleOf: ufo.size)
                     ufo.physicsBody?.affectedByGravity = false
                     ufo.physicsBody?.linearDamping = 0.0
-                    ufo.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: BIRD_MIN_SPEED...BIRD_MAX_SPEED), dy: 0)
+                    ufo.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: Game.birdMinSpeed...Game.birdMaxSpeed), dy: 0)
                     ufo.physicsBody?.collisionBitMask = 0
                     ufo.physicsBody?.categoryBitMask = 0
                     ufos.append(ufo)
@@ -158,7 +158,7 @@ final class Atmosphere {
             if cloud.position.x >= WIDTH + cloud.size.width / 2 {
                 let yPos = CGFloat.random(in: 0...middleY)
                 cloud.position = CGPoint(x: -cloud.size.width * 2, y: yPos)
-                cloud.physicsBody?.velocity = CGVector(dx: CGFloat.random(in: CLOUD_MIN_SPEED...CLOUD_MAX_SPEED), dy: 0)
+                cloud.physicsBody?.velocity = CGVector(dx: CGFloat.random(in: Game.cloudMinSpeed...Game.cloudMaxSpeed), dy: 0)
                 cloud.texture = cloud.frames.randomElement()
             }
         }
@@ -168,7 +168,7 @@ final class Atmosphere {
             if bird.position.x + bird.size.width / 2 < 0 {
                 let yPos = CGFloat.random(in: 0...middleY)
                 bird.position = CGPoint(x: WIDTH + bird.size.width * 2, y: yPos)
-                bird.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: BIRD_MIN_SPEED...BIRD_MAX_SPEED), dy: 0)
+                bird.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: Game.birdMinSpeed...Game.birdMaxSpeed), dy: 0)
             }
         }
         
@@ -176,7 +176,7 @@ final class Atmosphere {
             if plane.position.x + plane.size.width / 2 < 0 {
                 let yPos = CGFloat.random(in: middleY...endY)
                 plane.position = CGPoint(x: WIDTH + plane.size.width * 2, y: yPos)
-                plane.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: BIRD_MIN_SPEED...BIRD_MAX_SPEED), dy: 0)
+                plane.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: Game.birdMinSpeed...Game.birdMaxSpeed), dy: 0)
             }
         }
         
@@ -184,7 +184,7 @@ final class Atmosphere {
             if ufo.position.x + ufo.size.width / 2 < 0 {
                 let yPos = CGFloat.random(in: endY...sceneHeight)
                 ufo.position = CGPoint(x: WIDTH + ufo.size.width * 2, y: yPos)
-                ufo.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: BIRD_MIN_SPEED...BIRD_MAX_SPEED), dy: 0)
+                ufo.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: Game.birdMinSpeed...Game.birdMaxSpeed), dy: 0)
             }
         }
     }

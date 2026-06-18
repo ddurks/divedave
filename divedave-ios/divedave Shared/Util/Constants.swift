@@ -8,36 +8,56 @@
 import CoreGraphics
 import SpriteKit
 
-// Game Modes and Gravity
-let GRAVITY: CGFloat = 2
-let DAVE_MASS: CGFloat = 1.0
+// MARK: - Physics categories
 
-// Default Game Dimensions
-let DEFAULT_WIDTH: CGFloat = 1250
-let DEFAULT_HEIGHT: CGFloat = 3000
-let DEFAULT_DAVE_HEIGHT: CGFloat = 256
-let DEFAULT_BUTTON_HEIGHT: CGFloat = 256
+struct PhysicsCategory: OptionSet {
+    let rawValue: UInt32
 
-// Player Movement and Physics
-let DAVE_SPEED: CGFloat = 100
-let JUMP_VELOCITY: CGFloat = 200
-let MIN_SPIN_VELOCITY: CGFloat = 2
-let MAX_SPIN_VELOCITY: CGFloat = 12
-let DRAG: CGFloat = 0.96
-let MAX_BOOST: CGFloat = 100
+    static let dave        = PhysicsCategory(rawValue: 1 << 0)
+    static let springboard = PhysicsCategory(rawValue: 1 << 1)
+}
 
-// Cloud and Bird Constants
-let MIN_CLOUDS = 5
-let MAX_CLOUDS = 12
-let CLOUD_MIN_SPEED: CGFloat = 8
-let CLOUD_MAX_SPEED: CGFloat = 20
-let MIN_BIRDS = 0
-let MAX_BIRDS = 3
-let BIRD_MIN_SPEED: CGFloat = 25
-let BIRD_MAX_SPEED: CGFloat = 100
+// MARK: - Game constants namespace
 
-let HIGH_SCORE = "highScore"
+enum Game {
+    // Gravity / mass
+    static let gravity: CGFloat = 2
+    static let daveMass: CGFloat = 1.0
 
-let customGreen = SKColor(red: 0/255, green: 128/255, blue: 0/255, alpha: 1.0)
-let customRed = SKColor(red: 255/255, green: 0/255, blue: 0/255, alpha: 1.0)
-let customYellow = SKColor(red: 255/255, green: 255/255, blue: 0/255, alpha: 1.0)
+    // Default dimensions
+    static let defaultWidth: CGFloat = 1250
+    static let defaultHeight: CGFloat = 3000
+    static let defaultDaveHeight: CGFloat = 256
+    static let defaultButtonHeight: CGFloat = 256
+
+    // Player movement / physics
+    static let daveSpeed: CGFloat = 100
+    static let jumpVelocity: CGFloat = 200
+    static let minSpinVelocity: CGFloat = 2
+    static let maxSpinVelocity: CGFloat = 12
+    static let drag: CGFloat = 0.96
+    static let maxBoost: CGFloat = 100
+
+    // Atmosphere - clouds & birds
+    static let minClouds = 5
+    static let maxClouds = 12
+    static let cloudMinSpeed: CGFloat = 8
+    static let cloudMaxSpeed: CGFloat = 20
+    static let minBirds = 0
+    static let maxBirds = 3
+    static let birdMinSpeed: CGFloat = 25
+    static let birdMaxSpeed: CGFloat = 100
+
+    // Storage keys
+    static let highScoreKey = "highScore"
+
+    // Palette
+    static let customGreen = SKColor(red: 0/255, green: 128/255, blue: 0/255, alpha: 1.0)
+    static let customRed = SKColor(red: 255/255, green: 0/255, blue: 0/255, alpha: 1.0)
+    static let customYellow = SKColor(red: 255/255, green: 255/255, blue: 0/255, alpha: 1.0)
+}
+
+// MARK: - Legacy aliases (kept for Globals.swift, owned by a separate lane)
+
+let DEFAULT_WIDTH = Game.defaultWidth
+let DEFAULT_HEIGHT = Game.defaultHeight

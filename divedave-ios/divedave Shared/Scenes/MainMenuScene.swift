@@ -49,7 +49,7 @@ final class MainMenuScene: SKScene {
         setUpLoadingStuff()
         setupInstructions()
         
-        highScore = UserDefaults.standard.integer(forKey: HIGH_SCORE)
+        highScore = UserDefaults.standard.integer(forKey: Game.highScoreKey)
         if highScore > 0 {
             displayHighScore(highScore)
         }
