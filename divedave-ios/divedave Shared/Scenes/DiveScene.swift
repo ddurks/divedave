@@ -337,6 +337,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         // Check if the contact is between `dave` and `springboard`
         if (bodies == (PhysicsCategory.dave, PhysicsCategory.springboard)) ||
            (bodies == (PhysicsCategory.springboard, PhysicsCategory.dave)) {
+            Haptics.impact(.light)
             daveIsTouchingBoardBool = true
             if landedAt == nil {
                 landedAt = Date()
@@ -611,6 +612,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         if !diveComplete && !daveIsAboveBoard() {
             // Check if Dave has reached the water level
             if dave.position.y < waterLevel {
+                Haptics.impact(.heavy)
                 diveComplete = true
                 splash.position = CGPoint(x: dave.position.x, y: waterLevel + 100*scaleFactorHeight)
                 splash.isHidden = false
@@ -630,6 +632,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
                 
                 // Display the InfoPanel with calculated stats
                 let result = scoreDive()
+                Haptics.notify(result == "FAILED DIVE" ? .error : .success)
                 hud.setRunningStreak(streak: streak)
                 hud.setRunningScore(score: totalScore)
                 let displayStrings = [
@@ -702,13 +705,14 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
                     let rotationDifference = totalRotations - lastFlipNumber
                     if rotationDifference >= 1 {
                         let roundedRotations = round(totalRotations)
-                        
+                        Haptics.impact(.light)
+
                         // Display rotation count near `dave`'s position
                         let rotationLabel = createRotationLabel(text: "\(Int(roundedRotations))", fontColor: roundedRotations > Double(goalRotations) ? customRed : customGreen)
                         rotationLabel.position = dave.position
                         rotationLabel.zPosition = 4
                         addChild(rotationLabel)
-                        
+
                         // Update the last counted flip number
                         lastFlipNumber = roundedRotations
                     }
