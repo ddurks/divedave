@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class MainMenuScene: SKScene {
+final class MainMenuScene: SKScene {
     private var startArcadeButton: MenuButton!
     private var startChallengeButton: MenuButton!
     private var instructionsButton: MenuButton!

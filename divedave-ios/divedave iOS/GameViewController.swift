@@ -62,18 +62,11 @@ class GameViewController: UIViewController {
     }
     
     func prepareAndPresentMainMenuScene(skView: SKView) {
-        // Create the MainMenuScene instance
+        // Create and present the MainMenuScene instance
         let mainMenuScene = MainMenuScene(size: skView.bounds.size)
-        
-        // Run setup code in the background before presenting the scene
-        DispatchQueue.global(qos: .userInitiated).async {
-            mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
-            mainMenuScene.scaleMode = .aspectFill
-            // Present the scene on the main thread once setup is complete
-            DispatchQueue.main.async {
-                mainMenuScene.setupMenu()
-                skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
-            }
-        }
+        mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
+        mainMenuScene.scaleMode = .aspectFill
+        mainMenuScene.setupMenu()
+        skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 }

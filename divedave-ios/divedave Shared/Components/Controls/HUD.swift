@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class HUD {
+final class HUD {
     // Button nodes
     var leftButton: ControlButton
     var rightButton: ControlButton

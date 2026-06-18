@@ -12,7 +12,7 @@ enum SpriteType {
     case animatedSprite(spritesheetName: String, frameWidth: CGFloat, frameHeight: CGFloat, margin: CGFloat, spacing: CGFloat, frameIndex: Int = 0)
 }
 
-class ControlButton: SKNode {
+final class ControlButton: SKNode {
     // Track button state
     var isDown = false
     var onPressed: (() -> Void)?
