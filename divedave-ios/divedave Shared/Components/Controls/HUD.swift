@@ -84,11 +84,11 @@ class HUD {
         menuButton.defineAnimation(name: "clicked", frameIndices: [1, 2, 3, 4, 4, 3, 2, 1, 0, 1], timePerFrame: 0.125, repeatForever: false)
 
         
-        menuButton.onPressed = { [self] in
+        menuButton.onPressed = { [weak self] in
             print("Animated button pressed")
             // Play an animation when the button is pressed
-            self.menuButton.playAnimation(named: "clicked", timePerFrame: 0.125, repeatForever: false) {
-                self.onMenuPressed?()
+            self?.menuButton.playAnimation(named: "clicked", timePerFrame: 0.125, repeatForever: false) {
+                self?.onMenuPressed?()
             }
         }
         camera.addChild(menuButton)

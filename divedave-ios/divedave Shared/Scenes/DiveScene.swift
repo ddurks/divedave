@@ -81,18 +81,10 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func approximateFallTime(from height: CGFloat, to groundLevel: CGFloat, gravity: CGFloat, frameRate: Double = 60.0) -> Double {
-        var velocity: CGFloat = 0
-        var currentHeight = height
-        var time: Double = 0.0
-        let timeStep: Double = 1 / frameRate // Timestep corresponding to 60 FPS (0.0167 seconds)
-        
-        while currentHeight > groundLevel {
-            velocity += gravity * CGFloat(timeStep)
-            currentHeight -= velocity * CGFloat(timeStep)
-            time += timeStep
-        }
-        
-        return time
+        // Closed-form solution for free fall from rest: t = sqrt(2 * d / g)
+        let distance = max(0, height - groundLevel)
+        guard gravity > 0 else { return 0 }
+        return sqrt(2 * Double(distance) / Double(gravity))
     }
 
     func calculateGameLogic() {
