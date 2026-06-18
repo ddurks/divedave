@@ -51,7 +51,7 @@ class Atmosphere {
                 
                 if yPos <= middleY {
                     // Spawn cloud
-                    let cloud = AnimatedSprite(spritesheetName: "clouds", frameWidth: 256, frameHeight: 256, scale: scaleFactorHeight * CGFloat.random(in: 1.0...2.0))
+                    let cloud = AnimatedSprite(spritesheetName: "clouds", frameWidth: 256, frameHeight: 256, scale: scaleFactorHeight * CGFloat.random(in: 0.75...1.5))
                     cloud.position = CGPoint(x: xPos, y: yPos)
                     cloud.zPosition = 0
                     cloud.physicsBody = SKPhysicsBody(rectangleOf: cloud.size)

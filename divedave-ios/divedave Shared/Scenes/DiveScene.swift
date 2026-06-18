@@ -49,9 +49,11 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
     var info: InfoPanel!
     var highScorePanel: InfoPanel!
     var daveIsTouchingBoardBool: Bool! = false
+    var lastUpdateTime: TimeInterval = 0.0
     private var atmosphere: Atmosphere!
     
     override func didMove(to view: SKView) {
+        lastUpdateTime = CACurrentMediaTime()
         physicsWorld.gravity = CGVector(dx: 0, dy: -GRAVITY)
         physicsWorld.contactDelegate = self
         self.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
@@ -100,7 +102,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         let time = approximateFallTime(from: diveHeight, to: waterLevel, gravity: GRAVITY) / 10
         
         // Calculate maximum number of flips based on the total rotation in radians
-        let totalRotation = time * (MIN_SPIN_VELOCITY * 3)
+        let totalRotation = time * (MAX_SPIN_VELOCITY * 0.70)
         let maxFlips = totalRotation / (2 * Double.pi)
         
         // Generate a random goal rotation value in terms of half rotations
@@ -263,7 +265,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         dave.physicsBody?.isDynamic = true
         dave.physicsBody?.mass = DAVE_MASS
         dave.physicsBody?.affectedByGravity = true          // Enable gravity
-        dave.physicsBody?.angularDamping = ANGULAR_DRAG     // Equivalent to setAngularDrag
+//        dave.physicsBody?.angularDamping = ANGULAR_DRAG     // Equivalent to setAngularDrag
         dave.physicsBody?.restitution = 0.0                 // Prevent bouncing
         dave.physicsBody?.friction = 0.0                    // Prevent friction against surfaces
         
@@ -572,9 +574,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         if hud?.leftButton.isDown == true || hud?.rightButton.isDown == true ||
            hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true {
             
-            if diveComplete {
-//                NSLog("DIVE COMPLETE") // Implement this to reset the scene
-            } else {
+            if !diveComplete {
                 if hud?.leftButton.isDown == true {
                     dave.physicsBody?.velocity.dx = -DAVE_SPEED
                     
@@ -591,10 +591,10 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
                         tucked = true
                         tuckCount += 1
                     } else {
-                        if currentVelocity < MAX_SPIN_VELOCITY/2 {
-                            currentVelocity += (MAX_SPIN_VELOCITY/100)
+                        if currentVelocity < MAX_SPIN_VELOCITY - (200.0 * .pi / 180.0) {
+                            currentVelocity += 5.0 * .pi / 180.0
                         } else if currentVelocity < MAX_SPIN_VELOCITY {
-                            currentVelocity += (MIN_SPIN_VELOCITY/100)
+                            currentVelocity += 1.0 * .pi / 180.0
                         }
                     }
                     dave.physicsBody?.angularVelocity = -currentVelocity
@@ -834,9 +834,24 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
     
     override func update(_ currentTime: TimeInterval) {
         playerHandler()
+        applyPhaserStyleAngularDrag(currentTime: currentTime)
         updateClimbDave()
         updateCamera()
         atmosphere.update()
+    }
+    
+    func applyPhaserStyleAngularDrag(currentTime: TimeInterval) {
+        let dt = currentTime - lastUpdateTime
+        lastUpdateTime = currentTime
+        let deltaTime = CGFloat(dt)
+
+        guard let body = dave.physicsBody else { return }
+
+        let sign: CGFloat = body.angularVelocity >= 0 ? 1 : -1
+        let dragThisFrame = LINEAR_ANGULAR_DRAG * deltaTime
+        let newAngularVelocity = abs(body.angularVelocity) - dragThisFrame
+
+        body.angularVelocity = max(newAngularVelocity, 0) * sign
     }
     
     func updateClimbDave() {

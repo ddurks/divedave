@@ -23,10 +23,11 @@ let DEFAULT_BUTTON_HEIGHT: CGFloat = 256
 // Player Movement and Physics
 let DAVE_SPEED: CGFloat = 100
 let JUMP_VELOCITY: CGFloat = 200
-let MIN_SPIN_VELOCITY: CGFloat = 2
-let MAX_SPIN_VELOCITY: CGFloat = 12
-let DRAG: CGFloat = 0.96
-let ANGULAR_DRAG: CGFloat = 1
+let MIN_SPIN_VELOCITY: CGFloat = 100.0 * .pi / 180.0
+let MAX_SPIN_VELOCITY: CGFloat = 550.0 * .pi / 180.0
+let DRAG: CGFloat = 0.94
+let ANGULAR_DRAG: CGFloat = 0.9
+let LINEAR_ANGULAR_DRAG: CGFloat = 2.618
 let MAX_BOOST: CGFloat = 100
 let IDLE_DELAY: CGFloat = 1.0
 
