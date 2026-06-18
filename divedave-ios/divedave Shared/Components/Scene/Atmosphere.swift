@@ -47,6 +47,11 @@ struct AtmosphereLayer {
     let animationStartDelayRange: ClosedRange<TimeInterval>
     /// If true, the entity's `zRotation` is randomized at spawn.
     let randomRotation: Bool
+    /// Differential parallax weight. 0 = static relative to camera (deepest distance),
+    /// 1 = full world-space (moves with camera). Each frame Atmosphere applies
+    /// (1 - parallaxFactor) * cameraDelta as a counter-offset on entity Y, so far
+    /// layers appear to lag behind near ones.
+    let parallaxFactor: CGFloat
 }
 
 /// Per-entity bookkeeping for the generic recycle pass.
@@ -71,6 +76,10 @@ class Atmosphere {
 
     private var layers: [AtmosphereLayer] = []
     private var entitiesByLayer: [[AtmosphereEntity]] = []
+
+    /// Last observed camera Y; used to compute frame-over-frame deltas for parallax.
+    /// Initialised lazily on the first update() so the first frame doesn't snap.
+    private var lastCameraY: CGFloat?
 
     init(scene: SKScene, sceneHeight: CGFloat, startY: CGFloat, middleY: CGFloat, endY: CGFloat) {
         self.scene = scene
@@ -119,7 +128,8 @@ class Atmosphere {
                 zPosition: 1,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
-                randomRotation: true
+                randomRotation: true,
+                parallaxFactor: 0.15
             ),
             // Clouds (below middleY). Random frame, drifts right.
             AtmosphereLayer(
@@ -133,7 +143,8 @@ class Atmosphere {
                 zPosition: 0,
                 scaleRange: 1.0...2.0,
                 animationStartDelayRange: 0.0...0.0,
-                randomRotation: false
+                randomRotation: false,
+                parallaxFactor: 0.5
             ),
             // Birds (below middleY). Drift left.
             AtmosphereLayer(
@@ -151,7 +162,8 @@ class Atmosphere {
                 zPosition: 0,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
-                randomRotation: false
+                randomRotation: false,
+                parallaxFactor: 0.8
             ),
             // Planes (middleY..endY). Drift left.
             AtmosphereLayer(
@@ -165,7 +177,8 @@ class Atmosphere {
                 zPosition: 1,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
-                randomRotation: false
+                randomRotation: false,
+                parallaxFactor: 0.8
             ),
             // UFOs (above endY). Drift left.
             AtmosphereLayer(
@@ -179,7 +192,8 @@ class Atmosphere {
                 zPosition: 2,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
-                randomRotation: false
+                randomRotation: false,
+                parallaxFactor: 1.0
             )
         ]
     }
@@ -283,8 +297,19 @@ class Atmosphere {
     // MARK: - Update / recycle
 
     func update() {
+        // Compute parallax delta. On first frame we have no previous camera Y; treat delta as 0.
+        let cameraY = scene.camera?.position.y ?? lastCameraY ?? 0
+        let cameraDelta = (lastCameraY.map { cameraY - $0 }) ?? 0
+        lastCameraY = cameraY
+
         for (layerIndex, layer) in layers.enumerated() {
+            // Layers with parallaxFactor < 1 lag behind world motion. Counter-offset Y by
+            // (1 - parallaxFactor) * cameraDelta so the sprite "drifts" with the camera.
+            let parallaxOffset = (1.0 - layer.parallaxFactor) * cameraDelta
             for entity in entitiesByLayer[layerIndex] {
+                if parallaxOffset != 0 {
+                    entity.node.position.y += parallaxOffset
+                }
                 recycle(entity: entity, layer: layer)
             }
         }
