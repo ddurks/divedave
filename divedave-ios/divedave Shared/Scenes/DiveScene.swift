@@ -24,7 +24,7 @@ struct DiveStats {
 
 var stats = DiveStats()
 
-class DiveScene: SKScene, SKPhysicsContactDelegate {
+final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var readyForReset = false
     var hud: HUD!
     var waterLevel: CGFloat = 0
@@ -322,7 +322,7 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
         addChild(splash)
     }
     
-    public func didBegin(_ contact: SKPhysicsContact) {
+    func didBegin(_ contact: SKPhysicsContact) {
         let bodies = (contact.bodyA.categoryBitMask, contact.bodyB.categoryBitMask)
         
         // Check if the contact is between `dave` and `springboard`
@@ -859,19 +859,14 @@ class DiveScene: SKScene, SKPhysicsContactDelegate {
     
     func prepareAndPresentMainMenuScene() {
         let mainMenuScene = MainMenuScene(size: self.view!.bounds.size)
-        
-        DispatchQueue.global(qos: .userInitiated).async {
-            mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
-            mainMenuScene.scaleMode = .aspectFill
-            DispatchQueue.main.async {
-                mainMenuScene.setupMenu()
-                self.diveComplete = true
-                self.readyForReset = true
-                totalScore = 0
-                platformHeight = 703
-                self.restartScene()
-                self.view!.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
-            }
-        }
+        mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
+        mainMenuScene.scaleMode = .aspectFill
+        mainMenuScene.setupMenu()
+        self.diveComplete = true
+        self.readyForReset = true
+        totalScore = 0
+        platformHeight = 703
+        self.restartScene()
+        self.view!.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 }

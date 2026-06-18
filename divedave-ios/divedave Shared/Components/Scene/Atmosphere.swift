@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class Atmosphere {
+final class Atmosphere {
     private var clouds: [AnimatedSprite] = []
     private var birds: [AnimatedSprite] = []
     private var stars: [AnimatedSprite] = []

@@ -8,7 +8,7 @@
 import SceneKit
 import SpriteKit
 
-class InfoPanel {
+final class InfoPanel {
     private var baseDepth: CGFloat
     private var panel: SKSpriteNode
     private var daveImage: AnimatedSprite

@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class AnimatedSprite: SKSpriteNode {
+final class AnimatedSprite: SKSpriteNode {
     struct AnimationConfig {
         let frames: [SKTexture]
         let timePerFrame: TimeInterval
