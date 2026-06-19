@@ -24,14 +24,43 @@ import {
   MAX_BIRDS,
   MIN_CLOUDS,
   START_COLOR,
+  TIMING_TINT_GOOD,
+  TIMING_TINT_OK,
+  TIMING_TINT_PERFECT,
   WIDTH,
 } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
-import { diff, getRandomInt, IS_MOBILE } from "../util/Utilities.js";
+import { diff, getRandomInt } from "../util/Utilities.js";
+import { Haptics } from "../util/Haptics.js";
 import { StatsStore } from "../util/StatsStore.js";
 import { HUD } from "../components/controls/HUD.js";
 import { InfoPanel } from "../components/menu/InfoPanel.js";
-import { DavePlayer, DaveState } from "../components/scene/DavePlayer.js";
+import {
+  BoostTiming,
+  DavePlayer,
+  DaveState,
+} from "../components/scene/DavePlayer.js";
+
+// Color-coded label + tint for each BoostTiming tier. Miss has no
+// visual — a failed timing reads as "no feedback" rather than a noisy
+// red flash, matching iOS.
+const TIMING_FEEDBACK = {
+  [BoostTiming.Perfect]: {
+    label: "PERFECT!",
+    font: "green-arial",
+    tint: TIMING_TINT_PERFECT,
+  },
+  [BoostTiming.Good]: {
+    label: "GOOD",
+    font: "yellow-arial",
+    tint: TIMING_TINT_GOOD,
+  },
+  [BoostTiming.Ok]: {
+    label: "OK",
+    font: "red-arial",
+    tint: TIMING_TINT_OK,
+  },
+};
 
 export class DiveScene extends Phaser.Scene {
   constructor() {
@@ -60,6 +89,52 @@ export class DiveScene extends Phaser.Scene {
     this.previousAngle = 0;
     this.currentAngle = 0;
     this.lastFlipNumber = 0;
+  }
+
+  /**
+   * Called by DavePlayer right after a jump's boost is applied.
+   * Surfaces the timing tier visually (springboard tint pulse +
+   * PERFECT/GOOD/OK label near Dave) and as a haptic.
+   */
+  onJumpBoostApplied(timing) {
+    const feedback = TIMING_FEEDBACK[timing];
+    if (!feedback) {
+      // Miss — no flourish, just a faint haptic.
+      Haptics.impactLight();
+      return;
+    }
+
+    const board = GameState.springboard;
+    board.setTint(feedback.tint);
+    this.time.delayedCall(250, () => board.clearTint());
+
+    // Anchor the label just above the springboard so it reads as
+    // "this is about the timing of your push off the board" — matches
+    // iOS DiveScene.showBoostTimingFeedback. World-space (default
+    // scrollFactor) keeps it pinned to the board as the camera rises.
+    const labelY = board.y - board.height / 2 - 10;
+    const label = this.add
+      .bitmapText(board.x, labelY, feedback.font, feedback.label, 50)
+      .setOrigin(0.5)
+      .setDepth(15)
+      .setScale(0.3)
+      .setAlpha(0);
+
+    // Pop in → settle → hold → drift up + fade out. Matches iOS
+    // SKAction.sequence timings (120/80/500/400 ms).
+    this.tweens.chain({
+      targets: label,
+      tweens: [
+        { scaleX: 1.4, scaleY: 1.4, alpha: 1, duration: 120 },
+        { scaleX: 1.0, scaleY: 1.0, duration: 80 },
+        { y: "-=20", alpha: 0, duration: 400, delay: 500 },
+      ],
+      onComplete: () => label.destroy(),
+    });
+
+    if (timing === BoostTiming.Perfect) Haptics.impactHeavy();
+    else if (timing === BoostTiming.Good) Haptics.impactMedium();
+    else Haptics.impactLight();
   }
 
   preload() {
@@ -248,7 +323,6 @@ export class DiveScene extends Phaser.Scene {
       .setActive(false)
       .setVisible(false);
     this.hud = new HUD(this);
-    if (!IS_MOBILE) this.hud.setVisible(false);
 
     this.registerAnimations();
     this.spawnAtmosphere();
@@ -404,14 +478,20 @@ export class DiveScene extends Phaser.Scene {
     this.checkForReset();
     if (this.player.state === DaveState.Launching) return;
 
-    // If Dave has settled back onto the board after launch but before
-    // committing to a dive, transition to Grounded. Diving is
-    // intentionally not in this check: it's a commit point (iOS
-    // parity), so re-landing isn't possible — collisions are zeroed
-    // in DavePlayer.didEnter(Diving) and Dave falls through. The
-    // isCleanLanding() guard prevents a false snap during the single
-    // frame right after launch when Dave is still touching the board
-    // geometrically but already flying upward.
+    // Keep state in sync with what the geometry says each frame:
+    //   - Airborne → Grounded when Dave lands cleanly on the board
+    //     (isCleanLanding guards against the single-frame false snap
+    //     where Dave is still touching the board geometrically but
+    //     already flying upward right after launch).
+    //   - Grounded → Airborne when Dave is no longer above the board
+    //     (walked off the end, or fell off the front). Without this,
+    //     a player who steps off the tip without ever jumping stays
+    //     in Grounded forever — jump button stays lit, flip button
+    //     stays greyed, and tuck input no-ops. iOS allows this same
+    //     transition in its allowedTransitions table.
+    //   - Diving is intentionally not Grounded-reachable here: it's
+    //     a commit point (iOS parity), collisions are zeroed in
+    //     DavePlayer.didEnter(Diving), Dave falls through.
     if (
       this.player.state === DaveState.Airborne &&
       this.player.isAboveBoard() &&
@@ -419,11 +499,14 @@ export class DiveScene extends Phaser.Scene {
       this.player.isCleanLanding()
     ) {
       this.player.transition(DaveState.Grounded);
+    } else if (
+      this.player.state === DaveState.Grounded &&
+      !this.player.isAboveBoard()
+    ) {
+      this.player.transition(DaveState.Airborne);
     }
 
-    if (IS_MOBILE) this.playerMobileMovementHandler();
-    else this.playerMovementHandler();
-
+    this.playerInputHandler();
     this.player.updateFrame();
   }
 
@@ -590,6 +673,7 @@ export class DiveScene extends Phaser.Scene {
           )
           .setDepth(14)
           .setActive(false);
+        Haptics.impactLight();
         this.lastFlipNumber = roundedRotations;
       }
     }
@@ -690,90 +774,64 @@ export class DiveScene extends Phaser.Scene {
     }
   }
 
-  playerMovementHandler() {
+  /**
+   * Unified input handler for desktop + mobile. Reads from both
+   * keyboard and HUD buttons; HUD buttons are the only input source on
+   * mobile, while desktop layers them onto the keyboard so a player
+   * can click jump/flip the same way they'd tap on mobile.
+   *
+   * Space and cursor.up are jump-only now — the legacy double-duty
+   * (also acting as flip when airborne) made it impossible to hold the
+   * jump button for a chain-jump without also kicking off a flip.
+   * Flip is R or the flip button.
+   */
+  playerInputHandler() {
     const controls = GameState.controls;
+    const hud = this.hud;
     const player = this.player;
     const dave = player.sprite;
 
     if (controls.enter.isDown || (controls.space.isDown && this.diveComplete)) {
       this.resetScene();
     }
-    if (
-      controls.up.isDown ||
-      controls.space.isDown ||
-      controls.cursors.up.isDown
-    ) {
-      if (player.isAboveBoard() && player.isTouchingBoard()) {
-        player.tryJump();
-      }
-    }
-    if (controls.left.isDown || controls.cursors.left.isDown) {
-      dave.setVelocityX(-dave.speed);
-    }
-    if (controls.right.isDown || controls.cursors.right.isDown) {
-      dave.setVelocityX(dave.speed);
-    }
-    if (
-      controls.r.isDown ||
-      controls.space.isDown ||
-      controls.cursors.up.isDown
-    ) {
-      // applyTuck() is a no-op outside Airborne / Diving, so we no
-      // longer need the !isAboveBoard guard. Removing it lets a dive
-      // continue cleanly when Dave's arc carries him back across the
-      // board's x range.
-      player.applyTuck();
-    } else {
-      player.releaseTuck();
-    }
-  }
 
-  playerMobileMovementHandler() {
-    const hud = this.hud;
-    const player = this.player;
-    const dave = player.sprite;
-
-    // Both buttons always rendered.
-    //   - Jump stays enabled in Grounded AND Airborne so the player
-    //     can pre-tap before landing; that press is buffered by
-    //     DavePlayer (see EARLY_TAP_WINDOW in didEnter(Grounded)).
-    //     It greys out in Diving because the dive is committed.
-    //   - Flip is enabled only when actionable (Airborne / Diving);
-    //     greyed out on the board so a stray tap doesn't read as
-    //     "would have spun".
-    // Functional gating lives in tryJump / applyTuck via the
-    // DaveState machine, so this is purely visual.
+    // Visual enabled state for jump + flip. Jump stays lit in
+    // Grounded AND Airborne so the early-tap-before-landing press
+    // reads as a real button (DavePlayer buffers it). Flip greys out
+    // on the board so a stray click doesn't read as "would have spun".
     if (!this.diveComplete) {
       hud.updateButtons(
         player.state !== DaveState.Diving,
         player.state === DaveState.Airborne || player.state === DaveState.Diving
       );
     }
-    const anyDown =
-      hud.leftButton.isDown ||
-      hud.rightButton.isDown ||
-      hud.jumpButton.isDown ||
-      hud.flipButton.isDown;
 
-    if (!anyDown) {
-      player.releaseTuck();
-      return;
-    }
-    if (this.diveComplete) {
-      this.resetScene();
-      return;
-    }
-    if (hud.leftButton.isDown) dave.setVelocityX(-dave.speed);
-    if (hud.rightButton.isDown) dave.setVelocityX(dave.speed);
-    if (
-      hud.jumpButton.isDown &&
-      player.isAboveBoard() &&
-      player.isTouchingBoard()
-    ) {
+    const leftDown =
+      controls.left.isDown ||
+      controls.cursors.left.isDown ||
+      hud.leftButton.isDown;
+    const rightDown =
+      controls.right.isDown ||
+      controls.cursors.right.isDown ||
+      hud.rightButton.isDown;
+    if (leftDown) dave.setVelocityX(-dave.speed);
+    if (rightDown) dave.setVelocityX(dave.speed);
+
+    const jumpDown =
+      controls.up.isDown ||
+      controls.space.isDown ||
+      controls.cursors.up.isDown ||
+      hud.jumpButton.isDown;
+    if (jumpDown && player.isAboveBoard() && player.isTouchingBoard()) {
       player.tryJump();
     }
-    if (hud.flipButton.isDown) {
+
+    const flipDown = controls.r.isDown || hud.flipButton.isDown;
+    if (flipDown) {
+      // applyTuck() is a no-op outside Airborne / Diving.
       player.applyTuck();
+    } else {
+      player.releaseTuck();
     }
   }
 

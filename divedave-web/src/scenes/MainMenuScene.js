@@ -4,6 +4,7 @@
 
 import { HEIGHT, WIDTH } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
+import { Haptics } from "../util/Haptics.js";
 import { fadeOutScene, getRandomInt, IS_MOBILE } from "../util/Utilities.js";
 
 export class MainMenuScene extends Phaser.Scene {
@@ -95,6 +96,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScale(0.5);
     startText.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
+      Haptics.impactLight();
       GameState.challengeMode = false;
       this.clickStart(this);
     });
@@ -105,6 +107,7 @@ export class MainMenuScene extends Phaser.Scene {
     startChallengeText
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => {
+        Haptics.impactLight();
         this.clickStart(this);
       });
     if (GameState.highScore > 0) {

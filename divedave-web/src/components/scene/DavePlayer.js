@@ -6,11 +6,14 @@
 // post-dive presentation, not player physics.
 //
 // Behavior parity notes (vs. iOS):
-//   - Boost thresholds here are still 125 / 250 / 350 ms (web's
-//     pre-7e85b69 values). Phase 2 tightens to iOS's 50 / 100 / 175.
+//   - Boost thresholds are 50 / 100 / 175 ms (Constants.js), matching
+//     iOS post-7e85b69.
 
 import {
   ANGULAR_DRAG,
+  BOOST_GOOD_MS,
+  BOOST_OK_MS,
+  BOOST_PERFECT_MS,
   DAVE_SPEED,
   DRAG,
   HEIGHT,
@@ -21,10 +24,12 @@ import {
   WIDTH,
 } from "../../util/Constants.js";
 import { diff } from "../../util/Utilities.js";
+import { Haptics } from "../../util/Haptics.js";
 
 // How long after a jump-button release we still treat it as "buffered"
-// for the next landing. Matches the iOS early-tap window (175 ms).
-const EARLY_TAP_WINDOW_MS = 175;
+// for the next landing. Matches BOOST_OK_MS — the same window that
+// defines a still-valid (if untimed) jump.
+const EARLY_TAP_WINDOW_MS = BOOST_OK_MS;
 
 export const DaveState = Object.freeze({
   Grounded: "grounded",
@@ -32,6 +37,15 @@ export const DaveState = Object.freeze({
   Airborne: "airborne",
   Diving: "diving",
   Splashed: "splashed",
+});
+
+// Quality tier for a jump's release-vs-landing timing. Returned by
+// calculateBoost() so callers can surface visual + haptic feedback.
+export const BoostTiming = Object.freeze({
+  Perfect: "perfect",
+  Good: "good",
+  Ok: "ok",
+  Miss: "miss",
 });
 
 // Allowed transitions. Anything else logs and is rejected. Self-
@@ -85,14 +99,18 @@ export class DavePlayer {
 
     // Jump animation completion finalizes the launch: compute the
     // timing-based boost, clear the landed-at stamp, push Dave upward,
-    // and advance the state machine. Filter on key so future one-shot
-    // animations on this sprite don't accidentally re-fire this.
+    // advance the state machine, and notify the scene so it can paint
+    // boost feedback. Filter on key so future one-shot animations on
+    // this sprite don't accidentally re-fire this.
     sprite.on(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
       if (!anim || anim.key !== "jump") return;
-      this.calculateBoost();
+      const timing = this.calculateBoost();
       this.landedAt = null;
       sprite.setVelocityY(-JUMP_VELOCITY - this.boost);
       this.transition(DaveState.Airborne);
+      if (typeof this.scene.onJumpBoostApplied === "function") {
+        this.scene.onJumpBoostApplied(timing);
+      }
     });
   }
 
@@ -121,6 +139,11 @@ export class DavePlayer {
       // full stop." Scene restart spawns a fresh DavePlayer with a
       // default-collision body, so we don't need to undo this here.
       this.sprite.body.checkCollision.none = true;
+      Haptics.impactLight();
+      return;
+    }
+    if (next === DaveState.Splashed) {
+      Haptics.notificationSuccess();
       return;
     }
     if (next === DaveState.Grounded) {
@@ -134,6 +157,7 @@ export class DavePlayer {
       if (typeof this.scene.resetDiveAttempt === "function") {
         this.scene.resetDiveAttempt();
       }
+      Haptics.impactLight();
       // Early-tap jump buffer: if the player tapped + released the
       // jump button within the last EARLY_TAP_WINDOW_MS *before*
       // landing, fire that queued jump now. Pair with: the jump
@@ -205,13 +229,35 @@ export class DavePlayer {
 
   // ---------- Boost math ----------
 
+  /**
+   * Score the jump's release-vs-landing timing and apply the resulting
+   * boost. Returns the BoostTiming tier so the caller can surface
+   * visual + haptic feedback. Match iOS: |landedAt - jumpReleasedAt|
+   * is symmetric, so an early release (released before landing) scores
+   * the same as a late one of the same magnitude.
+   *
+   * If either timestamp is missing (null), diff() returns NaN, which
+   * falls through to Miss.
+   */
   calculateBoost() {
     const quickness = diff(this.landedAt, this.jumpReleasedAt);
-    if (quickness < 125) this.boost = MAX_BOOST;
-    else if (quickness < 250) this.boost = MAX_BOOST - 50;
-    else if (quickness < 350) this.boost = MAX_BOOST - 100;
-    else this.boost = 0;
+    let timing;
+    if (quickness < BOOST_PERFECT_MS) {
+      timing = BoostTiming.Perfect;
+      this.boost = MAX_BOOST;
+    } else if (quickness < BOOST_GOOD_MS) {
+      timing = BoostTiming.Good;
+      this.boost = MAX_BOOST - 50;
+    } else if (quickness < BOOST_OK_MS) {
+      timing = BoostTiming.Ok;
+      this.boost = MAX_BOOST - 100;
+    } else {
+      timing = BoostTiming.Miss;
+      this.boost = 0;
+    }
 
+    // Boost decays the further Dave is from the board's pivot end —
+    // jumping at the tip is rewarded; mid-board jumps less so.
     const daveBoardDist =
       this.sprite.x - (this.springboard.x - this.springboard.width / 2);
     if (daveBoardDist > 0) {
@@ -219,6 +265,8 @@ export class DavePlayer {
       if (newRatio > 1) newRatio = 1;
       this.boost = this.boost * newRatio;
     }
+
+    return timing;
   }
 
   // ---------- Geometry predicates ----------
