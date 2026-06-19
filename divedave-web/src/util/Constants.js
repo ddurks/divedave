@@ -16,6 +16,20 @@ export const ANGULAR_DRAG = 150;
 export const MAX_BOOST = 200;
 export const IDLE_DELAY = 1000;
 
+// Jump-release timing windows (ms). Halfway between the original web
+// (125/250/350) and the post-7e85b69 iOS tightening (50/100/175) —
+// the latter felt punishing in playtest. iOS should be relaxed to
+// match. Compared against |landedAt - jumpReleasedAt|, so an early
+// release is scored symmetrically to a late one.
+export const BOOST_PERFECT_MS = 90;
+export const BOOST_GOOD_MS = 175;
+export const BOOST_OK_MS = 265;
+
+// Tint colors for the springboard pulse on landing.
+export const TIMING_TINT_PERFECT = 0x57e857;
+export const TIMING_TINT_GOOD = 0xffe14d;
+export const TIMING_TINT_OK = 0xff7a33;
+
 export const MIN_CLOUDS = 5;
 export const MAX_CLOUDS = 12;
 export const CLOUDMINSPEED = 35;
