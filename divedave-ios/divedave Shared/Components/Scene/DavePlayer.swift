@@ -55,8 +55,13 @@ final class DavePlayer {
 
     /// Begin a jump: flex the board, animate Dave's jump pose, then apply the
     /// jump impulse with boost factored in for quick release timing.
-    func jump(springboard: AnimatedSprite) {
+    /// `onJumpStarted` fires exactly when the jump animation actually begins
+    /// (after the guard), so callers can react to a real jump without
+    /// firing on rejected button-mashes.
+    func jump(springboard: AnimatedSprite, onJumpStarted: (() -> Void)? = nil) {
         guard !jumping, dave.currentAnimation != "jump" else { return }
+
+        onJumpStarted?()
 
         springboard.playAnimation(name: "flex") {
             springboard.clearCurrentAnimation()

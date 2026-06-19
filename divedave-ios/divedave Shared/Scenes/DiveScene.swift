@@ -398,7 +398,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 }
                 if daveIsAboveBoard() {
                     if hud?.jumpButton.isDown == true && boardContact.isTouching {
-                        davePlayer.jump(springboard: springboard)
+                        davePlayer.jump(springboard: springboard) { [weak self] in
+                            // Board-flex kick: subtle so it doesn't overpower the splash.
+                            self?.cameraController.shake(intensity: 4 * GameState.shared.metrics.scaleFactorHeight, duration: 0.15)
+                        }
                     }
                 } else if (hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true) {
                     if !daveIsTucked() {
@@ -427,17 +430,18 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     self.splash.isHidden = true
                     self.splash.clearCurrentAnimation()
                 }
-            
+                // Splash impact: pronounced shake.
+                cameraController.shake(intensity: 14 * GameState.shared.metrics.scaleFactorHeight, duration: 0.3)
+
                 // Calculate height, angle, and other stats
                 GameState.shared.stats.height = calculateHeightFromWater()
                 GameState.shared.stats.angle = round(dave.zRotation * (180.0 / .pi) * 10.0) / 10
                 GameState.shared.stats.tucked = daveIsTucked()
                 GameState.shared.stats.tuckCount = rotationTracker.tuckCount
                 GameState.shared.stats.rotations = round(rotationTracker.totalRotations * 10) / 10
-                
+
                 logger.debug("stats: \(String(describing: GameState.shared.stats))")
-                
-                // Display the InfoPanel with calculated stats
+
                 let result = scoreDive()
                 Haptics.notify(result == "FAILED DIVE" ? .error : .success)
                 hud.setRunningStreak(streak: GameState.shared.streak)
@@ -447,10 +451,13 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     "entry angle: \(GameState.shared.stats.angle)",
                     "rotations: \(GameState.shared.stats.rotations)"
                 ]
-                info.display(result: result, strings: displayStrings, frame: GameState.shared.stats.emotionFrame, scores: GameState.shared.stats.scores)
-                
-                // Hide mobile hud
-                hud.setVisible(false)
+
+                // 200ms beat before the score panel — lets the splash + shake land
+                // before the camera attention shifts to the overlay.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.info.display(result: result, strings: displayStrings, frame: GameState.shared.stats.emotionFrame, scores: GameState.shared.stats.scores)
+                    self.hud.setVisible(false)
+                }
                 
                 // Set a delay to allow for scene reset readiness
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -482,23 +489,54 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     func countRotations() {
         guard let completed = rotationTracker.countRotations(daveRotation: dave.zRotation) else { return }
         Haptics.impact(.light)
-        let label = createRotationLabel(
-            text: "\(Int(completed))",
-            fontColor: completed > Double(goalRotations) ? Game.customRed : Game.customGreen
-        )
-        label.position = dave.position
-        label.zPosition = 4
-        addChild(label)
+
+        let fontColor: SKColor = completed > Double(goalRotations) ? Game.customRed : Game.customGreen
+        let text = "\(Int(completed))"
+
+        // Parent container so we can scale/fade/translate the whole stack
+        // as one unit. SKNode propagates alpha visually to its children.
+        let container = SKNode()
+        container.position = dave.position
+        container.zPosition = 4
+        container.alpha = 0
+        container.setScale(0.3)
+
+        // Drop shadow: a black copy offset down-right for legibility against
+        // bright sky / cloud frames.
+        let shadow = SKLabelNode(text: text)
+        shadow.fontName = "Arial-BoldMT"
+        shadow.fontSize = 60
+        shadow.fontColor = .black
+        shadow.position = CGPoint(x: 4, y: -4)
+        container.addChild(shadow)
+
+        // Main label
+        let main = SKLabelNode(text: text)
+        main.fontName = "Arial-BoldMT"
+        main.fontSize = 60
+        main.fontColor = fontColor
+        container.addChild(main)
+
+        addChild(container)
+
+        // Pop-in: scale 0.3 -> 1.4 -> 1.0 while fading in, then hold, then
+        // drift up + fade out + remove.
+        container.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 1.4, duration: 0.12),
+                SKAction.fadeIn(withDuration: 0.08)
+            ]),
+            SKAction.scale(to: 1.0, duration: 0.08),
+            SKAction.wait(forDuration: 0.55),
+            SKAction.group([
+                SKAction.moveBy(x: 0, y: 50, duration: 0.4),
+                SKAction.fadeOut(withDuration: 0.4)
+            ]),
+            SKAction.removeFromParent()
+        ]))
     }
 
-    func createRotationLabel(text: String, fontColor: SKColor) -> SKLabelNode {
-        let label = SKLabelNode(text: text)
-        label.fontName = "Arial"
-        label.fontSize = 50
-        label.fontColor = fontColor
-        return label
-    }
-    
+
     func scoreDive() -> String {
         // Persist per-dive meta-progression (every dive, success or fail)
         StatsStore.totalDives += 1
