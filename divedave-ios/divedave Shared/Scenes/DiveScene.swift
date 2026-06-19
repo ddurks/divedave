@@ -31,11 +31,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     /// `GameState.shared.jumpReleasedAt` to score the jump's quickness.
     var landedAt: CFTimeInterval = 0
     var boost: CGFloat = 0
-    var currentVelocity: CGFloat = Game.minSpinVelocity
-    var tucked = false
-    var tuckCount = 0
-    var sumRotation = 0.0
-    var totalRotations = 0.0
     var springboard: AnimatedSprite!
     var dave: AnimatedSprite!
     var water: AnimatedSprite!
@@ -47,13 +42,12 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     var highScoreSession = false
     var info: InfoPanel!
     var highScorePanel: InfoPanel!
-    var daveIsTouchingBoardBool: Bool! = false
-    var lastUpdateTime: TimeInterval = 0.0
     private var atmosphere: Atmosphere!
     private var cameraController: CameraController!
+    private let boardContact = BoardContact()
+    private let rotationTracker = RotationTracker()
     
     override func didMove(to view: SKView) {
-        lastUpdateTime = CACurrentMediaTime()
         physicsWorld.gravity = CGVector(dx: 0, dy: -Game.gravity)
         physicsWorld.contactDelegate = self
         self.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
@@ -296,7 +290,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         springboard.zPosition = 10
         
         // Define animations if needed (e.g., "bounce" or other)
-        springboard.defineAnimation(name: "flex", frameIndices: [0, 1, 0], timePerFrame: 0.25)
+        springboard.defineAnimation(name: "flex", frameIndices: [0, 1, 0], timePerFrame: 0.25, repeatForever: false)
 
         // Add physics body to springboard
         springboard.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: springboard.size.width, height: springboard.size.height))
@@ -325,7 +319,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         if (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
            (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
             Haptics.impact(.light)
-            daveIsTouchingBoardBool = true
+            boardContact.didBegin(daveDidContactBoard: true)
             if landedAt == 0 {
                 landedAt = CACurrentMediaTime()
                 dave.playAnimation(name: "idle")
@@ -339,7 +333,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         
         if (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
            (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
-                daveIsTouchingBoardBool = false
+                boardContact.didEnd(daveDidContactBoard: true)
         }
     }
     
@@ -393,47 +387,18 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     
     func daveIsAboveBoard(tolerance: CGFloat = 1.0) -> Bool {
         guard let dave = dave else { return false }
-        
-        // Calculate and log intermediate values for debugging
-        let daveRightEdge = dave.position.x + dave.size.width / 4
-        let daveLeftEdge = dave.position.x - dave.size.width / 4
-        let springboardRightEdge = springboard.position.x + springboard.size.width / 2
-        let daveBottomEdge = dave.position.y - dave.size.height / 2
-        let springboardTopEdge = springboard.position.y + springboard.size.height / 2
-        
-        // Check if dave is above the springboard
-        let result = (daveRightEdge > 0 && daveLeftEdge < springboardRightEdge) && (daveBottomEdge >= springboardTopEdge - tolerance)
-        
-        if result && sumRotation != 0 {
-            sumRotation = 0
-            totalRotations = 0
+        let result = BoardContact.isAbove(dave: dave, board: springboard, tolerance: tolerance)
+        if result {
+            rotationTracker.reset()
         }
-                
         return result
     }
 
-
-    func daveIsTouchingBoard() -> Bool {
-        guard let dave = dave else { return false }
-        
-        // Calculate the bottom of dave and the top of the springboard
-        let daveBottom = dave.position.y - dave.size.height / 2
-        let springboardTop = springboard.position.y + springboard.size.height / 2
-        
-        // Check if dave's bottom is close enough to the springboard’s top (with a small tolerance)
-        let isVerticallyTouching = abs(daveBottom - springboardTop) <= 1  // 1-point tolerance
-        
-        // Log results for debugging
-//        NSLog("daveIsTouchingBoard: \(isVerticallyTouching), daveBottom: \(daveBottom), springboardTop: \(springboardTop)")
-        
-        return isVerticallyTouching
-    }
-
     func daveIsTucked() -> Bool {
-        if tucked {
+        if rotationTracker.tucked {
             dave?.texture = dave.frames[7]
         }
-        return dave?.texture == dave.frames[7] || tucked
+        return dave?.texture == dave.frames[7] || rotationTracker.tucked
     }
 
     func daveJump() {
@@ -520,7 +485,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 if dave.zRotation != 0 {
                     dave.zRotation = 0
                 }
-                if daveIsTouchingBoardBool {
+                if boardContact.isTouching {
                     if let velocity = dave.physicsBody?.velocity.dx, velocity > (Game.daveSpeed/10) {
                         dave.playAnimation(name: "walkRight")
                     } else if let velocity = dave.physicsBody?.velocity.dx, velocity < -(Game.daveSpeed/10) {
@@ -544,7 +509,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                         }
                     }
                 }
-            } else if !tucked {
+            } else if !rotationTracker.tucked {
                 dave.texture = dave.zRotation >= -CGFloat.pi / 2 && dave.zRotation <= CGFloat.pi / 2 ? dave.frames[6] : dave.frames[8]
                 dave.clearCurrentAnimation()
             }
@@ -573,26 +538,20 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     dave.physicsBody?.velocity.dx = Game.daveSpeed
                 }
                 if daveIsAboveBoard() {
-                    if hud?.jumpButton.isDown == true && daveIsTouchingBoardBool {
+                    if hud?.jumpButton.isDown == true && boardContact.isTouching {
                         daveJump()
                     }
                 } else if (hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true) {
                     if !daveIsTucked() {
-                        tucked = true
-                        tuckCount += 1
+                        rotationTracker.beginTuck()
                     } else {
-                        if currentVelocity < Game.maxSpinVelocity - (200.0 * .pi / 180.0) {
-                            currentVelocity += 5.0 * .pi / 180.0
-                        } else if currentVelocity < Game.maxSpinVelocity {
-                            currentVelocity += 1.0 * .pi / 180.0
-                        }
+                        rotationTracker.incrementSpin()
                     }
-                    dave.physicsBody?.angularVelocity = -currentVelocity
+                    dave.physicsBody?.angularVelocity = -rotationTracker.currentVelocity
                 }
             }
         } else {
-            tucked = false
-            currentVelocity = Game.minSpinVelocity
+            rotationTracker.resetTuck()
         }
     }
     
@@ -614,8 +573,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 GameState.shared.stats.height = calculateHeightFromWater()
                 GameState.shared.stats.angle = round(dave.zRotation * (180.0 / .pi) * 10.0) / 10
                 GameState.shared.stats.tucked = daveIsTucked()
-                GameState.shared.stats.tuckCount = tuckCount
-                GameState.shared.stats.rotations = round(totalRotations * 10) / 10
+                GameState.shared.stats.tuckCount = rotationTracker.tuckCount
+                GameState.shared.stats.rotations = round(rotationTracker.totalRotations * 10) / 10
                 
                 logger.debug("stats: \(String(describing: GameState.shared.stats))")
                 
@@ -654,60 +613,23 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func calculateHeightFromWater() -> Double {
-        let heightDifference = springboard.position.y - waterLevel
-        let heightInMeters = heightDifference / (200.0 * GameState.shared.metrics.scaleFactorHeight)
-        return round(heightInMeters * 10) / 10
+        return DiveScorer.heightInMeters(
+            springboardY: springboard.position.y,
+            waterY: waterLevel,
+            scaleFactorHeight: GameState.shared.metrics.scaleFactorHeight
+        )
     }
-    
-    var previousAngle: CGFloat = 0
-    var currentAngle: CGFloat = 0
-    var lastFlipNumber: Double = 0
+
     func countRotations() {
-        if (tuckCount >= 1) {
-            // Normalize Dave's rotation within [0, 2 * PI]
-            let daveRotation = (dave.zRotation.truncatingRemainder(dividingBy: 2 * .pi) + 2 * .pi).truncatingRemainder(dividingBy: 2 * .pi)
-            
-            if daveRotation != currentAngle {
-                // Calculate the angle difference
-                var angleDiff = abs(previousAngle - currentAngle)
-                
-                // Handle large angle jumps due to wrapping from 0 to 2π or vice versa
-                if angleDiff > 5 {
-                    if daveRotation < 1 {
-                        previousAngle = 0
-                    } else if daveRotation > 5 {
-                        previousAngle = 2 * .pi
-                    }
-                    angleDiff = abs(previousAngle - currentAngle)
-                }
-                
-                // Accumulate rotation and update total rotations
-                sumRotation += angleDiff
-                totalRotations = sumRotation / (2 * .pi)
-                
-                // Update angles for next calculation
-                previousAngle = currentAngle
-                currentAngle = daveRotation
-                
-                // Check for completed rotations and display rotation count
-                if totalRotations > lastFlipNumber {
-                    let rotationDifference = totalRotations - lastFlipNumber
-                    if rotationDifference >= 1 {
-                        let roundedRotations = round(totalRotations)
-                        Haptics.impact(.light)
-
-                        // Display rotation count near `dave`'s position
-                        let rotationLabel = createRotationLabel(text: "\(Int(roundedRotations))", fontColor: roundedRotations > Double(goalRotations) ? Game.customRed : Game.customGreen)
-                        rotationLabel.position = dave.position
-                        rotationLabel.zPosition = 4
-                        addChild(rotationLabel)
-
-                        // Update the last counted flip number
-                        lastFlipNumber = roundedRotations
-                    }
-                }
-            }
-        }
+        guard let completed = rotationTracker.countRotations(daveRotation: dave.zRotation) else { return }
+        Haptics.impact(.light)
+        let label = createRotationLabel(
+            text: "\(Int(completed))",
+            fontColor: completed > Double(goalRotations) ? Game.customRed : Game.customGreen
+        )
+        label.position = dave.position
+        label.zPosition = 4
+        addChild(label)
     }
 
     func createRotationLabel(text: String, fontColor: SKColor) -> SKLabelNode {
@@ -724,43 +646,25 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         StatsStore.totalFlips += Int(GameState.shared.stats.rotations)
         StatsStore.maxHeightReached = max(StatsStore.maxHeightReached, Int(GameState.shared.platformHeight))
 
-        // Check if the rotations are within the goal range
-        if abs(GameState.shared.stats.rotations - goalRotations) < 0.25 {
-            // Set emotion frame based on the angle
-            GameState.shared.stats.emotionFrame = chooseEmotionFrame(angle: GameState.shared.stats.angle)
-            
-            // Calculate individual scores based on emotion frame and tuck count
-            for (index, _) in GameState.shared.stats.scores.enumerated() {
-                switch GameState.shared.stats.emotionFrame {
-                case 4:
-                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 0...1)) / 2.0 - Double(tuckCount - 1))
-                case 3:
-                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 3...6)) / 2.0 - Double(tuckCount - 1))
-                case 2:
-                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 7...10)) / 2.0 - Double(tuckCount - 1))
-                case 1:
-                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 10...15)) / 2.0 - Double(tuckCount - 1))
-                case 0:
-                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 14...18)) / 2.0 - Double(tuckCount - 1))
-                default:
-                    break
-                }
-            }
+        let outcome = DiveScorer.score(
+            goalRotations: goalRotations,
+            rotations: GameState.shared.stats.rotations,
+            angle: GameState.shared.stats.angle,
+            tuckCount: rotationTracker.tuckCount
+        )
 
-            // Adjust emotion frame if there was a tuck
-            if tuckCount > 1 {
-                GameState.shared.stats.emotionFrame -= 1
-            }
-            
-            // Update total score and streak
+        GameState.shared.stats.emotionFrame = outcome.emotionFrame
+        GameState.shared.stats.scores = outcome.scores
+
+        switch outcome.result {
+        case .success:
             GameState.shared.streak += 1
-            GameState.shared.totalScore += GameState.shared.stats.scores.reduce(0, +)
+            GameState.shared.totalScore += outcome.scores.reduce(0, +)
 
             // Track longest streak across runs
             StatsStore.longestStreak = max(StatsStore.longestStreak, GameState.shared.streak)
 
-            // Update per-mode high score in the new store (legacy write below
-            // is intentionally preserved — Lane E owns its removal).
+            // Per-mode high score
             if GameState.shared.challengeMode {
                 StatsStore.challengeHigh = max(StatsStore.challengeHigh, GameState.shared.totalScore)
             } else {
@@ -778,13 +682,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     self.hud.highScoreLabel.isHidden = true
                 }
             }
-            
+
             return "SUCCESS"
-        } else {
-            // Failed dive: reset scores and show "Game Over" panel if high score was reached
-            GameState.shared.stats.emotionFrame = 0
-            GameState.shared.stats.scores = [0, 0, 0]
-            
+
+        case .failure:
             if highScoreSession {
                 highScorePanel.display(result: "GAME OVER",  strings: [
                     "",
@@ -794,43 +695,16 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     "streak: \(GameState.shared.streak) dives",
                 ], frame: 3, scores: nil)
             }
-            
+
             // Reset streak and total score
             GameState.shared.streak = 0
             GameState.shared.totalScore = 0
-            
+
             return "FAILED DIVE"
         }
     }
 
-    func chooseEmotionFrame(angle: Double) -> Int {
-        let absAngle = abs(angle)
 
-        // Convert degree boundaries to radians
-        let boundary10 = 10.0
-        let boundary25 = 25.0
-        let boundary45 = 45.0
-        let boundary70 = 70.0
-        let boundary110 = 110.0
-        let boundary135 = 135.0
-        let boundary155 = 155.0
-        let boundary170 = 170.0
-
-        if absAngle < boundary10 || absAngle > boundary170 {
-            return 4
-        } else if (absAngle >= boundary10 && absAngle < boundary25) || (absAngle <= boundary170 && absAngle > boundary155) {
-            return 3
-        } else if (absAngle >= boundary25 && absAngle < boundary45) || (absAngle <= boundary155 && absAngle > boundary135) {
-            return 2
-        } else if (absAngle >= boundary45 && absAngle < boundary70) || (absAngle <= boundary135 && absAngle > boundary110) {
-            return 1
-        } else if absAngle >= boundary70 && absAngle < boundary110 {
-            return 0
-        }
-
-        return 2 // Default return value if no conditions match
-    }
-    
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if (self.diveComplete) {
             resetScene()
@@ -853,17 +727,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func applyPhaserStyleAngularDrag(currentTime: TimeInterval) {
-        let dt = currentTime - lastUpdateTime
-        lastUpdateTime = currentTime
-        let deltaTime = CGFloat(dt)
-
         guard let body = dave.physicsBody else { return }
-
-        let sign: CGFloat = body.angularVelocity >= 0 ? 1 : -1
-        let dragThisFrame = Game.linearAngularDrag * deltaTime
-        let newAngularVelocity = abs(body.angularVelocity) - dragThisFrame
-
-        body.angularVelocity = max(newAngularVelocity, 0) * sign
+        rotationTracker.applyAngularDrag(to: body, currentTime: currentTime)
     }
     
     func updateClimbDave() {
