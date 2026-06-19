@@ -5,7 +5,32 @@
 export const GRAVITY = 1000;
 
 export const WIDTH = 1250;
-export const HEIGHT = 1500;
+
+// Reference height used for *world geometry* — springboard y, dave's
+// spawn position, platform sections, atmosphere altitude bands. These
+// stay fixed across devices so the game world looks the same shape on
+// every screen, the way iOS treats its reference design.
+export const REF_HEIGHT = 1500;
+
+// Viewport HEIGHT matches the device's aspect ratio so the canvas
+// fills the screen (no letterbox) like iOS. We clamp at REF_HEIGHT
+// minimum so wider-than-tall desktop windows don't squish the layout.
+// Computed once at module load — rotating the device requires a
+// reload, same as iOS launches into the active orientation.
+function computeViewportHeight() {
+  if (typeof window === "undefined") return REF_HEIGHT;
+  const aspect = window.innerHeight / window.innerWidth;
+  return Math.max(REF_HEIGHT, Math.round(WIDTH * aspect));
+}
+export const HEIGHT = computeViewportHeight();
+
+// Fixed world-position constants derived from the reference height.
+// Use these (not HEIGHT/2 + 40 etc.) for anything that's positioned
+// in the game world.
+export const BOARD_Y = REF_HEIGHT / 2 + 40;
+export const PLATFORM_TOP_Y = 797;
+export const PLATFORM_SECTION_START_Y = 897;
+export const DAVE_SPAWN_Y = REF_HEIGHT / 3;
 
 export const DAVE_SPEED = 300;
 export const JUMP_VELOCITY = 800;

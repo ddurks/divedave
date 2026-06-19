@@ -12,6 +12,7 @@
 import {
   BIRDMAXSPEED,
   BIRDMINSPEED,
+  BOARD_Y,
   CLOUDMAXSPEED,
   CLOUDMINSPEED,
   END_COLOR,
@@ -23,6 +24,9 @@ import {
   MIN_BIRDS,
   MAX_BIRDS,
   MIN_CLOUDS,
+  PLATFORM_SECTION_START_Y,
+  PLATFORM_TOP_Y,
+  REF_HEIGHT,
   START_COLOR,
   TIMING_TINT_GOOD,
   TIMING_TINT_OK,
@@ -247,15 +251,22 @@ export class DiveScene extends Phaser.Scene {
   create() {
     this.physics.world.setBounds(0, 0, WIDTH, this.sceneHeight);
     this.add.image(WIDTH / 2, this.sceneHeight - 250, "landscape").setDepth(2);
-    this.add.image(205, 797, "platformtop").setDepth(10);
-    for (let i = 897; i < this.sceneHeight - 200; i += 100) {
+    this.add.image(205, PLATFORM_TOP_Y, "platformtop").setDepth(10);
+    for (
+      let i = PLATFORM_SECTION_START_Y;
+      i < this.sceneHeight - 200;
+      i += 100
+    ) {
       this.add.image(205, i, "platformsection").setDepth(12);
     }
     this.add.image(205, this.sceneHeight - 200, "platformbase").setDepth(13);
 
-    this.startY = this.sceneHeight - HEIGHT;
-    this.middleY = this.sceneHeight - HEIGHT * 2;
-    this.endY = this.sceneHeight - HEIGHT * 4;
+    // Atmosphere altitude bands stay tied to REF_HEIGHT (world geometry)
+    // so a taller device viewport doesn't accidentally push clouds and
+    // stars off the world.
+    this.startY = this.sceneHeight - REF_HEIGHT;
+    this.middleY = this.sceneHeight - REF_HEIGHT * 2;
+    this.endY = this.sceneHeight - REF_HEIGHT * 4;
 
     this.add
       .image(125, 110, "sign")
@@ -276,11 +287,11 @@ export class DiveScene extends Phaser.Scene {
       .setActive(false);
 
     GameState.waterLevel = this.sceneHeight - 100;
-    let heightFromWater = GameState.waterLevel - 797;
+    let heightFromWater = GameState.waterLevel - PLATFORM_TOP_Y;
     this.add
       .bitmapText(
         WIDTH - 200,
-        797 - 10,
+        PLATFORM_TOP_Y - 10,
         "black-arial",
         "   " + Math.round((heightFromWater / 2 / 100) * 10) / 10 + "m",
         50
@@ -288,7 +299,7 @@ export class DiveScene extends Phaser.Scene {
       .setDepth(14)
       .setActive(false);
     heightFromWater--;
-    for (let i = 798; i < GameState.waterLevel; i++) {
+    for (let i = PLATFORM_TOP_Y + 1; i < GameState.waterLevel; i++) {
       let labelColor = "red-arial";
       const currHeight = heightFromWater / 2 / 100;
       if (currHeight < 25) labelColor = "yellow-arial";
@@ -310,7 +321,7 @@ export class DiveScene extends Phaser.Scene {
     // Springboard first so the animations registered below can find the
     // sprite key. Player needs the board reference for boost-distance math.
     GameState.springboard = this.physics.add
-      .sprite(WIDTH / 4, HEIGHT / 2 + 40, "springboard")
+      .sprite(WIDTH / 4, BOARD_Y, "springboard")
       .setDepth(11);
     GameState.springboard.body.setAllowGravity(false);
     GameState.springboard.body.setImmovable(true);
@@ -528,7 +539,11 @@ export class DiveScene extends Phaser.Scene {
   }
 
   updateClimbDave() {
-    if (this.climbdave && this.climbdave.visible && this.climbdave.y <= 797) {
+    if (
+      this.climbdave &&
+      this.climbdave.visible &&
+      this.climbdave.y <= PLATFORM_TOP_Y
+    ) {
       this.climbdave.setVelocityY(0);
       this.climbdave.anims.stop();
       this.climbdave.setFrame(0);
@@ -552,7 +567,7 @@ export class DiveScene extends Phaser.Scene {
       this.player.transition(DaveState.Splashed);
       this.camera.shake(ShakeStrength.Heavy, 250);
       this.stats = {
-        height: heightInMeters(797, GameState.waterLevel),
+        height: heightInMeters(PLATFORM_TOP_Y, GameState.waterLevel),
         angle: Math.round(dave.angle * 10) / 10,
         tucked: this.player.isTucked(),
         tuckCount: this.player.tuckCount,

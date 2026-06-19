@@ -14,9 +14,9 @@ import {
   BOOST_GOOD_MS,
   BOOST_OK_MS,
   BOOST_PERFECT_MS,
+  DAVE_SPAWN_Y,
   DAVE_SPEED,
   DRAG,
-  HEIGHT,
   JUMP_VELOCITY,
   MAX_BOOST,
   MAX_SPIN_VELOCITY,
@@ -75,7 +75,7 @@ export class DavePlayer {
     this.springboard = springboard;
 
     const sprite = scene.physics.add
-      .sprite(WIDTH / 8, HEIGHT / 3, "dave")
+      .sprite(WIDTH / 8, DAVE_SPAWN_Y, "dave")
       .setDepth(12);
     sprite.setOrigin(0.5, 0.5);
     sprite.body.setSize(64, 256);
