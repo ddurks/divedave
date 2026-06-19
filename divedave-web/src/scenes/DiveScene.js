@@ -1,43 +1,37 @@
 // Mirrors divedave-ios/divedave Shared/Scenes/DiveScene.swift.
 //
-// Phase 0 keeps this scene structurally identical to the original
-// divedave.js DiveScene class. The only changes are:
-//   - imports replace bare globals and free functions
-//   - GameState.foo replaces module-level mutable globals
-//   - HUD replaces the old MobileControls class name
-//
-// Subsequent phases will extract DavePlayer, Atmosphere,
-// CameraController, RotationTracker, DiveScorer etc. into their own
-// modules to match the iOS file layout.
+// Phase 1 pulled DavePlayer out into its own module with an explicit
+// DaveState machine. Things that still live here:
+//   - asset preload + animation registration
+//   - HUD, InfoPanel, splash + getting-out + climb animations
+//   - atmosphere (clouds/birds/planes/UFOs/stars) — extraction deferred
+//   - sky-color interpolation
+//   - rotation-counting accumulators (per-dive scene state)
+//   - scoring (DiveScorer extraction also deferred)
 
 import {
-  ANGULAR_DRAG,
-  DRAG,
-  DAVE_SPEED,
+  BIRDMAXSPEED,
+  BIRDMINSPEED,
+  CLOUDMAXSPEED,
+  CLOUDMINSPEED,
   END_COLOR,
   GRAVITY,
   HEIGHT,
-  JUMP_VELOCITY,
-  MAX_BOOST,
+  MAX_CLOUDS,
   MAX_SPIN_VELOCITY,
   MIDDLE_COLOR,
-  MIN_SPIN_VELOCITY,
-  START_COLOR,
-  WIDTH,
-  MIN_CLOUDS,
-  MAX_CLOUDS,
-  CLOUDMINSPEED,
-  CLOUDMAXSPEED,
   MIN_BIRDS,
   MAX_BIRDS,
-  BIRDMINSPEED,
-  BIRDMAXSPEED,
+  MIN_CLOUDS,
+  START_COLOR,
+  WIDTH,
 } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
 import { diff, getRandomInt, IS_MOBILE } from "../util/Utilities.js";
 import { StatsStore } from "../util/StatsStore.js";
 import { HUD } from "../components/controls/HUD.js";
 import { InfoPanel } from "../components/menu/InfoPanel.js";
+import { DavePlayer, DaveState } from "../components/scene/DavePlayer.js";
 
 export class DiveScene extends Phaser.Scene {
   constructor() {
@@ -48,10 +42,7 @@ export class DiveScene extends Phaser.Scene {
     this.sceneHeight = data.height;
     this.diveComplete = false;
     this.readyForReset = false;
-    this.sumRotation = 0;
-    this.totalRotations = 0;
-    this.previousAngle = 0;
-    this.currentAngle = 0;
+    this.resetDiveAttempt();
     this.stats = {
       angle: 0,
       tucked: false,
@@ -60,6 +51,15 @@ export class DiveScene extends Phaser.Scene {
       scores: [0, 0, 0],
     };
     this.timerStarted = false;
+  }
+
+  /** Called by DavePlayer on Grounded entry, and by us on water-splash. */
+  resetDiveAttempt() {
+    this.sumRotation = 0;
+    this.totalRotations = 0;
+    this.previousAngle = 0;
+    this.currentAngle = 0;
+    this.lastFlipNumber = 0;
   }
 
   preload() {
@@ -216,23 +216,13 @@ export class DiveScene extends Phaser.Scene {
       heightFromWater--;
     }
 
+    // Springboard first so the animations registered below can find the
+    // sprite key. Player needs the board reference for boost-distance math.
     GameState.springboard = this.physics.add
       .sprite(WIDTH / 4, HEIGHT / 2 + 40, "springboard")
       .setDepth(11);
     GameState.springboard.body.setAllowGravity(false);
     GameState.springboard.body.setImmovable(true);
-
-    GameState.dave = this.physics.add
-      .sprite(WIDTH / 8, HEIGHT / 3, "dave")
-      .setDepth(12);
-    GameState.dave.setOrigin(0.5, 0.5);
-    GameState.dave.body.setSize(64, 256);
-    GameState.dave.body.setAllowGravity(true);
-    GameState.dave.speed = DAVE_SPEED;
-    GameState.dave.setDrag(DRAG, 1);
-    GameState.dave.body.setAngularDrag(ANGULAR_DRAG);
-    GameState.dave.body.setAllowDrag(true);
-    GameState.jumping = false;
 
     // Getting-out animation
     this.gettingoutdave = this.add
@@ -258,12 +248,64 @@ export class DiveScene extends Phaser.Scene {
       .setActive(false)
       .setVisible(false);
     this.hud = new HUD(this);
-    if (!IS_MOBILE) {
-      this.hud.setVisible(false);
-    }
+    if (!IS_MOBILE) this.hud.setVisible(false);
+
+    this.registerAnimations();
+    this.spawnAtmosphere();
+
+    const water = this.add
+      .sprite(WIDTH / 2, this.sceneHeight - 100, "water")
+      .setDepth(11);
+    water.anims.play("idlewater");
+    const outerwater = this.add
+      .sprite(WIDTH / 2, this.sceneHeight - 50, "water")
+      .setDepth(13);
+    outerwater.anims.play("idlewater");
+
+    // Player owns the dave sprite. Built after animations are registered
+    // so its anim-complete handler can resolve the "jump" key.
+    this.player = new DavePlayer(this, GameState.springboard);
+    GameState.dave = this.player.sprite; // legacy globals for code we haven't moved yet
 
     this.calculateGameLogic();
 
+    this.cameras.main.startFollow(this.player.sprite);
+    this.cameras.main.setBounds(0, 0, WIDTH, this.sceneHeight);
+
+    this.physics.add.collider(this.player.sprite, GameState.springboard, () => {
+      this.player.noteBoardLanded();
+    });
+
+    GameState.controls = {
+      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W, false),
+      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A, false),
+      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S, false),
+      right: this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.D,
+        false
+      ),
+      space: this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SPACE,
+        false
+      ),
+      enter: this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.ENTER,
+        false
+      ),
+      r: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R, false),
+      cursors: this.input.keyboard.createCursorKeys(),
+    };
+
+    this.input.on("pointerdown", () => this.resetScene());
+
+    GameState.controls.up.on("up", () => this.player.noteJumpReleased());
+    GameState.controls.cursors.up.on("up", () =>
+      this.player.noteJumpReleased()
+    );
+    this.input.on("pointerup", () => this.player.noteJumpReleased());
+  }
+
+  registerAnimations() {
     this.anims.create({
       key: "idle",
       frameRate: 8,
@@ -348,93 +390,10 @@ export class DiveScene extends Phaser.Scene {
       }),
       repeat: -1,
     });
-
-    this.spawnAtmosphere();
-
-    const water = this.add
-      .sprite(WIDTH / 2, this.sceneHeight - 100, "water")
-      .setDepth(11);
-    water.anims.play("idlewater");
-    const outerwater = this.add
-      .sprite(WIDTH / 2, this.sceneHeight - 50, "water")
-      .setDepth(13);
-    outerwater.anims.play("idlewater");
-
-    GameState.dave.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      GameState.jumping = false;
-      this.calculateBoost();
-      GameState.landedAt = null;
-      GameState.dave.setVelocityY(-JUMP_VELOCITY - GameState.boost);
-    });
-
-    this.cameras.main.startFollow(GameState.dave);
-    this.cameras.main.setBounds(0, 0, WIDTH, this.sceneHeight);
-
-    this.physics.add.collider(GameState.dave, GameState.springboard, () => {
-      if (!GameState.landedAt) {
-        GameState.landedAt = Date.now();
-      }
-    });
-
-    GameState.controls = {
-      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W, false),
-      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A, false),
-      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S, false),
-      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D, false),
-      space: this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.SPACE,
-        false
-      ),
-      enter: this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.ENTER,
-        false
-      ),
-      r: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R, false),
-      cursors: this.input.keyboard.createCursorKeys(),
-    };
-
-    this.input.on("pointerdown", () => {
-      this.resetScene();
-    });
-
-    GameState.controls.up.on("up", () => {
-      GameState.jumpReleasedAt = Date.now();
-    });
-    GameState.controls.cursors.up.on("up", () => {
-      GameState.jumpReleasedAt = Date.now();
-    });
-    this.input.on("pointerup", () => {
-      GameState.jumpReleasedAt = Date.now();
-    });
-
-    GameState.tucked = false;
-    GameState.tuckCount = 0;
-    this.lastFlipNumber = 0;
-  }
-
-  calculateBoost() {
-    const quickness = diff(GameState.landedAt, GameState.jumpReleasedAt);
-    if (quickness < 125) {
-      GameState.boost = MAX_BOOST;
-    } else if (quickness < 250) {
-      GameState.boost = MAX_BOOST - 50;
-    } else if (quickness < 350) {
-      GameState.boost = MAX_BOOST - 100;
-    } else {
-      GameState.boost = 0;
-    }
-    const daveBoardDist =
-      GameState.dave.x -
-      (GameState.springboard.x - GameState.springboard.width / 2);
-    if (daveBoardDist > 0) {
-      let newRatio = daveBoardDist / GameState.springboard.width;
-      newRatio = newRatio <= 1 ? newRatio : 1;
-      GameState.boost = GameState.boost * newRatio;
-    }
   }
 
   update() {
-    this.physics.world.collide(GameState.dave, [GameState.springboard]);
+    this.physics.world.collide(this.player.sprite, [GameState.springboard]);
     this.updateSkyColor();
     this.handleAtmosphere();
     this.playerHandler();
@@ -443,103 +402,42 @@ export class DiveScene extends Phaser.Scene {
 
   playerHandler() {
     this.checkForReset();
-    if (!GameState.jumping) {
-      if (IS_MOBILE) {
-        this.playerMobileMovementHandler();
-      } else {
-        this.playerMovementHandler();
-      }
-      this.playerFrameHandler();
-    }
-  }
+    if (this.player.state === DaveState.Launching) return;
 
-  playerFrameHandler() {
-    if (GameState.jumping) return;
-    const dave = GameState.dave;
-    if (this.daveIsAboveBoard()) {
-      if (dave.angle !== 0) dave.setAngle(0);
-      if (this.daveIsTouchingBoard()) {
-        if (dave.body.velocity.x > 0) {
-          dave.anims.play("walkright", true);
-        } else if (dave.body.velocity.x < 0) {
-          dave.anims.play("walkleft", true);
-        } else if (dave.anims.getName() !== "idle") {
-          dave.anims.play("idle", true);
-        }
-      } else {
-        if (dave.body.velocity.y < 0) {
-          if (dave.body.velocity.x < 0) dave.setFrame(15);
-          else dave.setFrame(6);
-        } else {
-          if (dave.body.velocity.x < 0) dave.setFrame(11);
-          else dave.setFrame(2);
-        }
-      }
-    } else if (!GameState.tucked) {
-      if (dave.angle >= -90 && dave.angle <= 90) dave.setFrame(6);
-      else dave.setFrame(8);
+    // If Dave has settled back onto the board after launch but before
+    // committing to a dive, transition to Grounded. Diving is
+    // intentionally not in this check: it's a commit point (iOS
+    // parity), so re-landing isn't possible — collisions are zeroed
+    // in DavePlayer.didEnter(Diving) and Dave falls through. The
+    // isCleanLanding() guard prevents a false snap during the single
+    // frame right after launch when Dave is still touching the board
+    // geometrically but already flying upward.
+    if (
+      this.player.state === DaveState.Airborne &&
+      this.player.isAboveBoard() &&
+      this.player.isTouchingBoard() &&
+      this.player.isCleanLanding()
+    ) {
+      this.player.transition(DaveState.Grounded);
     }
+
+    if (IS_MOBILE) this.playerMobileMovementHandler();
+    else this.playerMovementHandler();
+
+    this.player.updateFrame();
   }
 
   updateClimbDave() {
-    if (this.climbdave && this.climbdave.visible) {
-      if (this.climbdave.y <= 797) {
-        this.climbdave.setVelocityY(0);
-        this.climbdave.anims.stop();
-        this.climbdave.setFrame(0);
-      }
-    }
-  }
-
-  daveIsAboveBoard() {
-    const dave = GameState.dave;
-    const springboard = GameState.springboard;
-    const result =
-      dave.x + dave.width / 4 > 0 &&
-      dave.x - dave.width / 4 < springboard.x + springboard.width / 2 - 10 &&
-      dave.y + dave.height / 2 < springboard.y - springboard.height / 2 + 1;
-    if (result) {
-      // Reset all per-dive-attempt state — rotation accumulators AND
-      // tuck state — so each bounce on the board starts a fresh dive
-      // attempt. Without resetting tuckCount/tucked here, a re-bounce
-      // would carry the previous attempt's tucks into scoring,
-      // subtracting (tuckCount - 1) from each judge's score even
-      // though the new attempt only tucked once.
-      this.sumRotation = 0;
-      this.totalRotations = 0;
-      this.previousAngle = 0;
-      this.currentAngle = 0;
-      this.lastFlipNumber = 0;
-      GameState.tuckCount = 0;
-      GameState.tucked = false;
-    }
-    return result;
-  }
-
-  daveIsTouchingBoard() {
-    const dave = GameState.dave;
-    const springboard = GameState.springboard;
-    return dave.y + dave.height / 2 >= springboard.y - springboard.height / 2;
-  }
-
-  daveIsTucked() {
-    const dave = GameState.dave;
-    if (GameState.tucked) dave.setFrame(7);
-    return dave.frame.name === 7 || GameState.tucked;
-  }
-
-  daveJump() {
-    const dave = GameState.dave;
-    if (!GameState.jumping && dave.anims.getName() !== "jump") {
-      GameState.jumping = true;
-      GameState.springboard.anims.play("flex", true);
-      dave.anims.play("jump", true);
+    if (this.climbdave && this.climbdave.visible && this.climbdave.y <= 797) {
+      this.climbdave.setVelocityY(0);
+      this.climbdave.anims.stop();
+      this.climbdave.setFrame(0);
     }
   }
 
   checkForReset() {
     if (this.diveComplete) return;
-    const dave = GameState.dave;
+    const dave = this.player.sprite;
     const springboard = GameState.springboard;
     if (
       dave.body.velocity.y > 0 &&
@@ -551,12 +449,13 @@ export class DiveScene extends Phaser.Scene {
     }
     if (dave.y > GameState.waterLevel - 15) {
       this.diveComplete = true;
+      this.player.transition(DaveState.Splashed);
       const heightFromWater = GameState.waterLevel - 797;
       this.stats = {
         height: Math.round((heightFromWater / 2 / 100) * 10) / 10,
         angle: Math.round(dave.angle * 10) / 10,
-        tucked: this.daveIsTucked(),
-        tuckCount: GameState.tuckCount,
+        tucked: this.player.isTucked(),
+        tuckCount: this.player.tuckCount,
         rotations: Math.round(this.totalRotations * 10) / 10,
         scores: [0, 0, 0],
       };
@@ -623,7 +522,9 @@ export class DiveScene extends Phaser.Scene {
       GRAVITY
     );
 
-    const spinVelocityRadPerSec = Phaser.Math.DegToRad(MAX_SPIN_VELOCITY * 0.75);
+    const spinVelocityRadPerSec = Phaser.Math.DegToRad(
+      MAX_SPIN_VELOCITY * 0.75
+    );
     const totalRotation = fallTime * spinVelocityRadPerSec;
     const maxFlips = totalRotation / (2 * Math.PI);
     const halfFlips = Math.floor(maxFlips * 2);
@@ -661,40 +562,35 @@ export class DiveScene extends Phaser.Scene {
   }
 
   countRotations() {
-    const dave = GameState.dave;
+    const dave = this.player.sprite;
     const daveRotation = Phaser.Math.Angle.Normalize(dave.rotation);
-    if (daveRotation !== this.currentAngle) {
-      let angleDiff = diff(this.previousAngle, this.currentAngle);
-      if (angleDiff > 5) {
-        if (daveRotation < 1) {
-          this.previousAngle = 0;
-        } else if (daveRotation > 5) {
-          this.previousAngle = 2 * Math.PI;
-        }
-        angleDiff = diff(this.previousAngle, this.currentAngle);
-      }
-      this.sumRotation += angleDiff;
-      this.totalRotations = this.sumRotation / (2 * Math.PI);
-      this.previousAngle = this.currentAngle;
-      this.currentAngle = daveRotation;
-      if (this.totalRotations > this.lastFlipNumber) {
-        const flipDelta = this.totalRotations - this.lastFlipNumber;
-        if (flipDelta >= 1) {
-          const roundedRotations = Math.round(this.totalRotations);
-          this.add
-            .bitmapText(
-              dave.x,
-              dave.y,
-              roundedRotations > this.goalRotations
-                ? "red-arial"
-                : "green-arial",
-              roundedRotations,
-              75
-            )
-            .setDepth(14)
-            .setActive(false);
-          this.lastFlipNumber = roundedRotations;
-        }
+    if (daveRotation === this.currentAngle) return;
+
+    let angleDiff = diff(this.previousAngle, this.currentAngle);
+    if (angleDiff > 5) {
+      if (daveRotation < 1) this.previousAngle = 0;
+      else if (daveRotation > 5) this.previousAngle = 2 * Math.PI;
+      angleDiff = diff(this.previousAngle, this.currentAngle);
+    }
+    this.sumRotation += angleDiff;
+    this.totalRotations = this.sumRotation / (2 * Math.PI);
+    this.previousAngle = this.currentAngle;
+    this.currentAngle = daveRotation;
+    if (this.totalRotations > this.lastFlipNumber) {
+      const flipDelta = this.totalRotations - this.lastFlipNumber;
+      if (flipDelta >= 1) {
+        const roundedRotations = Math.round(this.totalRotations);
+        this.add
+          .bitmapText(
+            dave.x,
+            dave.y,
+            roundedRotations > this.goalRotations ? "red-arial" : "green-arial",
+            roundedRotations,
+            75
+          )
+          .setDepth(14)
+          .setActive(false);
+        this.lastFlipNumber = roundedRotations;
       }
     }
   }
@@ -710,44 +606,44 @@ export class DiveScene extends Phaser.Scene {
   }
 
   scoreDive() {
+    const tuckCount = this.player.tuckCount;
     if (Math.abs(this.stats.rotations - this.goalRotations) < 0.25) {
       this.stats.emotionFrame = this.chooseEmotionFrame(this.stats.angle);
       this.stats.scores.forEach((_score, index, scores) => {
         switch (this.stats.emotionFrame) {
           case 4:
-            scores[index] = 10 - getRandomInt(0, 1) / 2.0 - (GameState.tuckCount - 1);
+            scores[index] = 10 - getRandomInt(0, 1) / 2.0 - (tuckCount - 1);
             break;
           case 3:
-            scores[index] = 10 - getRandomInt(3, 6) / 2.0 - (GameState.tuckCount - 1);
+            scores[index] = 10 - getRandomInt(3, 6) / 2.0 - (tuckCount - 1);
             break;
           case 2:
-            scores[index] = 10 - getRandomInt(7, 10) / 2.0 - (GameState.tuckCount - 1);
+            scores[index] = 10 - getRandomInt(7, 10) / 2.0 - (tuckCount - 1);
             break;
           case 1:
-            scores[index] = 10 - getRandomInt(10, 15) / 2.0 - (GameState.tuckCount - 1);
+            scores[index] = 10 - getRandomInt(10, 15) / 2.0 - (tuckCount - 1);
             break;
           case 0:
-            scores[index] = 10 - getRandomInt(14, 18) / 2.0 - (GameState.tuckCount - 1);
+            scores[index] = 10 - getRandomInt(14, 18) / 2.0 - (tuckCount - 1);
             break;
         }
       });
-      if (GameState.tuckCount > 1) {
-        this.stats.emotionFrame = this.stats.emotionFrame - 1;
-      }
+      if (tuckCount > 1) this.stats.emotionFrame -= 1;
       GameState.streak++;
       GameState.totalScore =
         GameState.totalScore +
         this.stats.scores[0] +
         this.stats.scores[1] +
         this.stats.scores[2];
-      if (GameState.challengeMode && GameState.totalScore > GameState.highScore) {
+      if (
+        GameState.challengeMode &&
+        GameState.totalScore > GameState.highScore
+      ) {
         StatsStore.saveHighScore(GameState.totalScore);
         GameState.highScore = GameState.totalScore;
         GameState.highScoreSession = true;
         this.highScoreText.setVisible(true);
-        setTimeout(() => {
-          this.highScoreText.setVisible(false);
-        }, 5000);
+        setTimeout(() => this.highScoreText.setVisible(false), 5000);
       }
       return "SUCCESS";
     }
@@ -796,7 +692,9 @@ export class DiveScene extends Phaser.Scene {
 
   playerMovementHandler() {
     const controls = GameState.controls;
-    const dave = GameState.dave;
+    const player = this.player;
+    const dave = player.sprite;
+
     if (controls.enter.isDown || (controls.space.isDown && this.diveComplete)) {
       this.resetScene();
     }
@@ -805,8 +703,8 @@ export class DiveScene extends Phaser.Scene {
       controls.space.isDown ||
       controls.cursors.up.isDown
     ) {
-      if (this.daveIsAboveBoard() && this.daveIsTouchingBoard()) {
-        this.daveJump();
+      if (player.isAboveBoard() && player.isTouchingBoard()) {
+        player.tryJump();
       }
     }
     if (controls.left.isDown || controls.cursors.left.isDown) {
@@ -820,61 +718,62 @@ export class DiveScene extends Phaser.Scene {
       controls.space.isDown ||
       controls.cursors.up.isDown
     ) {
-      if (!this.daveIsAboveBoard()) {
-        if (!this.daveIsTucked()) {
-          GameState.tucked = true;
-          GameState.tuckCount++;
-        }
-        if (GameState.currentVelocity < MAX_SPIN_VELOCITY - 200) {
-          GameState.currentVelocity += 5;
-        } else if (GameState.currentVelocity < MAX_SPIN_VELOCITY) {
-          GameState.currentVelocity += 1;
-        }
-        dave.body.setAngularVelocity(GameState.currentVelocity);
-      }
+      // applyTuck() is a no-op outside Airborne / Diving, so we no
+      // longer need the !isAboveBoard guard. Removing it lets a dive
+      // continue cleanly when Dave's arc carries him back across the
+      // board's x range.
+      player.applyTuck();
     } else {
-      GameState.tucked = false;
-      GameState.currentVelocity = MIN_SPIN_VELOCITY;
+      player.releaseTuck();
     }
   }
 
   playerMobileMovementHandler() {
     const hud = this.hud;
-    const dave = GameState.dave;
+    const player = this.player;
+    const dave = player.sprite;
+
+    // Both buttons always rendered.
+    //   - Jump stays enabled in Grounded AND Airborne so the player
+    //     can pre-tap before landing; that press is buffered by
+    //     DavePlayer (see EARLY_TAP_WINDOW in didEnter(Grounded)).
+    //     It greys out in Diving because the dive is committed.
+    //   - Flip is enabled only when actionable (Airborne / Diving);
+    //     greyed out on the board so a stray tap doesn't read as
+    //     "would have spun".
+    // Functional gating lives in tryJump / applyTuck via the
+    // DaveState machine, so this is purely visual.
     if (!this.diveComplete) {
-      if (this.daveIsAboveBoard()) hud.jumpControls();
-      else hud.flipControls();
+      hud.updateButtons(
+        player.state !== DaveState.Diving,
+        player.state === DaveState.Airborne || player.state === DaveState.Diving
+      );
     }
-    if (
+    const anyDown =
       hud.leftButton.isDown ||
       hud.rightButton.isDown ||
       hud.jumpButton.isDown ||
-      hud.flipButton.isDown
+      hud.flipButton.isDown;
+
+    if (!anyDown) {
+      player.releaseTuck();
+      return;
+    }
+    if (this.diveComplete) {
+      this.resetScene();
+      return;
+    }
+    if (hud.leftButton.isDown) dave.setVelocityX(-dave.speed);
+    if (hud.rightButton.isDown) dave.setVelocityX(dave.speed);
+    if (
+      hud.jumpButton.isDown &&
+      player.isAboveBoard() &&
+      player.isTouchingBoard()
     ) {
-      if (this.diveComplete) {
-        this.resetScene();
-      } else if (this.daveIsAboveBoard()) {
-        if (hud.jumpButton.isDown && this.daveIsTouchingBoard()) {
-          this.daveJump();
-        }
-        if (hud.leftButton.isDown) dave.setVelocityX(-dave.speed);
-        if (hud.rightButton.isDown) dave.setVelocityX(dave.speed);
-      } else if (hud.flipButton.isDown) {
-        if (!this.daveIsTucked()) {
-          GameState.tucked = true;
-          GameState.tuckCount++;
-        } else {
-          if (GameState.currentVelocity < MAX_SPIN_VELOCITY - 200) {
-            GameState.currentVelocity += 5;
-          } else if (GameState.currentVelocity < MAX_SPIN_VELOCITY) {
-            GameState.currentVelocity += 1;
-          }
-        }
-        dave.body.setAngularVelocity(GameState.currentVelocity);
-      }
-    } else {
-      GameState.tucked = false;
-      GameState.currentVelocity = MIN_SPIN_VELOCITY;
+      player.tryJump();
+    }
+    if (hud.flipButton.isDown) {
+      player.applyTuck();
     }
   }
 
