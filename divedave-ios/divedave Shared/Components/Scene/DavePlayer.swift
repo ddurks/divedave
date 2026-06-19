@@ -10,6 +10,15 @@
 
 import SpriteKit
 
+/// How quickly the player released the jump button relative to landing.
+/// Drives the post-jump feedback label (PERFECT / GOOD / OK).
+enum BoostTiming {
+    case perfect   // < 125 ms
+    case good      // < 250 ms
+    case ok        // < 350 ms
+    case miss      // anything else
+}
+
 @MainActor
 final class DavePlayer {
     let dave: AnimatedSprite
@@ -57,8 +66,14 @@ final class DavePlayer {
     /// jump impulse with boost factored in for quick release timing.
     /// `onJumpStarted` fires exactly when the jump animation actually begins
     /// (after the guard), so callers can react to a real jump without
-    /// firing on rejected button-mashes.
-    func jump(springboard: AnimatedSprite, onJumpStarted: (() -> Void)? = nil) {
+    /// firing on rejected button-mashes. `onJumpCompleted` fires after the
+    /// jump animation finishes and boost is applied, receiving the timing
+    /// tier so the caller can surface a PERFECT/GOOD/OK feedback label.
+    func jump(
+        springboard: AnimatedSprite,
+        onJumpStarted: (() -> Void)? = nil,
+        onJumpCompleted: ((BoostTiming) -> Void)? = nil
+    ) {
         guard !jumping, dave.currentAnimation != "jump" else { return }
 
         onJumpStarted?()
@@ -70,22 +85,29 @@ final class DavePlayer {
         dave.playAnimation(name: "jump") { [weak self] in
             guard let self = self else { return }
             self.jumping = false
-            self.calculateBoost(springboard: springboard)
+            let timing = self.calculateBoost(springboard: springboard)
             self.landedAt = 0
             self.dave.physicsBody?.velocity.dy = Game.jumpVelocity + self.boost
+            onJumpCompleted?(timing)
         }
     }
 
-    private func calculateBoost(springboard: AnimatedSprite) {
+    @discardableResult
+    private func calculateBoost(springboard: AnimatedSprite) -> BoostTiming {
         let quickness = Self.msBetween(landedAt, GameState.shared.jumpReleasedAt)
 
+        let timing: BoostTiming
         if quickness < 125 {
+            timing = .perfect
             boost = Game.maxBoost
         } else if quickness < 250 {
+            timing = .good
             boost = Game.maxBoost - 50
         } else if quickness < 350 {
+            timing = .ok
             boost = Game.maxBoost - 100
         } else {
+            timing = .miss
             boost = 0
         }
 
@@ -96,6 +118,8 @@ final class DavePlayer {
             newRatio = min(newRatio, 1)
             boost *= newRatio
         }
+
+        return timing
     }
 
     /// Milliseconds between two `CACurrentMediaTime` stamps, or `.greatestFiniteMagnitude`

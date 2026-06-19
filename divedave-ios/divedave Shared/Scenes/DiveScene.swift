@@ -285,8 +285,30 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 davePlayer.landedAt = CACurrentMediaTime()
                 dave.playAnimation(name: "idle")
                 logger.debug("LANDED AT \(self.davePlayer.landedAt)")
+                pulseSpringboardBoostWindow()
             }
         }
+    }
+
+    /// Visual cue that the 350 ms boost window has just opened: pulse the
+    /// springboard from green (perfect) through yellow / orange down to
+    /// no tint, matching the boost thresholds in DavePlayer.calculateBoost.
+    /// Player learns the rhythm: "release jump while the board is still green".
+    private func pulseSpringboardBoostWindow() {
+        springboard.removeAction(forKey: "boostWindowPulse")
+        springboard.color = Game.customGreen
+        springboard.colorBlendFactor = 0.6
+        let pulse = SKAction.sequence([
+            // perfect window: green, 125ms
+            SKAction.wait(forDuration: 0.125),
+            SKAction.run { [weak self] in self?.springboard.color = Game.customYellow },
+            // good window: yellow, 125ms
+            SKAction.wait(forDuration: 0.125),
+            SKAction.run { [weak self] in self?.springboard.color = Game.customRed },
+            // ok window: red fading out, 100ms
+            SKAction.colorize(withColorBlendFactor: 0.0, duration: 0.1)
+        ])
+        springboard.run(pulse, withKey: "boostWindowPulse")
     }
     
     func didEnd(_ contact: SKPhysicsContact) {
@@ -398,10 +420,16 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 }
                 if daveIsAboveBoard() {
                     if hud?.jumpButton.isDown == true && boardContact.isTouching {
-                        davePlayer.jump(springboard: springboard) { [weak self] in
-                            // Board-flex kick: subtle so it doesn't overpower the splash.
-                            self?.cameraController.shake(intensity: 4 * GameState.shared.metrics.scaleFactorHeight, duration: 0.15)
-                        }
+                        davePlayer.jump(
+                            springboard: springboard,
+                            onJumpStarted: { [weak self] in
+                                // Board-flex kick: subtle so it doesn't overpower the splash.
+                                self?.cameraController.shake(intensity: 4 * GameState.shared.metrics.scaleFactorHeight, duration: 0.15)
+                            },
+                            onJumpCompleted: { [weak self] timing in
+                                self?.showBoostTimingFeedback(timing)
+                            }
+                        )
                     }
                 } else if (hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true) {
                     if !daveIsTucked() {
@@ -484,6 +512,56 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             waterY: waterLevel,
             scaleFactorHeight: GameState.shared.metrics.scaleFactorHeight
         )
+    }
+
+    /// Pop a PERFECT / GOOD / OK feedback label near Dave when the jump
+    /// completes. Reveals the otherwise-invisible boost-window mechanic
+    /// so players can learn to release jump quickly after landing.
+    private func showBoostTimingFeedback(_ timing: BoostTiming) {
+        let text: String
+        let color: SKColor
+        switch timing {
+        case .perfect: text = "PERFECT!"; color = Game.customGreen
+        case .good:    text = "GOOD";     color = Game.customYellow
+        case .ok:      text = "OK";       color = Game.customRed
+        case .miss:    return // Don't punish the player with a "MISS" label.
+        }
+
+        // Container with shadow + main label, matching the rotation-label style.
+        let container = SKNode()
+        container.position = CGPoint(x: dave.position.x, y: dave.position.y + 60)
+        container.zPosition = 4
+        container.alpha = 0
+        container.setScale(0.3)
+
+        let shadow = SKLabelNode(text: text)
+        shadow.fontName = "Arial-BoldMT"
+        shadow.fontSize = 50
+        shadow.fontColor = .black
+        shadow.position = CGPoint(x: 3, y: -3)
+        container.addChild(shadow)
+
+        let main = SKLabelNode(text: text)
+        main.fontName = "Arial-BoldMT"
+        main.fontSize = 50
+        main.fontColor = color
+        container.addChild(main)
+
+        addChild(container)
+
+        container.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 1.4, duration: 0.12),
+                SKAction.fadeIn(withDuration: 0.08)
+            ]),
+            SKAction.scale(to: 1.0, duration: 0.08),
+            SKAction.wait(forDuration: 0.5),
+            SKAction.group([
+                SKAction.moveBy(x: 0, y: 40, duration: 0.4),
+                SKAction.fadeOut(withDuration: 0.4)
+            ]),
+            SKAction.removeFromParent()
+        ]))
     }
 
     func countRotations() {
