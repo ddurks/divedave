@@ -94,9 +94,10 @@ final class InfoPanel {
             height -= (75 * GameState.shared.metrics.scaleFactorWidth)
         }
 
-        // Display scores
-        var width = GameState.shared.metrics.width / 2 - (275 * GameState.shared.metrics.scaleFactorWidth)
+        // Build score labels — hidden initially, revealed sequentially below.
+        var scoreLabels: [SKLabelNode] = []
         if let scores = scores {
+            var width = GameState.shared.metrics.width / 2 - (275 * GameState.shared.metrics.scaleFactorWidth)
             for score in scores {
                 let scoreLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
                 scoreLabel.text = "\(score)"
@@ -104,16 +105,15 @@ final class InfoPanel {
                 scoreLabel.position = CGPoint(x: width, y: GameState.shared.metrics.height / 2 - (350 * GameState.shared.metrics.scaleFactorHeight))
                 scoreLabel.zPosition = baseDepth + 3
                 scoreLabel.fontColor = .red
+                scoreLabel.alpha = 0
+                scoreLabel.setScale(0.3)
                 scene.addChild(scoreLabel)
+                scoreLabels.append(scoreLabel)
                 width += (275 * GameState.shared.metrics.scaleFactorWidth)
             }
         }
 
-        // Update try again label position and visibility
-        tryAgain.position = CGPoint(x: GameState.shared.metrics.width / 2, y: (100 * GameState.shared.metrics.scaleFactorHeight))
-        tryAgain.isHidden = (scores == nil)
-
-        // Show the panel and images
+        // Show the panel and dave image immediately.
         panel.isHidden = false
         if (frame >= 0) {
             daveImage.texture = daveImage.frames[frame]
@@ -121,9 +121,62 @@ final class InfoPanel {
             daveImage.texture = daveImage.frames[0]
         }
         daveImage.isHidden = false
-        score1.isHidden = (scores == nil)
-        score2.isHidden = (scores == nil)
-        score3.isHidden = (scores == nil)
+
+        tryAgain.position = CGPoint(x: GameState.shared.metrics.width / 2, y: (100 * GameState.shared.metrics.scaleFactorHeight))
+
+        if scores != nil {
+            // Sequential reveal: each judge sign + score number pops in with a
+            // 400ms beat, a scale-punch (1.0 -> 1.2 -> 1.0), and a medium haptic.
+            // Classic diving-game beat — builds tension before the next dive.
+            let signs = [score1, score2, score3]
+            let signBaseScale = score1.xScale // captured before we shrink for the reveal
+
+            for sign in signs {
+                sign.alpha = 0
+                sign.setScale(signBaseScale * 0.3)
+                sign.isHidden = false
+            }
+            tryAgain.alpha = 0
+            tryAgain.isHidden = true
+
+            var seq: [SKAction] = []
+            for idx in 0..<min(signs.count, scoreLabels.count) {
+                let sign = signs[idx]
+                let label = scoreLabels[idx]
+                seq.append(SKAction.wait(forDuration: 0.4))
+                seq.append(SKAction.run {
+                    Haptics.impact(.medium)
+                    sign.run(SKAction.group([
+                        SKAction.fadeIn(withDuration: 0.1),
+                        SKAction.sequence([
+                            SKAction.scale(to: signBaseScale * 1.2, duration: 0.12),
+                            SKAction.scale(to: signBaseScale, duration: 0.08)
+                        ])
+                    ]))
+                    label.run(SKAction.group([
+                        SKAction.fadeIn(withDuration: 0.1),
+                        SKAction.sequence([
+                            SKAction.scale(to: 1.2, duration: 0.12),
+                            SKAction.scale(to: 1.0, duration: 0.08)
+                        ])
+                    ]))
+                })
+            }
+            // After last score, fade in "tap to dive again".
+            seq.append(SKAction.wait(forDuration: 0.4))
+            seq.append(SKAction.run { [weak self] in
+                guard let self = self else { return }
+                self.tryAgain.isHidden = false
+                self.tryAgain.run(SKAction.fadeIn(withDuration: 0.2))
+            })
+            scene.run(SKAction.sequence(seq))
+        } else {
+            // GAME OVER / FAILED DIVE with no scores — keep signs + tryAgain hidden.
+            score1.isHidden = true
+            score2.isHidden = true
+            score3.isHidden = true
+            tryAgain.isHidden = true
+        }
     }
 
     func close() {
