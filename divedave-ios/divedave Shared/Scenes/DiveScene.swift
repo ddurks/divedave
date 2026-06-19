@@ -50,6 +50,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     var daveIsTouchingBoardBool: Bool! = false
     var lastUpdateTime: TimeInterval = 0.0
     private var atmosphere: Atmosphere!
+    private var cameraController: CameraController!
     
     override func didMove(to view: SKView) {
         lastUpdateTime = CACurrentMediaTime()
@@ -64,8 +65,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             GameState.shared.sceneHeight = GameState.shared.platformHeight + buffer
         }
         setupScene()
-        setupCamera()
-        setupHUD(view: view, camera: self.camera!)
+        cameraController = CameraController(scene: self)
+        setupHUD(view: view, camera: cameraController.node)
         setupInfoPanels()
         setupSpringboard()
         setupHeightLabels()
@@ -149,12 +150,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         highScorePanel = InfoPanel(scene: self, depth: 24)
     }
         
-    func setupCamera() {
-        let cameraNode = SKCameraNode()
-        self.camera = cameraNode
-        addChild(cameraNode)
-    }
-    
     func setupHeightLabels() {
         logger.debug("water level: \(self.waterLevel)")
         
@@ -850,7 +845,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         playerHandler()
         applyPhaserStyleAngularDrag(currentTime: currentTime)
         updateClimbDave()
-        updateCamera()
+        if let davePos = dave?.position {
+            cameraController.follow(targetY: davePos.y)
+            atmosphere.updateBackgroundColor(for: cameraController.node.position.y)
+        }
         atmosphere.update()
     }
     
@@ -878,23 +876,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         }
     }
 
-    func updateCamera() {
-        guard let camera = self.camera, let davePosition = dave?.position else { return }
-
-        // Calculate the desired camera y-position to follow dave
-        var targetY = davePosition.y
-
-        // Clamp the camera y-position between (0 + height / 2) and (GameState.shared.sceneHeight - height / 2)
-        let minY = GameState.shared.metrics.height / 2
-        let maxY = GameState.shared.sceneHeight - GameState.shared.metrics.height / 2
-        targetY = max(minY, min(targetY, maxY))
-
-        // Set the camera position to the clamped y-coordinate, centered horizontally
-        camera.position = CGPoint(x: GameState.shared.metrics.width / 2, y: targetY)
-        
-        atmosphere.updateBackgroundColor(for: camera.position.y)
-    }
-    
     func prepareAndPresentMainMenuScene() {
         let mainMenuScene = MainMenuScene(size: self.view!.bounds.size)
         mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
