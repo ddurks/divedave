@@ -1,14 +1,7 @@
-// Mirrors divedave-ios/divedave Shared/Components/Menu/InfoPanel.swift.
-// Post-dive result overlay: SUCCESS/FAILED text, dave-emotion frame,
-// three judge scores, and a tap-to-restart prompt. When scores are
-// present, each judge sign + number reveals with a 400 ms beat, a
-// scale-punch, and a medium haptic — classic diving-game tension build.
-
 import { HEIGHT, WIDTH } from "../../util/Constants.js";
 import { Haptics } from "../../util/Haptics.js";
 import { IS_MOBILE } from "../../util/Utilities.js";
 
-// Beat between reveals, ms. Matches iOS SKAction.wait(0.4).
 const REVEAL_BEAT_MS = 400;
 const REVEAL_TWEEN_MS = 200;
 
@@ -96,8 +89,6 @@ export class InfoPanel extends Phaser.GameObjects.Group {
     this.tryAgain.setPosition(WIDTH / 2, sceneHeight - 100);
 
     if (!scores) {
-      // GAME OVER / FAILED DIVE with no judge scores — keep signs and
-      // tryAgain hidden (matches iOS).
       this.score1.setVisible(false);
       this.score2.setVisible(false);
       this.score3.setVisible(false);
@@ -105,9 +96,6 @@ export class InfoPanel extends Phaser.GameObjects.Group {
       return;
     }
 
-    // Build number labels for each judge — start invisible, revealed
-    // in sequence below. Holding them in locals (not on `this`) is
-    // fine since scene.restart() cleans the whole graph.
     const signs = [this.score1, this.score2, this.score3];
     const numberLabels = scores.map((score, i) =>
       scene.add
@@ -130,9 +118,6 @@ export class InfoPanel extends Phaser.GameObjects.Group {
     });
     this.tryAgain.setVisible(true).setAlpha(0);
 
-    // Sequential reveal. Use a single boolean guarded by the panel's
-    // visible state so a tap-to-restart that fires mid-sequence
-    // doesn't tween-into-destroyed sprites.
     const isStillValid = (obj) => obj && obj.active;
 
     scores.forEach((_score, idx) => {
@@ -152,9 +137,6 @@ export class InfoPanel extends Phaser.GameObjects.Group {
       });
     });
 
-    // After the last judge reveal, fade in the "tap to dive again"
-    // prompt. Lives a beat after the last score so it doesn't compete
-    // with the haptic moment.
     scene.time.delayedCall(REVEAL_BEAT_MS * (scores.length + 1), () => {
       if (!isStillValid(this.tryAgain)) return;
       scene.tweens.add({

@@ -1,10 +1,3 @@
-//
-//  MainMenuScene.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 10/29/24.
-//
-
 import SpriteKit
 import os
 
@@ -23,7 +16,6 @@ final class MainMenuScene: SKScene {
     private var loadingDave: SKSpriteNode!
 
     func setupMenu() {
-        // Cover image
         coverImage = SKSpriteNode(imageNamed: "cover")
         coverImage.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
         coverImage.size.width = self.size.width
@@ -31,7 +23,6 @@ final class MainMenuScene: SKScene {
         coverImage.zPosition = 1
         addChild(coverImage)
 
-        // Start arcade button
         startArcadeButton = MenuButton(imageNamed: "arcade",
                                        position: CGPoint(x: self.size.width / 2 + self.size.width / 5, y: self.size.height / 5),
                                        scale: 0.75 * GameState.shared.metrics.scaleFactorHeight,
@@ -40,7 +31,6 @@ final class MainMenuScene: SKScene {
         }
         addChild(startArcadeButton)
 
-        // Start challenge button
         startChallengeButton = MenuButton(imageNamed: "challenge",
                                           position: CGPoint(x: self.size.width / 2 - self.size.width / 5, y: self.size.height / 5),
                                           scale: 0.75 * GameState.shared.metrics.scaleFactorHeight,
@@ -48,18 +38,17 @@ final class MainMenuScene: SKScene {
             self?.startGame(challengeMode: true)
         }
         addChild(startChallengeButton)
-        
+
         setUpLoadingStuff()
         setupInstructions()
-        
-        // GameState.shared.highScore reads from UserDefaults each access.
+
         let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, GameState.shared.highScore)
         if bestScore > 0 {
             displayHighScore(bestScore)
             displayMetaStats()
         }
     }
-    
+
     func setUpLoadingStuff() {
         loadingLabel = SKLabelNode(text: "loading...")
         loadingLabel.fontName = "Arial-BoldMT"
@@ -69,7 +58,7 @@ final class MainMenuScene: SKScene {
         loadingLabel.zPosition = 3
         loadingLabel.isHidden = true;
         addChild(loadingLabel)
-        
+
         loadingDave = SKSpriteNode(imageNamed: "divedave-crouched")
         loadingDave.setScale(GameState.shared.metrics.scaleFactorHeight)
         loadingDave.position = CGPoint(x: loadingLabel.position.x, y: loadingLabel.position.y + loadingDave.size.height)
@@ -85,7 +74,7 @@ final class MainMenuScene: SKScene {
             self?.showInstructions()
         }
         addChild(instructionsButton)
-        
+
         instructionPanel = SKSpriteNode(imageNamed: "panel")
         let aspectRatio = instructionPanel.size.width / instructionPanel.size.height
         instructionPanel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
@@ -93,7 +82,7 @@ final class MainMenuScene: SKScene {
         instructionPanel.zPosition = 5
         instructionPanel.isHidden = true
         addChild(instructionPanel)
-        
+
         instructionsImage = SKSpriteNode(imageNamed: "controls")
         instructionsImage.size = CGSize(width: GameState.shared.metrics.width, height: GameState.shared.metrics.width / aspectRatio)
         instructionsImage.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
@@ -105,16 +94,15 @@ final class MainMenuScene: SKScene {
     func showInstructions() {
         guard !isShowingInstructions else { return }
         isShowingInstructions = true
-        
-        // Reveal the instruction panel and all labels
+
         instructionPanel.isHidden = false
         instructionsImage.isHidden = false
     }
-    
+
     func hideInstructions() {
         guard isShowingInstructions else { return }
         isShowingInstructions = false
-        
+
         instructionPanel.isHidden = true
         instructionsImage.isHidden = true
     }
@@ -136,7 +124,7 @@ final class MainMenuScene: SKScene {
         loadingLabel.isHidden = false
         loadingDave.isHidden = false
     }
-    
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let touch = touches.first {
             let location = touch.location(in: self)
@@ -149,12 +137,8 @@ final class MainMenuScene: SKScene {
             }
         }
     }
-    
+
     private func displayMetaStats() {
-        // Anchor the meta stats just below the high-score sign image on the left
-        // side of the screen. The sign is drawn in displayHighScore with its
-        // center at y = height - sign.size.height/8, so its bottom edge is at
-        // y = height - 5*sign.size.height/8. We start a bit below that.
         let sign = SKSpriteNode(imageNamed: "sign-xl")
         sign.setScale(GameState.shared.metrics.scaleFactorHeight * 2)
         let signBottom = GameState.shared.metrics.height - (5 * sign.size.height / 8)
@@ -183,7 +167,6 @@ final class MainMenuScene: SKScene {
 
     private func displayHighScore(_ highScore: Int) {
         logger.debug("highScore: \(highScore)")
-        // Add the sign image
         let sign = SKSpriteNode(imageNamed: "sign-xl")
         sign.setScale(GameState.shared.metrics.scaleFactorHeight * 2)
         let signPosition = CGPoint(x: (sign.size.width / 1.5), y: GameState.shared.metrics.height - (sign.size.height / 8))
@@ -191,8 +174,7 @@ final class MainMenuScene: SKScene {
         sign.zRotation = .pi
         sign.zPosition = 20
         addChild(sign)
-        
-        // Add "YOUR CHALLENGE" label
+
         let challengeLabel = SKLabelNode(fontNamed: "Arial")
         challengeLabel.text = "YOUR CHALLENGE"
         challengeLabel.fontColor = .black
@@ -201,8 +183,7 @@ final class MainMenuScene: SKScene {
         challengeLabel.zPosition = 24
         challengeLabel.horizontalAlignmentMode = .center
         addChild(challengeLabel)
-        
-        // Add "HIGH SCORE" label
+
         let highScoreLabel = SKLabelNode(fontNamed: "Arial")
         highScoreLabel.text = "HIGH SCORE"
         highScoreLabel.fontColor = .black
@@ -211,8 +192,7 @@ final class MainMenuScene: SKScene {
         highScoreLabel.zPosition = 24
         highScoreLabel.horizontalAlignmentMode = .center
         addChild(highScoreLabel)
-        
-        // Add the high score value
+
         let scoreLabel = SKLabelNode(fontNamed: "Arial")
         scoreLabel.text = "\(highScore)"
         scoreLabel.fontColor = .black

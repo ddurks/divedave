@@ -1,14 +1,3 @@
-// Mirrors divedave-ios/divedave Shared/Scenes/DiveScene.swift.
-//
-// Phase 1 pulled DavePlayer out into its own module with an explicit
-// DaveState machine. Things that still live here:
-//   - asset preload + animation registration
-//   - HUD, InfoPanel, splash + getting-out + climb animations
-//   - atmosphere (clouds/birds/planes/UFOs/stars) — extraction deferred
-//   - sky-color interpolation
-//   - rotation-counting accumulators (per-dive scene state)
-//   - scoring (DiveScorer extraction also deferred)
-
 import {
   BIRDMAXSPEED,
   BIRDMINSPEED,
@@ -34,7 +23,7 @@ import {
   WIDTH,
 } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
-import { diff, getRandomInt } from "../util/Utilities.js";
+import { diff, fadeOutScene, getRandomInt } from "../util/Utilities.js";
 import { Haptics } from "../util/Haptics.js";
 import { StatsStore } from "../util/StatsStore.js";
 import { HUD } from "../components/controls/HUD.js";
@@ -54,9 +43,6 @@ import {
   scoreDive,
 } from "../components/scene/DiveScorer.js";
 
-// Color-coded label + tint for each BoostTiming tier. Miss has no
-// visual — a failed timing reads as "no feedback" rather than a noisy
-// red flash, matching iOS.
 const TIMING_FEEDBACK = {
   [BoostTiming.Perfect]: {
     label: "PERFECT!",
@@ -95,7 +81,6 @@ export class DiveScene extends Phaser.Scene {
     this.timerStarted = false;
   }
 
-  /** Called by DavePlayer on Grounded entry, and by us on water-splash. */
   resetDiveAttempt() {
     this.sumRotation = 0;
     this.totalRotations = 0;
@@ -104,15 +89,9 @@ export class DiveScene extends Phaser.Scene {
     this.lastFlipNumber = 0;
   }
 
-  /**
-   * Called by DavePlayer right after a jump's boost is applied.
-   * Surfaces the timing tier visually (springboard tint pulse +
-   * PERFECT/GOOD/OK label near Dave) and as a haptic.
-   */
   onJumpBoostApplied(timing) {
     const feedback = TIMING_FEEDBACK[timing];
     if (!feedback) {
-      // Miss — no flourish, just a faint haptic.
       Haptics.impactLight();
       return;
     }
@@ -121,10 +100,6 @@ export class DiveScene extends Phaser.Scene {
     board.setTint(feedback.tint);
     this.time.delayedCall(250, () => board.clearTint());
 
-    // Anchor the label just above the springboard so it reads as
-    // "this is about the timing of your push off the board" — matches
-    // iOS DiveScene.showBoostTimingFeedback. World-space (default
-    // scrollFactor) keeps it pinned to the board as the camera rises.
     const labelY = board.y - board.height / 2 - 10;
     const label = this.add
       .bitmapText(board.x, labelY, feedback.font, feedback.label, 50)
@@ -133,8 +108,6 @@ export class DiveScene extends Phaser.Scene {
       .setScale(0.3)
       .setAlpha(0);
 
-    // Pop in → settle → hold → drift up + fade out. Matches iOS
-    // SKAction.sequence timings (120/80/500/400 ms).
     this.tweens.chain({
       targets: label,
       tweens: [
@@ -218,6 +191,12 @@ export class DiveScene extends Phaser.Scene {
     });
     this.load.image("plane", "assets/plane.png");
     this.load.image("ufo", "assets/ufo.png");
+    this.load.spritesheet("menu-button", "assets/menu-spritesheet.png", {
+      frameWidth: 256,
+      frameHeight: 256,
+      margin: 0,
+      spacing: 0,
+    });
     this.load.spritesheet("cloud", "assets/clouds.png", {
       frameWidth: 256,
       frameHeight: 256,
@@ -249,6 +228,11 @@ export class DiveScene extends Phaser.Scene {
   }
 
   create() {
+    // Mobile browser chrome (Safari address bar) collapses/expands
+    // without Phaser's ScaleManager recomputing; refresh on every scene
+    // entry to keep the canvas pinned to the current viewport.
+    this.scale.refresh();
+
     this.physics.world.setBounds(0, 0, WIDTH, this.sceneHeight);
     this.add.image(WIDTH / 2, this.sceneHeight - 250, "landscape").setDepth(2);
     this.add.image(205, PLATFORM_TOP_Y, "platformtop").setDepth(10);
@@ -261,9 +245,6 @@ export class DiveScene extends Phaser.Scene {
     }
     this.add.image(205, this.sceneHeight - 200, "platformbase").setDepth(13);
 
-    // Atmosphere altitude bands stay tied to REF_HEIGHT (world geometry)
-    // so a taller device viewport doesn't accidentally push clouds and
-    // stars off the world.
     this.startY = this.sceneHeight - REF_HEIGHT;
     this.middleY = this.sceneHeight - REF_HEIGHT * 2;
     this.endY = this.sceneHeight - REF_HEIGHT * 4;
@@ -318,21 +299,19 @@ export class DiveScene extends Phaser.Scene {
       heightFromWater--;
     }
 
-    // Springboard first so the animations registered below can find the
-    // sprite key. Player needs the board reference for boost-distance math.
+    // Springboard must exist before registerAnimations() so the "flex"
+    // animation can resolve the sprite key.
     GameState.springboard = this.physics.add
       .sprite(WIDTH / 4, BOARD_Y, "springboard")
       .setDepth(11);
     GameState.springboard.body.setAllowGravity(false);
     GameState.springboard.body.setImmovable(true);
 
-    // Getting-out animation
     this.gettingoutdave = this.add
       .sprite(WIDTH / 2, GameState.waterLevel - 150, "gettingoutdave")
       .setDepth(11);
     this.gettingoutdave.setVisible(false);
 
-    // Climb animation
     this.climbdave = this.physics.add
       .sprite(28, this.sceneHeight - 200, "climbdave")
       .setDepth(8);
@@ -350,6 +329,12 @@ export class DiveScene extends Phaser.Scene {
       .setActive(false)
       .setVisible(false);
     this.hud = new HUD(this);
+    this.hud.onMenuPressed = () => {
+      GameState.streak = 0;
+      GameState.totalScore = 0;
+      GameState.highScoreSession = false;
+      fadeOutScene("MainMenu", this);
+    };
 
     this.registerAnimations();
     this.spawnAtmosphere();
@@ -363,10 +348,10 @@ export class DiveScene extends Phaser.Scene {
       .setDepth(13);
     outerwater.anims.play("idlewater");
 
-    // Player owns the dave sprite. Built after animations are registered
-    // so its anim-complete handler can resolve the "jump" key.
+    // Built after registerAnimations() so the anim-complete handler can
+    // resolve the "jump" key.
     this.player = new DavePlayer(this, GameState.springboard);
-    GameState.dave = this.player.sprite; // legacy globals for code we haven't moved yet
+    GameState.dave = this.player.sprite;
 
     this.calculateGameLogic();
 
@@ -492,6 +477,14 @@ export class DiveScene extends Phaser.Scene {
       }),
       repeat: -1,
     });
+    this.anims.create({
+      key: "menuClicked",
+      frameRate: 8,
+      frames: this.anims.generateFrameNumbers("menu-button", {
+        frames: [1, 2, 3, 4, 4, 3, 2, 1, 0, 1],
+      }),
+      repeat: 0,
+    });
   }
 
   update() {
@@ -506,20 +499,6 @@ export class DiveScene extends Phaser.Scene {
     this.checkForReset();
     if (this.player.state === DaveState.Launching) return;
 
-    // Keep state in sync with what the geometry says each frame:
-    //   - Airborne → Grounded when Dave lands cleanly on the board
-    //     (isCleanLanding guards against the single-frame false snap
-    //     where Dave is still touching the board geometrically but
-    //     already flying upward right after launch).
-    //   - Grounded → Airborne when Dave is no longer above the board
-    //     (walked off the end, or fell off the front). Without this,
-    //     a player who steps off the tip without ever jumping stays
-    //     in Grounded forever — jump button stays lit, flip button
-    //     stays greyed, and tuck input no-ops. iOS allows this same
-    //     transition in its allowedTransitions table.
-    //   - Diving is intentionally not Grounded-reachable here: it's
-    //     a commit point (iOS parity), collisions are zeroed in
-    //     DavePlayer.didEnter(Diving), Dave falls through.
     if (
       this.player.state === DaveState.Airborne &&
       this.player.isAboveBoard() &&
@@ -711,12 +690,6 @@ export class DiveScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Compute the dive outcome via DiveScorer (pure) and apply the
-   * scene-side effects: stash scores/emotion on this.stats, bump
-   * session totals, persist high score, show the game-over panel on
-   * a streak-ending failure. Returns the result-label text.
-   */
   applyDiveOutcome() {
     const outcome = scoreDive({
       goalRotations: this.goalRotations,
@@ -783,17 +756,6 @@ export class DiveScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Unified input handler for desktop + mobile. Reads from both
-   * keyboard and HUD buttons; HUD buttons are the only input source on
-   * mobile, while desktop layers them onto the keyboard so a player
-   * can click jump/flip the same way they'd tap on mobile.
-   *
-   * Space and cursor.up are jump-only now — the legacy double-duty
-   * (also acting as flip when airborne) made it impossible to hold the
-   * jump button for a chain-jump without also kicking off a flip.
-   * Flip is R or the flip button.
-   */
   playerInputHandler() {
     const controls = GameState.controls;
     const hud = this.hud;
@@ -804,10 +766,6 @@ export class DiveScene extends Phaser.Scene {
       this.resetScene();
     }
 
-    // Visual enabled state for jump + flip. Jump stays lit in
-    // Grounded AND Airborne so the early-tap-before-landing press
-    // reads as a real button (DavePlayer buffers it). Flip greys out
-    // on the board so a stray click doesn't read as "would have spun".
     if (!this.diveComplete) {
       hud.updateButtons(
         player.state !== DaveState.Diving,
@@ -837,7 +795,6 @@ export class DiveScene extends Phaser.Scene {
 
     const flipDown = controls.r.isDown || hud.flipButton.isDown;
     if (flipDown) {
-      // applyTuck() is a no-op outside Airborne / Diving.
       player.applyTuck();
     } else {
       player.releaseTuck();

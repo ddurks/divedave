@@ -1,6 +1,3 @@
-// Entry point. Mirrors divedave-ios/divedave iOS/GameViewController.swift
-// (the place that creates the SKView + presents the initial scene).
-
 import { GRAVITY, HEIGHT, WIDTH } from "./util/Constants.js";
 import { GameState } from "./util/GameState.js";
 import { StatsStore } from "./util/StatsStore.js";

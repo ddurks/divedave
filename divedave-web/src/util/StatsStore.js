@@ -1,9 +1,3 @@
-// Mirrors divedave-ios/divedave Shared/Util/StatsStore.swift.
-//
-// iOS uses UserDefaults; the web has long used a cookie, which we keep
-// behind a tiny adapter so Phase 0 stays a pure refactor. A localStorage
-// migration is straightforward and can land later.
-
 import { HIGH_SCORE_KEY } from "./Constants.js";
 
 function createCookie(name, value, days) {

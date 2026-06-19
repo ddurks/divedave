@@ -1,10 +1,3 @@
-//
-//  Utilities.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 11/7/24.
-//
-
 import SpriteKit
 
 func createLabel(text: String, fontSize: CGFloat, position: CGPoint, zPosition: CGFloat, fontColor: SKColor = .white, bold: Bool = false, align: SKLabelHorizontalAlignmentMode = .left) -> SKLabelNode {
