@@ -2,13 +2,34 @@
 //  DavePlayer.swift
 //  divedave iOS
 //
-//  Owns Dave's sprite, his physics body, the per-frame animation orchestration
-//  for the player character, the jump → boost flow, and the horizontal velocity
-//  damping. Climbdave / gettingoutdave / splash stay in DiveScene since they're
-//  post-dive environmental presentation, not player physics.
+//  Owns Dave's sprite, his physics body, the explicit player-state machine,
+//  the per-frame animation orchestration, the jump → boost flow, and the
+//  horizontal velocity damping. Climbdave / gettingoutdave / splash stay in
+//  DiveScene since they're post-dive environmental presentation, not player
+//  physics.
 //
 
 import SpriteKit
+import os
+
+private let logger = Logger(subsystem: "com.drawvid.divedave", category: "dave-state")
+
+/// Explicit state machine for Dave. Every gameplay decision keys off this
+/// instead of probing physics flags, geometry predicates, or textures
+/// independently — which was the root cause of the "snap to standing pose
+/// mid-spin" and "tip while still on the board" bugs.
+enum DaveState {
+    /// On the board. Can walk + jump.
+    case grounded
+    /// Jump animation is playing. Impulse + transition to airborne happens on completion.
+    case launching
+    /// In the air, hasn't tucked yet.
+    case airborne
+    /// In the air, has tucked at least once. Rotations count, scoring engages.
+    case diving
+    /// Hit water. Dive over.
+    case splashed
+}
 
 /// How quickly the player released the jump button relative to landing.
 /// Drives the post-jump feedback label (PERFECT / GOOD / OK).
@@ -23,12 +44,27 @@ enum BoostTiming {
 final class DavePlayer {
     let dave: AnimatedSprite
 
-    var jumping: Bool = false
+    /// Current state. Set only via `transition(to:)` so invalid transitions
+    /// are logged in one place.
+    private(set) var state: DaveState = .airborne
+
     var boost: CGFloat = 0
     /// Monotonic timestamp (CACurrentMediaTime) at which Dave most recently
     /// landed on the springboard. `0` = never. Compared against
     /// `GameState.shared.jumpReleasedAt` to score the jump's quickness.
     var landedAt: CFTimeInterval = 0
+
+    /// Allowed transitions. Anything else logs a warning and is rejected.
+    /// `.diving` is a commit point: once the player has tucked, the only way
+    /// out is `.splashed`. No bouncing back to the board, no walking it off.
+    /// `.splashed` is terminal; the scene reset replaces the whole DavePlayer.
+    private static let allowedTransitions: [DaveState: Set<DaveState>] = [
+        .grounded:  [.launching, .airborne],
+        .launching: [.airborne],
+        .airborne:  [.diving, .grounded, .splashed],
+        .diving:    [.splashed],
+        .splashed:  []
+    ]
 
     init(scene: SKScene, springboard: AnimatedSprite) {
         let d = AnimatedSprite(spritesheetName: "divedave-spritesheet-extruded",
@@ -62,32 +98,87 @@ final class DavePlayer {
         self.dave = d
     }
 
+    // MARK: - State machine
+
+    /// Drive a transition. Rejects (with a debug log) anything not in the
+    /// allowedTransitions table — except idempotent self-transitions, which
+    /// are silent no-ops. Fires `didEnter(_:)` on accepted transitions so
+    /// physics-side effects (collision masks, etc.) live next to the state
+    /// machine and can't drift.
+    @discardableResult
+    func transition(to next: DaveState) -> Bool {
+        if next == state { return true }
+        guard Self.allowedTransitions[state]?.contains(next) == true else {
+            logger.debug("rejected dave transition: \(String(describing: self.state)) -> \(String(describing: next))")
+            return false
+        }
+        logger.debug("dave transition: \(String(describing: self.state)) -> \(String(describing: next))")
+        state = next
+        didEnter(next)
+        return true
+    }
+
+    /// On-enter side effects for each state. Kept narrow — anything that
+    /// touches Dave's body and is gated by which state he's in lives here,
+    /// so callers don't have to remember to flip masks/animations manually.
+    private func didEnter(_ state: DaveState) {
+        switch state {
+        case .diving:
+            // Once committed to a dive, Dave passes through the board:
+            // no more landings, no more bonks. The HUD lock to flip controls
+            // (via DiveScene.isInBounceMode) and this collision drop are the
+            // two halves of "you are now diving, full stop."
+            dave.physicsBody?.collisionBitMask = 0
+            dave.physicsBody?.contactTestBitMask = 0
+        case .grounded, .launching, .airborne, .splashed:
+            break
+        }
+    }
+
+    /// True if Dave's body is in a shape consistent with a clean board
+    /// landing: not launching upward, not spinning fast. Used by the scene's
+    /// contact handler to distinguish a real landing from a mid-dive board bonk.
+    func isCleanLanding() -> Bool {
+        guard let body = dave.physicsBody else { return false }
+        // Tolerance instead of strict `<= 0`: at the instant didBegin fires,
+        // SpriteKit's collision resolution leaves tiny floating-point noise
+        // in `dy` (observed: `4e-12`) even when Dave is effectively stationary
+        // on the board. A strict check rejects that as "ascending" and Dave
+        // gets stuck in .airborne forever. Real jumps set dy to `jumpVelocity`
+        // (200+), so a generous threshold cleanly distinguishes the two.
+        let notLaunching = body.velocity.dy < 50
+        let lowSpin = abs(body.angularVelocity) < 0.5  // ~30°/sec
+        return notLaunching && lowSpin
+    }
+
+    // MARK: - Jump
+
     /// Begin a jump: flex the board, animate Dave's jump pose, then apply the
     /// jump impulse with boost factored in for quick release timing.
     /// `onJumpStarted` fires exactly when the jump animation actually begins
-    /// (after the guard), so callers can react to a real jump without
-    /// firing on rejected button-mashes. `onJumpCompleted` fires after the
-    /// jump animation finishes and boost is applied, receiving the timing
-    /// tier so the caller can surface a PERFECT/GOOD/OK feedback label.
+    /// (after the guard), so callers can react to a real jump without firing
+    /// on rejected button-mashes. `onJumpCompleted` fires after the jump
+    /// animation finishes and boost is applied, receiving the timing tier so
+    /// the caller can surface a PERFECT/GOOD/OK feedback label.
     func jump(
         springboard: AnimatedSprite,
         onJumpStarted: (() -> Void)? = nil,
         onJumpCompleted: ((BoostTiming) -> Void)? = nil
     ) {
-        guard !jumping, dave.currentAnimation != "jump" else { return }
+        guard state == .grounded else { return }
+        guard transition(to: .launching) else { return }
 
         onJumpStarted?()
 
         springboard.playAnimation(name: "flex") {
             springboard.clearCurrentAnimation()
         }
-        jumping = true
         dave.playAnimation(name: "jump") { [weak self] in
             guard let self = self else { return }
-            self.jumping = false
             let timing = self.calculateBoost(springboard: springboard)
             self.landedAt = 0
             self.dave.physicsBody?.velocity.dy = Game.jumpVelocity + self.boost
+            self.transition(to: .airborne)
             onJumpCompleted?(timing)
         }
     }
@@ -133,6 +224,8 @@ final class DavePlayer {
         return (end - start) * 1000
     }
 
+    // MARK: - Per-frame
+
     /// Horizontal-only velocity damping applied each frame so Dave decelerates on the board.
     func applyDamping() {
         guard let body = dave.physicsBody else { return }
@@ -140,51 +233,49 @@ final class DavePlayer {
         body.velocity = CGVector(dx: newVelocityX, dy: body.velocity.dy)
     }
 
-    /// True if Dave is in his tuck pose. Side effect: while `rotationTrackerTucked` is
-    /// true, forces the tuck texture (so the visual matches the physics state).
-    func daveIsTucked(rotationTrackerTucked: Bool) -> Bool {
-        if rotationTrackerTucked {
-            dave.texture = dave.frames[7]
-        }
-        return dave.texture == dave.frames[7] || rotationTrackerTucked
-    }
+    /// Per-frame animation orchestration, driven entirely by `state`. No
+    /// geometric predicates, no texture probing — fixes the prior bug where
+    /// `didBegin` and `updateFrame` were both writing the texture and could
+    /// disagree, snapping Dave back into idle mid-spin.
+    func updateFrame(tucked: Bool) {
+        switch state {
+        case .launching, .splashed:
+            // Jump animation / splash sequence own the texture during these states.
+            return
 
-    /// Per-frame animation orchestration. Picks the right walk/idle/airborne texture
-    /// based on whether Dave is on the board, mid-jump, falling, or rising.
-    func updateFrame(aboveBoard: Bool, isTouching: Bool, tucked: Bool) {
-        guard !jumping else { return }
-
-        if aboveBoard {
-            if dave.zRotation != 0 {
-                dave.zRotation = 0
-            }
-            if isTouching {
-                if let velocity = dave.physicsBody?.velocity.dx, velocity > (Game.daveSpeed / 10) {
-                    dave.playAnimation(name: "walkRight")
-                } else if let velocity = dave.physicsBody?.velocity.dx, velocity < -(Game.daveSpeed / 10) {
-                    dave.playAnimation(name: "walkLeft")
-                } else {
-                    dave.playAnimation(name: "idle")
-                }
+        case .grounded:
+            if dave.zRotation != 0 { dave.zRotation = 0 }
+            let dx = dave.physicsBody?.velocity.dx ?? 0
+            if dx > Game.daveSpeed / 10 {
+                dave.playAnimation(name: "walkRight")
+            } else if dx < -Game.daveSpeed / 10 {
+                dave.playAnimation(name: "walkLeft")
             } else {
-                dave.stopAnimation()
-                if (dave.physicsBody?.velocity.dy ?? 0) > 0 {
-                    if (dave.physicsBody?.velocity.dx ?? 0) < 0 {
-                        dave.texture = dave.frames[15]
-                    } else {
-                        dave.texture = dave.frames[6]
-                    }
-                } else {
-                    if (dave.physicsBody?.velocity.dx ?? 0) < 0 {
-                        dave.texture = dave.frames[11]
-                    } else {
-                        dave.texture = dave.frames[2]
-                    }
-                }
+                dave.playAnimation(name: "idle")
             }
-        } else if !tucked {
-            dave.texture = dave.zRotation >= -CGFloat.pi / 2 && dave.zRotation <= CGFloat.pi / 2 ? dave.frames[6] : dave.frames[8]
-            dave.clearCurrentAnimation()
+
+        case .airborne:
+            dave.stopAnimation()
+            let dx = dave.physicsBody?.velocity.dx ?? 0
+            let dy = dave.physicsBody?.velocity.dy ?? 0
+            if dy > 0 {
+                dave.texture = dx < 0 ? dave.frames[15] : dave.frames[6]
+            } else {
+                dave.texture = dx < 0 ? dave.frames[11] : dave.frames[2]
+            }
+
+        case .diving:
+            dave.stopAnimation()
+            if tucked {
+                dave.texture = dave.frames[7]
+            } else {
+                // Un-tucked between tucks: render the airborne pose oriented
+                // by current rotation so the visual matches the physics.
+                let r = dave.zRotation
+                dave.texture = (r >= -CGFloat.pi / 2 && r <= CGFloat.pi / 2)
+                    ? dave.frames[6]
+                    : dave.frames[8]
+            }
         }
     }
 }
