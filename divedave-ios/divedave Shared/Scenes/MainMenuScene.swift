@@ -52,8 +52,8 @@ final class MainMenuScene: SKScene {
         setUpLoadingStuff()
         setupInstructions()
         
-        highScore = UserDefaults.standard.integer(forKey: Game.highScoreKey)
-        let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, highScore)
+        // GameState.shared.highScore reads from UserDefaults each access.
+        let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, GameState.shared.highScore)
         if bestScore > 0 {
             displayHighScore(bestScore)
             displayMetaStats()
@@ -122,7 +122,7 @@ final class MainMenuScene: SKScene {
     func startGame(challengeMode: Bool) {
         logger.debug("Start Game")
         showLoadingLabel()
-        CHALLENGE_MODE = challengeMode
+        GameState.shared.challengeMode = challengeMode
         let gameScene = DiveScene(size: CGSize(width: self.size.width, height: self.size.height))
         gameScene.scaleMode = .aspectFit
         DispatchQueue.main.async {

@@ -95,10 +95,10 @@ final class HUD {
         camera.addChild(menuButton)
         
         // Running score and streak labels, scaled
-        runningScoreLabel = createLabel(text: "score: \(totalScore)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) + (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
+        runningScoreLabel = createLabel(text: "score: \(GameState.shared.totalScore)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) + (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
         camera.addChild(runningScoreLabel)
-        
-        runningStreakLabel = createLabel(text: "streak: \(streak)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) - (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
+
+        runningStreakLabel = createLabel(text: "streak: \(GameState.shared.streak)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) - (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
         camera.addChild(runningStreakLabel)
         
         // High score label

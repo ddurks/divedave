@@ -20,8 +20,6 @@ struct DiveStats {
     var emotionFrame: Int = 2
 }
 
-var stats = DiveStats()
-
 final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var readyForReset = false
     var hud: HUD!
@@ -57,10 +55,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         self.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
         diveComplete = false
         let buffer = GameState.shared.metrics.height/2
-        if ((platformHeight * GameState.shared.metrics.scaleFactorHeight) < GameState.shared.metrics.height - buffer) {
-            sceneHeight = GameState.shared.metrics.height
+        if ((GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight) < GameState.shared.metrics.height - buffer) {
+            GameState.shared.sceneHeight = GameState.shared.metrics.height
         } else {
-            sceneHeight = platformHeight + buffer
+            GameState.shared.sceneHeight = GameState.shared.platformHeight + buffer
         }
         setupScene()
         setupCamera()
@@ -71,7 +69,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         setupDave()
         setupSplash()
         calculateGameLogic()
-        atmosphere = Atmosphere(scene: self, sceneHeight: sceneHeight, startY: gettingoutdave.size.height, middleY: GameState.shared.metrics.height * 2, endY: GameState.shared.metrics.height * 4)
+        atmosphere = Atmosphere(scene: self, sceneHeight: GameState.shared.sceneHeight, startY: gettingoutdave.size.height, middleY: GameState.shared.metrics.height * 2, endY: GameState.shared.metrics.height * 4)
     }
     
     func setupHUD(view: SKView, camera: SKCameraNode) {
@@ -88,7 +86,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func calculateGameLogic() {
-        let diveHeight = (platformHeight * GameState.shared.metrics.scaleFactorHeight)
+        let diveHeight = (GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight)
         let time = approximateFallTime(from: diveHeight, to: waterLevel, gravity: Game.gravity) / 10
         
         // Calculate maximum number of flips based on the total rotation in radians
@@ -113,7 +111,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         waterLevel = ((256 * GameState.shared.metrics.scaleFactorHeight)/2) + 1
         
         // Platform sections, scaled and adjusted to fit SpriteKit’s y-axis
-        let platformTopPosition = CGPoint(x: GameState.shared.metrics.width/7, y: waterLevel + (platformHeight * GameState.shared.metrics.scaleFactorHeight))
+        let platformTopPosition = CGPoint(x: GameState.shared.metrics.width/7, y: waterLevel + (GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight))
         platformTop = SKSpriteNode(imageNamed: "platformtop")
         platformTop.position = platformTopPosition
         platformTop.zPosition = 9
@@ -138,7 +136,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         
         // Set up the world bounds
         let offset = 100.0
-        self.physicsBody = SKPhysicsBody(edgeLoopFrom: CGRect(x: platformTop.position.x - (platformTop.size.width/2), y: -offset, width: GameState.shared.metrics.width, height: sceneHeight + 2*offset))
+        self.physicsBody = SKPhysicsBody(edgeLoopFrom: CGRect(x: platformTop.position.x - (platformTop.size.width/2), y: -offset, width: GameState.shared.metrics.width, height: GameState.shared.sceneHeight + 2*offset))
         self.physicsBody?.restitution = 0.0
         physicsWorld.contactDelegate = self
     }
@@ -208,21 +206,21 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     
     func resetScene() {
         if (self.diveComplete && self.readyForReset) {
-            if (!CHALLENGE_MODE) {
-                platformHeight = Double.random(in: 703...(GameState.shared.metrics.height * 25))
+            if (!GameState.shared.challengeMode) {
+                GameState.shared.platformHeight = Double.random(in: 703...(GameState.shared.metrics.height * 25))
                 restartScene()
             } else {
-                if (totalScore == 0) {
-                    platformHeight = 703
+                if (GameState.shared.totalScore == 0) {
+                    GameState.shared.platformHeight = 703
                     restartScene()
                 } else {
-                    let streakFactor = 2.0 * Double(streak)
+                    let streakFactor = 2.0 * Double(GameState.shared.streak)
                     let denominator = streakFactor + 100.0
                     let streakMultiplier: Double = 1.0 + (streakFactor / denominator)
 
                     let randomHeightIncrease = Double.random(in: 0...500)
-                    let newPlatformHeight = platformHeight + randomHeightIncrease
-                    platformHeight = newPlatformHeight * streakMultiplier
+                    let newPlatformHeight = GameState.shared.platformHeight + randomHeightIncrease
+                    GameState.shared.platformHeight = newPlatformHeight * streakMultiplier
 
                     restartScene()
                 }
@@ -611,25 +609,25 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 }
             
                 // Calculate height, angle, and other stats
-                stats.height = calculateHeightFromWater()
-                stats.angle = round(dave.zRotation * (180.0 / .pi) * 10.0) / 10
-                stats.tucked = daveIsTucked()
-                stats.tuckCount = tuckCount
-                stats.rotations = round(totalRotations * 10) / 10
+                GameState.shared.stats.height = calculateHeightFromWater()
+                GameState.shared.stats.angle = round(dave.zRotation * (180.0 / .pi) * 10.0) / 10
+                GameState.shared.stats.tucked = daveIsTucked()
+                GameState.shared.stats.tuckCount = tuckCount
+                GameState.shared.stats.rotations = round(totalRotations * 10) / 10
                 
-                logger.debug("stats: \(String(describing: stats))")
+                logger.debug("stats: \(String(describing: GameState.shared.stats))")
                 
                 // Display the InfoPanel with calculated stats
                 let result = scoreDive()
                 Haptics.notify(result == "FAILED DIVE" ? .error : .success)
-                hud.setRunningStreak(streak: streak)
-                hud.setRunningScore(score: totalScore)
+                hud.setRunningStreak(streak: GameState.shared.streak)
+                hud.setRunningScore(score: GameState.shared.totalScore)
                 let displayStrings = [
-                    "height: \(stats.height)m",
-                    "entry angle: \(stats.angle)",
-                    "rotations: \(stats.rotations)"
+                    "height: \(GameState.shared.stats.height)m",
+                    "entry angle: \(GameState.shared.stats.angle)",
+                    "rotations: \(GameState.shared.stats.rotations)"
                 ]
-                info.display(result: result, strings: displayStrings, frame: stats.emotionFrame, scores: stats.scores)
+                info.display(result: result, strings: displayStrings, frame: GameState.shared.stats.emotionFrame, scores: GameState.shared.stats.scores)
                 
                 // Hide mobile hud
                 hud.setVisible(false)
@@ -721,27 +719,27 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     func scoreDive() -> String {
         // Persist per-dive meta-progression (every dive, success or fail)
         StatsStore.totalDives += 1
-        StatsStore.totalFlips += Int(stats.rotations)
-        StatsStore.maxHeightReached = max(StatsStore.maxHeightReached, Int(platformHeight))
+        StatsStore.totalFlips += Int(GameState.shared.stats.rotations)
+        StatsStore.maxHeightReached = max(StatsStore.maxHeightReached, Int(GameState.shared.platformHeight))
 
         // Check if the rotations are within the goal range
-        if abs(stats.rotations - goalRotations) < 0.25 {
+        if abs(GameState.shared.stats.rotations - goalRotations) < 0.25 {
             // Set emotion frame based on the angle
-            stats.emotionFrame = chooseEmotionFrame(angle: stats.angle)
+            GameState.shared.stats.emotionFrame = chooseEmotionFrame(angle: GameState.shared.stats.angle)
             
             // Calculate individual scores based on emotion frame and tuck count
-            for (index, _) in stats.scores.enumerated() {
-                switch stats.emotionFrame {
+            for (index, _) in GameState.shared.stats.scores.enumerated() {
+                switch GameState.shared.stats.emotionFrame {
                 case 4:
-                    stats.scores[index] = Int(10 - Double(Int.random(in: 0...1)) / 2.0 - Double(tuckCount - 1))
+                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 0...1)) / 2.0 - Double(tuckCount - 1))
                 case 3:
-                    stats.scores[index] = Int(10 - Double(Int.random(in: 3...6)) / 2.0 - Double(tuckCount - 1))
+                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 3...6)) / 2.0 - Double(tuckCount - 1))
                 case 2:
-                    stats.scores[index] = Int(10 - Double(Int.random(in: 7...10)) / 2.0 - Double(tuckCount - 1))
+                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 7...10)) / 2.0 - Double(tuckCount - 1))
                 case 1:
-                    stats.scores[index] = Int(10 - Double(Int.random(in: 10...15)) / 2.0 - Double(tuckCount - 1))
+                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 10...15)) / 2.0 - Double(tuckCount - 1))
                 case 0:
-                    stats.scores[index] = Int(10 - Double(Int.random(in: 14...18)) / 2.0 - Double(tuckCount - 1))
+                    GameState.shared.stats.scores[index] = Int(10 - Double(Int.random(in: 14...18)) / 2.0 - Double(tuckCount - 1))
                 default:
                     break
                 }
@@ -749,27 +747,27 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
             // Adjust emotion frame if there was a tuck
             if tuckCount > 1 {
-                stats.emotionFrame -= 1
+                GameState.shared.stats.emotionFrame -= 1
             }
             
             // Update total score and streak
-            streak += 1
-            totalScore += stats.scores.reduce(0, +)
+            GameState.shared.streak += 1
+            GameState.shared.totalScore += GameState.shared.stats.scores.reduce(0, +)
 
             // Track longest streak across runs
-            StatsStore.longestStreak = max(StatsStore.longestStreak, streak)
+            StatsStore.longestStreak = max(StatsStore.longestStreak, GameState.shared.streak)
 
             // Update per-mode high score in the new store (legacy write below
             // is intentionally preserved — Lane E owns its removal).
-            if CHALLENGE_MODE {
-                StatsStore.challengeHigh = max(StatsStore.challengeHigh, totalScore)
+            if GameState.shared.challengeMode {
+                StatsStore.challengeHigh = max(StatsStore.challengeHigh, GameState.shared.totalScore)
             } else {
-                StatsStore.arcadeHigh = max(StatsStore.arcadeHigh, totalScore)
+                StatsStore.arcadeHigh = max(StatsStore.arcadeHigh, GameState.shared.totalScore)
             }
 
-            if CHALLENGE_MODE && totalScore > highScore {
-                highScore = totalScore
-                UserDefaults.standard.set(highScore, forKey: Game.highScoreKey)
+            if GameState.shared.challengeMode && GameState.shared.totalScore > GameState.shared.highScore {
+                // GameState.shared.highScore's setter persists to UserDefaults synchronously.
+                GameState.shared.highScore = GameState.shared.totalScore
                 highScoreSession = true
 
                 // Display high score text briefly
@@ -782,22 +780,22 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             return "SUCCESS"
         } else {
             // Failed dive: reset scores and show "Game Over" panel if high score was reached
-            stats.emotionFrame = 0
-            stats.scores = [0, 0, 0]
+            GameState.shared.stats.emotionFrame = 0
+            GameState.shared.stats.scores = [0, 0, 0]
             
             if highScoreSession {
                 highScorePanel.display(result: "GAME OVER",  strings: [
                     "",
-                    "NEW HIGH SCORE: \(totalScore)",
+                    "NEW HIGH SCORE: \(GameState.shared.totalScore)",
                     "",
-                    "final height: \(stats.height)m",
-                    "streak: \(streak) dives",
+                    "final height: \(GameState.shared.stats.height)m",
+                    "streak: \(GameState.shared.streak) dives",
                 ], frame: 3, scores: nil)
             }
             
             // Reset streak and total score
-            streak = 0
-            totalScore = 0
+            GameState.shared.streak = 0
+            GameState.shared.totalScore = 0
             
             return "FAILED DIVE"
         }
@@ -879,9 +877,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         // Calculate the desired camera y-position to follow dave
         var targetY = davePosition.y
 
-        // Clamp the camera y-position between (0 + height / 2) and (sceneHeight - height / 2)
+        // Clamp the camera y-position between (0 + height / 2) and (GameState.shared.sceneHeight - height / 2)
         let minY = GameState.shared.metrics.height / 2
-        let maxY = sceneHeight - GameState.shared.metrics.height / 2
+        let maxY = GameState.shared.sceneHeight - GameState.shared.metrics.height / 2
         targetY = max(minY, min(targetY, maxY))
 
         // Set the camera position to the clamped y-coordinate, centered horizontally
@@ -897,8 +895,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         mainMenuScene.setupMenu()
         self.diveComplete = true
         self.readyForReset = true
-        totalScore = 0
-        platformHeight = 703
+        GameState.shared.totalScore = 0
+        GameState.shared.platformHeight = 703
         self.restartScene()
         self.view!.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
