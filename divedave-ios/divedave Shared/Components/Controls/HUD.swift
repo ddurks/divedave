@@ -86,8 +86,7 @@ final class HUD {
 
         
         menuButton.onPressed = { [weak self] in
-            print("Animated button pressed")
-            // Play an animation when the button is pressed
+            Haptics.impact(.light)
             self?.menuButton.playAnimation(named: "clicked", timePerFrame: 0.125, repeatForever: false) {
                 self?.onMenuPressed?()
             }

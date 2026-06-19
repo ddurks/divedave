@@ -286,27 +286,54 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 dave.playAnimation(name: "idle")
                 logger.debug("LANDED AT \(self.davePlayer.landedAt)")
                 pulseSpringboardBoostWindow()
+
+                // Input buffer: if the player released the jump button SHORTLY
+                // BEFORE landing (within ~175 ms — same as the OK window), fire
+                // the jump automatically. Makes "tap slightly early" launch you
+                // instead of being swallowed because the button wasn't held on
+                // landing.
+                let timeSinceRelease = (davePlayer.landedAt - GameState.shared.jumpReleasedAt) * 1000
+                if GameState.shared.jumpReleasedAt > 0,
+                   timeSinceRelease > 0,
+                   timeSinceRelease < 175 {
+                    triggerJump()
+                }
             }
         }
     }
 
-    /// Visual cue that the 350 ms boost window has just opened: pulse the
-    /// springboard from green (perfect) through yellow / orange down to
-    /// no tint, matching the boost thresholds in DavePlayer.calculateBoost.
-    /// Player learns the rhythm: "release jump while the board is still green".
+    /// Wraps DavePlayer.jump with the standard shake-on-launch + timing-
+    /// feedback hooks. Used by playerMobileMovementHandler (jump button on
+    /// the board) and didBegin (buffered early release).
+    private func triggerJump() {
+        davePlayer.jump(
+            springboard: springboard,
+            onJumpStarted: { [weak self] in
+                self?.cameraController.shake(intensity: 4 * GameState.shared.metrics.scaleFactorHeight, duration: 0.15)
+            },
+            onJumpCompleted: { [weak self] timing in
+                self?.showBoostTimingFeedback(timing)
+            }
+        )
+    }
+
+    /// Visual cue that the boost window has just opened: pulse the springboard
+    /// from green (perfect, 50 ms) through yellow (good, +50 ms) to red (ok,
+    /// +75 ms) then fades the tint out. Mirrors the thresholds in
+    /// DavePlayer.calculateBoost so the rhythm reads the same as the scoring.
     private func pulseSpringboardBoostWindow() {
         springboard.removeAction(forKey: "boostWindowPulse")
         springboard.color = Game.customGreen
         springboard.colorBlendFactor = 0.6
         let pulse = SKAction.sequence([
-            // perfect window: green, 125ms
-            SKAction.wait(forDuration: 0.125),
+            // perfect window: green, 50ms
+            SKAction.wait(forDuration: 0.05),
             SKAction.run { [weak self] in self?.springboard.color = Game.customYellow },
-            // good window: yellow, 125ms
-            SKAction.wait(forDuration: 0.125),
+            // good window: yellow, 50ms
+            SKAction.wait(forDuration: 0.05),
             SKAction.run { [weak self] in self?.springboard.color = Game.customRed },
-            // ok window: red fading out, 100ms
-            SKAction.colorize(withColorBlendFactor: 0.0, duration: 0.1)
+            // ok window: red fading out, 75ms
+            SKAction.colorize(withColorBlendFactor: 0.0, duration: 0.075)
         ])
         springboard.run(pulse, withKey: "boostWindowPulse")
     }
@@ -420,16 +447,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 }
                 if daveIsAboveBoard() {
                     if hud?.jumpButton.isDown == true && boardContact.isTouching {
-                        davePlayer.jump(
-                            springboard: springboard,
-                            onJumpStarted: { [weak self] in
-                                // Board-flex kick: subtle so it doesn't overpower the splash.
-                                self?.cameraController.shake(intensity: 4 * GameState.shared.metrics.scaleFactorHeight, duration: 0.15)
-                            },
-                            onJumpCompleted: { [weak self] timing in
-                                self?.showBoostTimingFeedback(timing)
-                            }
-                        )
+                        triggerJump()
                     }
                 } else if (hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true) {
                     if !daveIsTucked() {
@@ -527,23 +545,27 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         case .miss:    return // Don't punish the player with a "MISS" label.
         }
 
-        // Container with shadow + main label, matching the rotation-label style.
+        // Anchor the feedback right above the springboard so it reads as
+        // "this is about the timing of your push off the board".
         let container = SKNode()
-        container.position = CGPoint(x: dave.position.x, y: dave.position.y + 60)
+        container.position = CGPoint(
+            x: springboard.position.x,
+            y: springboard.position.y + (springboard.size.height / 2) + (10 * GameState.shared.metrics.scaleFactorHeight)
+        )
         container.zPosition = 4
         container.alpha = 0
         container.setScale(0.3)
 
         let shadow = SKLabelNode(text: text)
         shadow.fontName = "Arial-BoldMT"
-        shadow.fontSize = 50
+        shadow.fontSize = 25
         shadow.fontColor = .black
-        shadow.position = CGPoint(x: 3, y: -3)
+        shadow.position = CGPoint(x: 2, y: -2)
         container.addChild(shadow)
 
         let main = SKLabelNode(text: text)
         main.fontName = "Arial-BoldMT"
-        main.fontSize = 50
+        main.fontSize = 25
         main.fontColor = color
         container.addChild(main)
 
@@ -557,7 +579,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             SKAction.scale(to: 1.0, duration: 0.08),
             SKAction.wait(forDuration: 0.5),
             SKAction.group([
-                SKAction.moveBy(x: 0, y: 40, duration: 0.4),
+                SKAction.moveBy(x: 0, y: 20, duration: 0.4),
                 SKAction.fadeOut(withDuration: 0.4)
             ]),
             SKAction.removeFromParent()
@@ -682,6 +704,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if (self.diveComplete) {
+            Haptics.impact(.light)
             resetScene()
         }
     }

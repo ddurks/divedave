@@ -26,13 +26,16 @@ class MenuButton: SKSpriteNode {
     }
 
     func triggerAction() {
-        // Animate the button scaling to 1.25 times its size
+        // Confirm the tap immediately — haptic fires before the scale animation
+        // so the player gets feedback right when they release the touch.
+        Haptics.impact(.light)
+
         let scaleUpAction = SKAction.scale(to: 1.25, duration: 0.5)
         let scaleBackAction = SKAction.scale(to: self.xScale, duration: 0.5)
         let runAction = SKAction.run { [weak self] in
             self?.action?()
         }
-        
+
         let sequence = SKAction.sequence([scaleUpAction, scaleBackAction, runAction])
         self.run(sequence)
     }
