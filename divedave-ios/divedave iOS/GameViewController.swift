@@ -18,12 +18,10 @@ class GameViewController: UIViewController {
         Haptics.prepare()
 
         if let skView = self.view as? SKView {
-            WIDTH = skView.bounds.size.width
-            HEIGHT = skView.bounds.size.height
-            scaleFactorHeight = HEIGHT / DEFAULT_HEIGHT
-            scaleFactorWidth = WIDTH / DEFAULT_WIDTH
-            
-            logger.debug("WIDTH: \(WIDTH), HEIGHT: \(HEIGHT), scaleFactorHeight: \(scaleFactorHeight), scaleFactorWidth: \(scaleFactorWidth)")
+            GameState.shared.metrics = SceneMetrics(viewBounds: skView.bounds.size)
+            let m = GameState.shared.metrics
+
+            logger.debug("WIDTH: \(m.width), HEIGHT: \(m.height), scaleFactorHeight: \(m.scaleFactorHeight), scaleFactorWidth: \(m.scaleFactorWidth)")
             
             // Preload assets for MainMenuScene while showing LoadingScene
             preloadAllAssets {

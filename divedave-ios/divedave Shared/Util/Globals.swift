@@ -9,13 +9,12 @@ import Foundation
 import CoreGraphics
 import SpriteKit
 
-var WIDTH: CGFloat = DEFAULT_WIDTH
-var HEIGHT: CGFloat = DEFAULT_HEIGHT
-var scaleFactorHeight = HEIGHT / DEFAULT_HEIGHT
-var scaleFactorWidth = WIDTH / DEFAULT_WIDTH
+// NOTE: screen/scaling globals (WIDTH/HEIGHT/scaleFactor*) have moved to
+// GameState.shared.metrics — Lane E (screen/scaling step).
+// The remaining session globals migrate in subsequent steps.
 
 var CHALLENGE_MODE = true
-var sceneHeight: CGFloat! = HEIGHT
+var sceneHeight: CGFloat = 0
 var platformHeight: CGFloat = 603
 var jumpReleasedAt: Date? = nil
 var streak = 0
