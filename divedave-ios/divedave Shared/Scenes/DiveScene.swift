@@ -1,10 +1,3 @@
-//
-//  DiveScene.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 10/29/24.
-//
-
 import SpriteKit
 import os
 
@@ -26,7 +19,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     var waterLevel: CGFloat = 0
     var diveComplete = false
     var springboard: AnimatedSprite!
-    /// Forwards to `davePlayer.dave` so the many existing references can stay short.
     var dave: AnimatedSprite! { davePlayer?.dave }
     var water: AnimatedSprite!
     var splash: AnimatedSprite!
@@ -42,7 +34,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var davePlayer: DavePlayer!
     private let boardContact = BoardContact()
     private let rotationTracker = RotationTracker()
-    
+
     override func didMove(to view: SKView) {
         physicsWorld.gravity = CGVector(dx: 0, dy: -Game.gravity)
         physicsWorld.contactDelegate = self
@@ -65,15 +57,14 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         calculateGameLogic()
         atmosphere = Atmosphere(scene: self, sceneHeight: GameState.shared.sceneHeight, startY: gettingoutdave.size.height, middleY: GameState.shared.metrics.height * 2, endY: GameState.shared.metrics.height * 4)
     }
-    
+
     func setupHUD(view: SKView, camera: SKCameraNode) {
         logger.debug("self.size: \(self.size.debugDescription)")
         hud = HUD(view: view, camera: camera, sceneSize: self.size, scaleFactorHeight: GameState.shared.metrics.scaleFactorHeight)
         hud.onMenuPressed = self.prepareAndPresentMainMenuScene
     }
-    
+
     func approximateFallTime(from height: CGFloat, to groundLevel: CGFloat, gravity: CGFloat, frameRate: Double = 60.0) -> Double {
-        // Closed-form solution for free fall from rest: t = sqrt(2 * d / g)
         let distance = max(0, height - groundLevel)
         guard gravity > 0 else { return 0 }
         return sqrt(2 * Double(distance) / Double(gravity))
@@ -82,23 +73,17 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     func calculateGameLogic() {
         let diveHeight = (GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight)
         let time = approximateFallTime(from: diveHeight, to: waterLevel, gravity: Game.gravity) / 10
-        
-        // Maximum number of half-flips this dive's height affords.
+
         let totalRotation = time * (Game.maxSpinVelocity * 0.70)
         let maxFlips = totalRotation / (2 * Double.pi)
         let halfFlips = Int(maxFlips * 2)
 
-        // Guard: very short dives may not afford any rotation.
         guard halfFlips >= 1 else {
             goalRotations = 0.5
             hud.setGoalFlips(flips: goalRotations)
             return
         }
 
-        // Goal-difficulty ramp: floor of the random range scales with streak.
-        // Early dives can ask for as little as half a rotation; by streak ~21
-        // the player is reliably asked for at least 70% of the height-afforded
-        // max. Cap at 0.7 so there's always a small bit of randomness.
         let streak = GameState.shared.streak
         let streakFactor = min(0.7, Double(streak) / 30.0)
         let minHalfFlips = max(1, min(halfFlips, Int(Double(halfFlips) * streakFactor)))
@@ -112,11 +97,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
     func setupScene() {
         setupLandscapeAndPool()
-        
-        // Water level and height labels
+
         waterLevel = ((256 * GameState.shared.metrics.scaleFactorHeight)/2) + 1
-        
-        // Platform sections, scaled and adjusted to fit SpriteKit’s y-axis
+
         let platformTopPosition = CGPoint(x: GameState.shared.metrics.width/7, y: waterLevel + (GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight))
         platformTop = SKSpriteNode(imageNamed: "platformtop")
         platformTop.position = platformTopPosition
@@ -131,43 +114,39 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             platformSection.setScale(GameState.shared.metrics.scaleFactorHeight)
             addChild(platformSection)
         }
-        
+
         let platformBase = SKSpriteNode(imageNamed: "platformbase")
         platformBase.position = CGPoint(x: platformTopPosition.x, y: 200 * GameState.shared.metrics.scaleFactorHeight)
         platformBase.zPosition = 9
         platformBase.setScale(GameState.shared.metrics.scaleFactorHeight)
         addChild(platformBase)
-        
+
         setupClimbDave(x: platformBase.position.x, y: platformBase.position.y)
-        
-        // Set up the world bounds
+
         let offset = 100.0
         self.physicsBody = SKPhysicsBody(edgeLoopFrom: CGRect(x: platformTop.position.x - (platformTop.size.width/2), y: -offset, width: GameState.shared.metrics.width, height: GameState.shared.sceneHeight + 2*offset))
         self.physicsBody?.restitution = 0.0
         physicsWorld.contactDelegate = self
     }
-    
+
     func setupInfoPanels() {
         info = InfoPanel(scene: self, depth: 20);
         highScorePanel = InfoPanel(scene: self, depth: 24)
     }
-        
+
     func setupHeightLabels() {
         logger.debug("water level: \(self.waterLevel)")
-        
+
         var y = waterLevel
-        var currentMeter = 1  // Start at 0 meters from the water level
+        var currentMeter = 1
         let majorSpacing = 200.0 * GameState.shared.metrics.scaleFactorHeight
         let minorSpacing = 20.0 * GameState.shared.metrics.scaleFactorHeight
         let maxY = springboard.position.y
-        
-        // Initialize counters for major and minor spacing
+
         var majorCounter = 0.0
         var minorCounter = 0.0
 
-        // Loop until y reaches the springboard position
         while y < maxY {
-            // Set label color based on height
             var labelColor: SKColor = Game.customRed
             if currentMeter < 25 {
                 labelColor = Game.customYellow
@@ -175,35 +154,31 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             if currentMeter < 10 {
                 labelColor = Game.customGreen
             }
-            
+
             let labelPosition = CGPoint(x: 5*GameState.shared.metrics.width/6, y: CGFloat(y))
             let formattedHeight = String(currentMeter)
 
-            // Check major spacing counter
             if majorCounter >= majorSpacing {
                 let label = createLabel(text: "- \(formattedHeight)m", fontSize: 20, position: labelPosition, zPosition: 10, fontColor: labelColor, bold: true)
                 label.isHidden = false
                 addChild(label)
-                majorCounter = 0.0  // Reset major counter
-                currentMeter += 1   // Increment the meter label by 1
+                majorCounter = 0.0
+                currentMeter += 1
             }
-            // Check minor spacing counter
             else if minorCounter >= minorSpacing {
                 let marker = createLabel(text: "-", fontSize: 20, position: labelPosition, zPosition: 10, fontColor: labelColor)
                 marker.isHidden = false
                 addChild(marker)
-                minorCounter = 0.0  // Reset minor counter
+                minorCounter = 0.0
             }
-            
-            // Increment y by GameState.shared.metrics.scaleFactorHeight for each iteration
+
             y += GameState.shared.metrics.scaleFactorHeight
-            
-            // Increment the spacing counters by GameState.shared.metrics.scaleFactorHeight
+
             majorCounter += GameState.shared.metrics.scaleFactorHeight
             minorCounter += GameState.shared.metrics.scaleFactorHeight
         }
     }
-    
+
     func resetScene() {
         if (self.diveComplete && self.readyForReset) {
             if (!GameState.shared.challengeMode) {
@@ -227,14 +202,13 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
-    
+
     func restartScene() {
-        // Restart the scene
         let newScene = DiveScene(size: self.size)
         newScene.scaleMode = self.scaleMode
         self.view?.presentScene(newScene, transition: SKTransition.fade(withDuration: 0.5))
     }
-    
+
     func setupClimbDave(x: CGFloat, y: CGFloat) {
         climbdave = AnimatedSprite(spritesheetName: "climbdave",
                               frameWidth: Game.defaultDaveHeight,
@@ -242,7 +216,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                               scale: GameState.shared.metrics.scaleFactorHeight)
         climbdave.position = CGPoint(x: x - (5*climbdave.size.width/7), y: y + climbdave.size.height/3)
         climbdave.zPosition = 5
-        
+
         climbdave.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: 64 * GameState.shared.metrics.scaleFactorWidth, height: 256 * GameState.shared.metrics.scaleFactorHeight))
         climbdave.physicsBody?.isDynamic = true
         climbdave.physicsBody?.affectedByGravity = false
@@ -250,22 +224,19 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         climbdave.physicsBody?.collisionBitMask = 0
         climbdave.physicsBody?.contactTestBitMask = 0
         climbdave.isHidden = true
-        
+
         addChild(climbdave)
-        
+
         climbdave.defineAnimation(name: "climb", frameIndices: [0, 1, 2, 3], timePerFrame: 0.125)
     }
-    
+
     func setupSpringboard() {
-        // Initialize the AnimatedSprite for the springboard
         springboard = AnimatedSprite(spritesheetName: "board", frameWidth: 440, frameHeight: 64, scale: GameState.shared.metrics.scaleFactorHeight)
         springboard.position = CGPoint(x: platformTop.position.x + platformTop.size.width / 3, y: platformTop.position.y)
         springboard.zPosition = 10
-        
-        // Define animations if needed (e.g., "bounce" or other)
+
         springboard.defineAnimation(name: "flex", frameIndices: [0, 1, 0], timePerFrame: 0.25, repeatForever: false)
 
-        // Add physics body to springboard
         springboard.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: springboard.size.width, height: springboard.size.height))
         springboard.physicsBody?.isDynamic = false
         springboard.physicsBody?.affectedByGravity = false
@@ -275,16 +246,15 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(springboard)
     }
-    
+
     func setupSplash() {
         splash = AnimatedSprite(spritesheetName: "splash", frameWidth: 256, frameHeight: 256, scale: GameState.shared.metrics.scaleFactorHeight)
         splash.zPosition = 7
-        
-        // Define animations if needed (e.g., "bounce" or other)
+
         splash.defineAnimation(name: "splash", frameIndices: [0, 1, 2, 3, 4, 5, 6, 7], timePerFrame: 0.125, repeatForever: false)
         addChild(splash)
     }
-    
+
     func didBegin(_ contact: SKPhysicsContact) {
         let bodies = (contact.bodyA.categoryBitMask, contact.bodyB.categoryBitMask)
         let isDaveBoard =
@@ -295,27 +265,16 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         Haptics.impact(.light)
         boardContact.didBegin(daveDidContactBoard: true)
 
-        // Only the .airborne state is eligible for a landing. Once Dave has
-        // committed to a dive (.diving), board collision is disabled at the
-        // physics level so this branch shouldn't even fire — the guard is
-        // belt + suspenders. Also requires a clean-landing-shaped body
-        // (not actively launching upward, not spinning fast); otherwise it's
-        // a board bonk and we ignore it.
         guard davePlayer.state == .airborne, davePlayer.isCleanLanding() else { return }
 
         guard davePlayer.transition(to: .grounded) else { return }
         handleLanded()
     }
 
-    /// Side effects of a successful landing: snap rotation/spin to a known
-    /// pose, reset per-attempt accumulators, mark landedAt, play the idle
-    /// animation, fire the boost-window pulse, and honor the early-release
-    /// jump input buffer.
     private func handleLanded() {
         dave.zRotation = 0
         dave.physicsBody?.angularVelocity = 0
 
-        // Fresh dive attempt: clear in-flight rotation accumulators + tuck count.
         rotationTracker.reset()
 
         davePlayer.landedAt = CACurrentMediaTime()
@@ -323,10 +282,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         logger.debug("LANDED AT \(self.davePlayer.landedAt)")
         pulseSpringboardBoostWindow()
 
-        // Input buffer: if the player released the jump button SHORTLY BEFORE
-        // landing (within ~265 ms — same as the relaxed OK window), fire the
-        // jump automatically. Makes "tap slightly early" launch you instead of
-        // being swallowed because the button wasn't held on landing.
+        // Input buffer: if jump was released SHORTLY BEFORE landing (within
+        // ~265 ms — same as the relaxed OK window), fire the jump automatically.
         let timeSinceRelease = (davePlayer.landedAt - GameState.shared.jumpReleasedAt) * 1000
         if GameState.shared.jumpReleasedAt > 0,
            timeSinceRelease > 0,
@@ -335,9 +292,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         }
     }
 
-    /// Wraps DavePlayer.jump with the standard shake-on-launch + timing-
-    /// feedback hooks. Used by playerMobileMovementHandler (jump button on
-    /// the board) and didBegin (buffered early release).
     private func triggerJump() {
         davePlayer.jump(
             springboard: springboard,
@@ -350,27 +304,22 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         )
     }
 
-    /// Visual cue that the boost window has just opened: pulse the springboard
-    /// from green (perfect, 50 ms) through yellow (good, +50 ms) to red (ok,
-    /// +75 ms) then fades the tint out. Mirrors the thresholds in
-    /// DavePlayer.calculateBoost so the rhythm reads the same as the scoring.
+    // Pulse springboard green (perfect 50ms) -> yellow (good +50ms) -> red
+    // (ok +75ms) -> fade. Thresholds mirror DavePlayer.calculateBoost.
     private func pulseSpringboardBoostWindow() {
         springboard.removeAction(forKey: "boostWindowPulse")
         springboard.color = Game.customGreen
         springboard.colorBlendFactor = 0.6
         let pulse = SKAction.sequence([
-            // perfect window: green, 50ms
             SKAction.wait(forDuration: 0.05),
             SKAction.run { [weak self] in self?.springboard.color = Game.customYellow },
-            // good window: yellow, 50ms
             SKAction.wait(forDuration: 0.05),
             SKAction.run { [weak self] in self?.springboard.color = Game.customRed },
-            // ok window: red fading out, 75ms
             SKAction.colorize(withColorBlendFactor: 0.0, duration: 0.075)
         ])
         springboard.run(pulse, withKey: "boostWindowPulse")
     }
-    
+
     func didEnd(_ contact: SKPhysicsContact) {
         let bodies = (contact.bodyA.categoryBitMask, contact.bodyB.categoryBitMask)
         let isDaveBoard =
@@ -380,25 +329,20 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
         boardContact.didEnd(daveDidContactBoard: true)
 
-        // Leaving the board while grounded = walked off the edge or got bumped
-        // off. The launching → airborne transition is owned by DavePlayer.jump,
-        // so only handle the grounded case here.
         if davePlayer.state == .grounded {
             davePlayer.transition(to: .airborne)
         }
     }
-    
+
     func setupLandscapeAndPool() {
-        // Landscape background image scaled and positioned
         let landscape = SKSpriteNode(imageNamed: "landscape")
         let aspectRatio = landscape.size.width / landscape.size.height
-        
-        // Scale landscape width to match viewport and adjust height based on aspect ratio
+
         landscape.size = CGSize(width: GameState.shared.metrics.width, height: GameState.shared.metrics.width / aspectRatio)
         landscape.position = CGPoint(x: GameState.shared.metrics.width / 2, y: landscape.size.height / 2)
         landscape.zPosition = 1
         addChild(landscape)
-        
+
         water = AnimatedSprite(
             spritesheetName: "water",
             frameWidth: 1250,
@@ -416,7 +360,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         water.zPosition = 6
         addChild(water)
         water.playAnimation(name: "idle")
-        
+
         gettingoutdave = AnimatedSprite(
             spritesheetName: "getting-out-spritesheet",
             frameWidth: 1250,
@@ -435,7 +379,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         addChild(gettingoutdave)
     }
 
-    
+
     func playerHandler() {
         guard davePlayer != nil else { return }
 
@@ -450,13 +394,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
     func playerMobileMovementHandler() {
         if !diveComplete {
-            // Visual button-enabled state mirrors the state machine. Jump
-            // stays enabled through .airborne so the early-release buffer in
-            // `handleLanded` (which fires triggerJump when jumpReleasedAt is
-            // within ~265ms of landing) has a visually-tappable target —
-            // without that, well-timed early taps land on a greyed button
-            // and feel like the input was eaten. Once the player commits to
-            // a dive (.diving), jump greys out for the rest of the attempt.
+            // Jump stays enabled through .airborne so the early-release buffer
+            // in handleLanded has a visually-tappable target.
             let jumpEnabled = davePlayer.state == .grounded || davePlayer.state == .airborne
             let flipEnabled = davePlayer.state == .airborne || davePlayer.state == .diving
             hud?.updateButtons(jumpEnabled: jumpEnabled, flipEnabled: flipEnabled)
@@ -484,13 +423,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 triggerJump()
             }
         case .airborne, .diving:
-            // Flip is the commit-to-dive input. Pressing it any time Dave is
-            // airborne — even still over the board — transitions to .diving,
-            // which fires `didEnter(.diving)` to zero the board collision
-            // masks. From there Dave passes through the board on the way down
-            // and the jump button stays greyed for the rest of the attempt.
-            // The functional input gate is the state-machine switch itself;
-            // the greyed visual on jumpButton matches the gate.
             if hud?.flipButton.isDown == true {
                 if rotationTracker.tucked {
                     rotationTracker.incrementSpin()
@@ -509,8 +441,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
     func checkForReset() {
         guard !diveComplete else { return }
-        // Only the airborne/diving states are eligible for water-hit + rotation counting.
-        // Grounded/launching means we're still on the board; splashed means we already fired.
         guard davePlayer.state == .airborne || davePlayer.state == .diving else { return }
 
         if dave.position.y < waterLevel {
@@ -523,10 +453,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     self.splash.isHidden = true
                     self.splash.clearCurrentAnimation()
                 }
-                // Splash impact: pronounced shake.
                 cameraController.shake(intensity: 14 * GameState.shared.metrics.scaleFactorHeight, duration: 0.3)
 
-                // Calculate height, angle, and other stats
                 GameState.shared.stats.height = calculateHeightFromWater()
                 GameState.shared.stats.angle = round(dave.zRotation * (180.0 / .pi) * 10.0) / 10
                 GameState.shared.stats.tucked = rotationTracker.tucked
@@ -545,17 +473,14 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                     "rotations: \(GameState.shared.stats.rotations)"
                 ]
 
-                // 200ms beat before the score panel — lets the splash + shake land
-                // before the camera attention shifts to the overlay.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self.info.display(result: result, strings: displayStrings, frame: GameState.shared.stats.emotionFrame, scores: GameState.shared.stats.scores)
                     self.hud.setVisible(false)
                 }
-                
-                // Set a delay to allow for scene reset readiness
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.readyForReset = true
-                    
+
                     self.gettingoutdave.isHidden = false
                     self.gettingoutdave.playAnimation(name: "getOut") {
                         self.climbdave.physicsBody?.velocity.dy = 50
@@ -566,7 +491,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 }
         }
 
-        // Track rotations while in the air.
         countRotations()
     }
 
@@ -578,9 +502,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         )
     }
 
-    /// Pop a PERFECT / GOOD / OK feedback label near Dave when the jump
-    /// completes. Reveals the otherwise-invisible boost-window mechanic
-    /// so players can learn to release jump quickly after landing.
     private func showBoostTimingFeedback(_ timing: BoostTiming) {
         let text: String
         let color: SKColor
@@ -588,11 +509,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         case .perfect: text = "PERFECT!"; color = Game.customGreen
         case .good:    text = "GOOD";     color = Game.customYellow
         case .ok:      text = "OK";       color = Game.customRed
-        case .miss:    return // Don't punish the player with a "MISS" label.
+        case .miss:    return
         }
 
-        // Anchor the feedback right above the springboard so it reads as
-        // "this is about the timing of your push off the board".
         let container = SKNode()
         container.position = CGPoint(
             x: springboard.position.x,
@@ -639,16 +558,12 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         let fontColor: SKColor = completed > Double(goalRotations) ? Game.customRed : Game.customGreen
         let text = "\(Int(completed))"
 
-        // Parent container so we can scale/fade/translate the whole stack
-        // as one unit. SKNode propagates alpha visually to its children.
         let container = SKNode()
         container.position = dave.position
         container.zPosition = 4
         container.alpha = 0
         container.setScale(0.3)
 
-        // Drop shadow: a black copy offset down-right for legibility against
-        // bright sky / cloud frames.
         let shadow = SKLabelNode(text: text)
         shadow.fontName = "Arial-BoldMT"
         shadow.fontSize = 60
@@ -656,7 +571,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         shadow.position = CGPoint(x: 4, y: -4)
         container.addChild(shadow)
 
-        // Main label
         let main = SKLabelNode(text: text)
         main.fontName = "Arial-BoldMT"
         main.fontSize = 60
@@ -665,8 +579,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(container)
 
-        // Pop-in: scale 0.3 -> 1.4 -> 1.0 while fading in, then hold, then
-        // drift up + fade out + remove.
         container.run(SKAction.sequence([
             SKAction.group([
                 SKAction.scale(to: 1.4, duration: 0.12),
@@ -684,7 +596,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
 
     func scoreDive() -> String {
-        // Persist per-dive meta-progression (every dive, success or fail)
         StatsStore.totalDives += 1
         StatsStore.totalFlips += Int(GameState.shared.stats.rotations)
         StatsStore.maxHeightReached = max(StatsStore.maxHeightReached, Int(GameState.shared.platformHeight))
@@ -704,10 +615,8 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             GameState.shared.streak += 1
             GameState.shared.totalScore += outcome.scores.reduce(0, +)
 
-            // Track longest streak across runs
             StatsStore.longestStreak = max(StatsStore.longestStreak, GameState.shared.streak)
 
-            // Per-mode high score
             if GameState.shared.challengeMode {
                 StatsStore.challengeHigh = max(StatsStore.challengeHigh, GameState.shared.totalScore)
             } else {
@@ -715,11 +624,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             }
 
             if GameState.shared.challengeMode && GameState.shared.totalScore > GameState.shared.highScore {
-                // GameState.shared.highScore's setter persists to UserDefaults synchronously.
                 GameState.shared.highScore = GameState.shared.totalScore
                 highScoreSession = true
 
-                // Display high score text briefly
                 hud.highScoreLabel.isHidden = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                     self.hud.highScoreLabel.isHidden = true
@@ -739,7 +646,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 ], frame: 3, scores: nil)
             }
 
-            // Reset streak and total score
             GameState.shared.streak = 0
             GameState.shared.totalScore = 0
 
@@ -754,11 +660,11 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             resetScene()
         }
     }
-    
+
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
 
     }
-    
+
     override func update(_ currentTime: TimeInterval) {
         playerHandler()
         applyPhaserStyleAngularDrag(currentTime: currentTime)
@@ -769,12 +675,12 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         }
         atmosphere.update()
     }
-    
+
     func applyPhaserStyleAngularDrag(currentTime: TimeInterval) {
         guard let body = dave.physicsBody else { return }
         rotationTracker.applyAngularDrag(to: body, currentTime: currentTime)
     }
-    
+
     func updateClimbDave() {
         if (diveComplete && climbdave != nil && platformTop != nil) {
             if (climbdave.position.y > platformTop.position.y) {
@@ -794,10 +700,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         self.readyForReset = true
         GameState.shared.totalScore = 0
         GameState.shared.platformHeight = 703
-        // Note: previously also called self.restartScene() here, which created
-        // a fresh DiveScene and presented it — followed immediately by this
-        // presentScene(mainMenuScene). Two back-to-back presentScene calls
-        // raced; the menu always won but the wasted DiveScene leaked briefly.
         self.view!.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 }

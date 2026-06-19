@@ -1,15 +1,7 @@
-//
-//  StatsStore.swift
-//  divedave iOS
-//
-//  Persistent meta-progression store backed by UserDefaults.
-//
-
 import Foundation
 
 @MainActor
 enum StatsStore {
-    // MARK: - Keys
     private enum Key {
         static let arcadeHigh      = "stats.arcadeHigh"
         static let challengeHigh   = "stats.challengeHigh"
@@ -21,16 +13,11 @@ enum StatsStore {
         static let audioEnabled    = "settings.audio"
         static let hapticsEnabled  = "settings.haptics"
 
-        // Legacy
         static let legacyHighScore = "highScore"
     }
 
-    // MARK: - Migration
     private static var migrated = false
 
-    /// Seed `stats.arcadeHigh` from the legacy `highScore` key once, the first
-    /// time any caller touches the store. The legacy key is intentionally
-    /// preserved (Lane E owns its removal).
     private static func migrateLegacyIfNeeded() {
         guard !migrated else { return }
         migrated = true
@@ -44,7 +31,6 @@ enum StatsStore {
         }
     }
 
-    // MARK: - Helpers
     private static func int(forKey key: String, default defaultValue: Int = 0) -> Int {
         migrateLegacyIfNeeded()
         return UserDefaults.standard.object(forKey: key) as? Int ?? defaultValue
@@ -63,7 +49,6 @@ enum StatsStore {
         UserDefaults.standard.set(value, forKey: key)
     }
 
-    // MARK: - Stats
     static var arcadeHigh: Int {
         get { int(forKey: Key.arcadeHigh) }
         set { set(newValue, forKey: Key.arcadeHigh) }
@@ -94,7 +79,6 @@ enum StatsStore {
         set { set(newValue, forKey: Key.totalFlips) }
     }
 
-    // MARK: - Flags / Settings
     static var hasSeenTutorial: Bool {
         get { bool(forKey: Key.hasSeenTutorial, default: false) }
         set { set(newValue, forKey: Key.hasSeenTutorial) }

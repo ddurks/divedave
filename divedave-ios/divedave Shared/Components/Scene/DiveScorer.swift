@@ -1,11 +1,3 @@
-//
-//  DiveScorer.swift
-//  divedave iOS
-//
-//  Pure dive-scoring math. No scene/HUD/persistence side effects —
-//  DiveScene handles those at the call site.
-//
-
 import CoreGraphics
 import Foundation
 
@@ -17,8 +9,6 @@ struct DiveOutcome {
 }
 
 enum DiveScorer {
-    /// Compute the dive's outcome (success/failure, three judge scores, emotion frame)
-    /// from raw flight data. Pure — no side effects, no scene interaction.
     static func score(goalRotations: Double, rotations: Double, angle: Double, tuckCount: Int) -> DiveOutcome {
         guard abs(rotations - goalRotations) < 0.25 else {
             return DiveOutcome(result: .failure, scores: [0, 0, 0], emotionFrame: 0)
@@ -40,17 +30,13 @@ enum DiveScorer {
             scores.append(s)
         }
 
-        // Adjust emotion frame down by one if there was more than one tuck (visual penalty).
         let adjustedFrame = tuckCount > 1 ? baseFrame - 1 : baseFrame
         return DiveOutcome(result: .success, scores: scores, emotionFrame: adjustedFrame)
     }
 
-    /// Map a final body angle (degrees) to one of 5 "emotion" frames.
-    /// 4 = best (vertical, head-down), 0 = worst (horizontal flop).
     static func chooseEmotionFrame(angle: Double) -> Int {
         let absAngle = abs(angle)
 
-        // Degree boundaries (kept as named locals so the staircase below reads as a table).
         let boundary10 = 10.0
         let boundary25 = 25.0
         let boundary45 = 45.0
@@ -74,7 +60,6 @@ enum DiveScorer {
         return 2
     }
 
-    /// Display height of the springboard above water, in the HUD's "meters" units.
     static func heightInMeters(springboardY: CGFloat, waterY: CGFloat, scaleFactorHeight: CGFloat) -> Double {
         let heightDifference = springboardY - waterY
         let inMeters = heightDifference / (200.0 * scaleFactorHeight)

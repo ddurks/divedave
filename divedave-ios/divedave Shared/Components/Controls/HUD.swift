@@ -1,14 +1,6 @@
-//
-//  Controls.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 10/29/24.
-//
-
 import SpriteKit
 
 final class HUD {
-    // Button nodes
     var leftButton: ControlButton
     var rightButton: ControlButton
     var jumpButton: ControlButton
@@ -20,37 +12,30 @@ final class HUD {
     var runningStreakLabel: SKLabelNode!
     var runningScoreLabel: SKLabelNode!
     var highScoreLabel: SKLabelNode!
-    
+
     @MainActor
     init(view: SKView, camera: SKCameraNode, sceneSize: CGSize, scaleFactorHeight: CGFloat) {
-        // Position controls relative to the camera node (origin at camera center)
-        let jumpButtonY = -sceneSize.height * 0.425  // Bottom-right column
+        let jumpButtonY = -sceneSize.height * 0.425
         let buttonScale = 0.65 * scaleFactorHeight
 
-        // Stack flip directly above jump. 512 = button texture native size.
-        // Add a small gap so the two buttons read as separate hit targets.
         let scaledButtonHeight = 512 * buttonScale
         let flipButtonY = jumpButtonY + scaledButtonHeight + 10
 
-        // Dynamic x-positions as offsets from the camera’s center
         let leftButtonX = -sceneSize.width * 0.35
         let rightButtonX = -sceneSize.width * 0.1
         let jumpButtonX = sceneSize.width * 0.35
-        let flipButtonX = jumpButtonX  // Same x as jump; stacked vertically.
+        let flipButtonX = jumpButtonX
 
-        // Initialize buttons with updated relative positions
         leftButton = ControlButton(x: leftButtonX, y: jumpButtonY, spriteType: .staticSprite(textureName: "controls-left"), scale: buttonScale)
         rightButton = ControlButton(x: rightButtonX, y: jumpButtonY, spriteType: .staticSprite(textureName: "controls-right"), scale: buttonScale)
         jumpButton = ControlButton(x: jumpButtonX, y: jumpButtonY, spriteType: .staticSprite(textureName: "controls-jump"), scale: buttonScale)
         flipButton = ControlButton(x: flipButtonX, y: flipButtonY, spriteType: .staticSprite(textureName: "controls-flip"), scale: buttonScale)
-        
-        // Add buttons to the camera so they stay fixed
+
         camera.addChild(leftButton)
         camera.addChild(rightButton)
         camera.addChild(jumpButton)
         camera.addChild(flipButton)
-        
-        // Create the goal label
+
         goalLabel = SKLabelNode(text: "GOAL:")
         goalLabel.fontName = "Arial"
         goalLabel.fontColor = SKColor(red: 0/255, green: 128/255, blue: 0/255, alpha: 1.0)
@@ -59,8 +44,7 @@ final class HUD {
         goalLabel.horizontalAlignmentMode = .right
         goalLabel.zPosition = 20
         camera.addChild(goalLabel)
-    
-        // Sign label at the bottom, scaled and positioned
+
         sign = SKSpriteNode(imageNamed: "sign-xl")
         sign.setScale(scaleFactorHeight * 2)
         let signPosition = CGPoint(x: (sign.size.width / 1.5) - (sceneSize.width / 2), y: (sceneSize.height / 2) - (sign.size.height / 8))
@@ -68,7 +52,7 @@ final class HUD {
         sign.zRotation = .pi
         sign.zPosition = 20
         camera.addChild(sign)
-        
+
         menuButton = ControlButton(
             x: 200,
             y: 100,
@@ -83,10 +67,10 @@ final class HUD {
             scale: scaleFactorHeight * 2
         )
         menuButton.position = CGPoint(x: sign.position.x, y: (sceneSize.height / 2) - (4 * sign.size.height / 5))
-        
+
         menuButton.defineAnimation(name: "clicked", frameIndices: [1, 2, 3, 4, 4, 3, 2, 1, 0, 1], timePerFrame: 0.125, repeatForever: false)
 
-        
+
         menuButton.onPressed = { [weak self] in
             Haptics.impact(.light)
             self?.menuButton.playAnimation(named: "clicked", timePerFrame: 0.125, repeatForever: false) {
@@ -94,43 +78,38 @@ final class HUD {
             }
         }
         camera.addChild(menuButton)
-        
-        // Running score and streak labels, scaled
+
         runningScoreLabel = createLabel(text: "score: \(GameState.shared.totalScore)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) + (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
         camera.addChild(runningScoreLabel)
 
         runningStreakLabel = createLabel(text: "streak: \(GameState.shared.streak)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) - (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
         camera.addChild(runningStreakLabel)
-        
-        // High score label
+
         highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(GameState.shared.metrics.height / 4)), zPosition: 20, fontColor: Game.customGreen)
         highScoreLabel.horizontalAlignmentMode = .center
         highScoreLabel.isHidden = true
         camera.addChild(highScoreLabel)
     }
-    
+
     func setRunningScore(score: Int) {
         runningScoreLabel.text = "score: \(score)"
     }
-    
+
     func setRunningStreak(streak: Int) {
         runningStreakLabel.text = "streak: \(streak)"
     }
-    
+
     func setGoalFlips(flips: Double) {
         goalLabel.text = "GOAL: \(flips) " + (flips < 1.5 ? "FLIP" : "FLIPS")
     }
-    
+
     func setVisible(_ visible: Bool) {
         leftButton.isHidden = !visible
         rightButton.isHidden = !visible
         jumpButton.isHidden = !visible
         flipButton.isHidden = !visible
     }
-    
-    /// Drive the visual enabled/disabled state of the jump and flip buttons
-    /// from the caller's input-eligibility logic. Both buttons remain visible
-    /// at all times; the disabled one greys out.
+
     func updateButtons(jumpEnabled: Bool, flipEnabled: Bool) {
         jumpButton.setEnabled(jumpEnabled)
         flipButton.setEnabled(flipEnabled)

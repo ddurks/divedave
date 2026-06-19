@@ -1,10 +1,3 @@
-//
-//  GameViewController.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 10/29/24.
-//
-
 import UIKit
 import SpriteKit
 import GameplayKit
@@ -22,24 +15,20 @@ class GameViewController: UIViewController {
             let m = GameState.shared.metrics
 
             logger.debug("WIDTH: \(m.width), HEIGHT: \(m.height), scaleFactorHeight: \(m.scaleFactorHeight), scaleFactorWidth: \(m.scaleFactorWidth)")
-            
-            // Preload assets for MainMenuScene while showing LoadingScene
+
             preloadAllAssets {
-                // After preloading, transition to the main menu
                 DispatchQueue.main.async {
                     self.prepareAndPresentMainMenuScene(skView: skView)
                 }
             }
-            
+
             skView.ignoresSiblingOrder = true
-//            skView.showsPhysics = true
             skView.showsFPS = true
             skView.showsNodeCount = true
         }
     }
-    
+
     func preloadAllAssets(completion: @escaping () -> Void) {
-        // List of textures to preload for MainMenuScene
         let texturesToPreload = [
             SKTexture(imageNamed: "cover"),
             SKTexture(imageNamed: "panel"),
@@ -56,12 +45,11 @@ class GameViewController: UIViewController {
             SKTexture(imageNamed: "platformsection"),
             SKTexture(imageNamed: "platformbase"),
         ]
-        
+
         SKTexture.preload(texturesToPreload, withCompletionHandler: completion)
     }
-    
+
     func prepareAndPresentMainMenuScene(skView: SKView) {
-        // Create and present the MainMenuScene instance
         let mainMenuScene = MainMenuScene(size: skView.bounds.size)
         mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
         mainMenuScene.scaleMode = .aspectFill

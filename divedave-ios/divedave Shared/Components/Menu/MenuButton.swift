@@ -1,10 +1,3 @@
-//
-//  MenuButton.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 11/7/24.
-//
-
 import SpriteKit
 
 class MenuButton: SKSpriteNode {
@@ -13,21 +6,19 @@ class MenuButton: SKSpriteNode {
     init(imageNamed: String, position: CGPoint, scale: CGFloat, name: String, action: @escaping () -> Void) {
         let texture = SKTexture(imageNamed: imageNamed)
         super.init(texture: texture, color: .clear, size: texture.size())
-        
+
         self.position = position
         self.setScale(scale)
         self.name = name
         self.zPosition = 2
         self.action = action
     }
-    
+
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
     func triggerAction() {
-        // Confirm the tap immediately — haptic fires before the scale animation
-        // so the player gets feedback right when they release the touch.
         Haptics.impact(.light)
 
         let scaleUpAction = SKAction.scale(to: 1.25, duration: 0.5)

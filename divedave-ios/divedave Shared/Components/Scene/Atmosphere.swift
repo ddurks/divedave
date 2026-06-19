@@ -1,75 +1,40 @@
-//
-//  Atmosphere.swift
-//  divedave iOS
-//
-//  Created by David Durkin on 11/7/24.
-//
-
 import SpriteKit
 
-/// Configuration describing one parallax / spawn layer (clouds, stars, birds, planes, UFOs, ...).
 struct AtmosphereLayer {
     enum Kind {
-        /// Multi-frame `AnimatedSprite` whose texture is picked at random from `frames` each (re)spawn.
         case randomFrameSprite(spritesheet: String, frameWidth: CGFloat, frameHeight: CGFloat)
-        /// `AnimatedSprite` that plays a named animation.
         case animatedSprite(spritesheet: String, frameWidth: CGFloat, frameHeight: CGFloat,
                             animationName: String, frameIndices: [Int], timePerFrame: TimeInterval)
-        /// Plain static sprite from an image asset.
         case staticSprite(imageName: String)
     }
 
-    /// Horizontal drift behaviour for entities in this layer.
     enum Motion {
-        /// Stationary — no velocity, recycles only via parallax repositioning.
         case stationary
-        /// Drifts at a positive velocity (left-to-right), wraps off the right edge.
         case driftRight(minSpeed: CGFloat, maxSpeed: CGFloat)
-        /// Drifts at a negative velocity (right-to-left), wraps off the left edge.
         case driftLeft(minSpeed: CGFloat, maxSpeed: CGFloat)
     }
 
     let name: String
     let kind: Kind
     let motion: Motion
-    /// How many entities to spawn per `segmentSize` slab.
     let countRange: ClosedRange<Int>
-    /// Vertical span in scene-space.
     let yRange: ClosedRange<CGFloat>
-    /// Segment height used to distribute entities along `yRange`.
     let segmentSize: CGFloat
-    /// Horizontal padding outside the screen used during spawn.
     let xPadding: CGFloat
     let zPosition: CGFloat
-    /// Random scale multiplier applied on top of `GameState.shared.metrics.scaleFactorHeight`.
     let scaleRange: ClosedRange<CGFloat>
-    /// Random delay (sec) before the looping animation starts. Ignored for non-animated kinds.
     let animationStartDelayRange: ClosedRange<TimeInterval>
-    /// If true, the entity's `zRotation` is randomized at spawn.
     let randomRotation: Bool
-    /// Differential parallax weight. 0 = static relative to camera (deepest distance),
-    /// 1 = full world-space (moves with camera). Each frame Atmosphere applies
-    /// (1 - parallaxFactor) * cameraDelta as a counter-offset on entity Y, so far
-    /// layers appear to lag behind near ones.
+    // 0 = static relative to camera (deepest distance), 1 = full world-space.
     let parallaxFactor: CGFloat
-    /// Hard cap on total entities ever alive in this layer. Procedural extension stops
-    /// adding once this is reached and instead recycles low-Y entities upward.
     let maxCount: Int
-    /// If true, the procedural-extension pass continues spawning/repositioning entities
-    /// above the camera as it climbs (used for space-zone layers like stars/UFOs).
-    /// False for layers that should stay inside their natural band (clouds in blue sky,
-    /// birds in blue sky, planes in twilight).
     let extendsUpward: Bool
 }
 
-/// Per-entity bookkeeping for the generic recycle pass.
 private final class AtmosphereEntity {
     let node: SKNode
     let layerIndex: Int
     let halfWidth: CGFloat
-    /// World-space anchor. The entity's visible Y each frame is
-    /// `anchorY + cameraDelta * (1 - parallaxFactor)`, clamped to the layer's yRange.
-    /// Recycling (horizontal wrap, procedural extension) updates this.
     var anchorY: CGFloat
 
     init(node: SKNode, layerIndex: Int, halfWidth: CGFloat, anchorY: CGFloat) {
@@ -82,11 +47,8 @@ private final class AtmosphereEntity {
 
 @MainActor
 final class Atmosphere {
-    // Background palette used by the sky -> space gradient driven by camera Y.
-    // Moved out of Globals.swift as part of the Lane-E refactor — no other file
-    // referenced these.
-    private static let startColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0) // Blue
-    private static let middleColor = SKColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0) // Light white-blue
+    private static let startColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
+    private static let middleColor = SKColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0)
     private static let endColor = SKColor.black
 
     private let scene: SKScene
@@ -98,10 +60,7 @@ final class Atmosphere {
     private var layers: [AtmosphereLayer] = []
     private var entitiesByLayer: [[AtmosphereEntity]] = []
 
-    /// Camera Y at the moment update() first runs. All parallax offsets are
-    /// computed relative to this anchor so the effect never accumulates.
     private var referenceCameraY: CGFloat?
-    /// Highest Y already populated per layer. Procedural extension extends this upward.
     private var spawnedCeilingByLayer: [CGFloat] = []
 
     init(scene: SKScene, sceneHeight: CGFloat, startY: CGFloat, middleY: CGFloat, endY: CGFloat) {
@@ -120,32 +79,21 @@ final class Atmosphere {
         }
     }
 
-    // MARK: - Layer config
-
     private static func defaultLayers(sceneHeight: CGFloat, middleY: CGFloat, endY: CGFloat) -> [AtmosphereLayer] {
         let segment = 1000 * GameState.shared.metrics.scaleFactorHeight
-        // Vertical bands match the original stride semantics:
-        //   clouds/stars stride: from (segment + 500*scale) to (sceneHeight + segment), step segment
-        //     -> y slabs ⊂ [500*scale, sceneHeight + segment]
-        //   birds/planes/ufos stride: from segment to (sceneHeight - 500*scale), step segment
-        //     -> y slabs ⊂ [0, sceneHeight - 500*scale]
         let cloudBandStart: CGFloat = 500 * GameState.shared.metrics.scaleFactorHeight
         let cloudBandEnd: CGFloat = sceneHeight + segment
         let birdBandStart: CGFloat = 0
         let birdBandEnd: CGFloat = sceneHeight - 500 * GameState.shared.metrics.scaleFactorHeight
 
-        // Each (lower, upper) pair below comes from `max/min` clamps against
-        // middleY/endY/the band bounds. For short scenes (low platform), some
-        // pairs can invert (lower >= upper) which would crash ClosedRange.
-        // Skip any layer whose computed yRange is empty.
+        // Skip any layer whose computed yRange is empty — for short scenes some
+        // (lower, upper) pairs invert, which would crash ClosedRange.
         var layers: [AtmosphereLayer] = []
         func add(_ lower: CGFloat, _ upper: CGFloat, _ build: (ClosedRange<CGFloat>) -> AtmosphereLayer) {
             guard lower < upper else { return }
             layers.append(build(lower...upper))
         }
 
-        // Stars (above endY). Stationary, twinkle animation. Spawned per cloud slab,
-        // doubled to mimic the original `starMult=1` inner loop (0...starMult iterates twice).
         add(max(endY, cloudBandStart), cloudBandEnd) { range in
             AtmosphereLayer(
                 name: "stars",
@@ -169,7 +117,6 @@ final class Atmosphere {
             )
         }
 
-        // Clouds (below middleY). Random frame, drifts right.
         add(cloudBandStart, min(middleY, cloudBandEnd)) { range in
             AtmosphereLayer(
                 name: "clouds",
@@ -189,7 +136,6 @@ final class Atmosphere {
             )
         }
 
-        // Birds (below middleY). Drift left.
         add(birdBandStart, min(middleY, birdBandEnd)) { range in
             AtmosphereLayer(
                 name: "birds",
@@ -213,7 +159,6 @@ final class Atmosphere {
             )
         }
 
-        // Planes (middleY..endY). Drift left.
         add(max(middleY, birdBandStart), min(endY, birdBandEnd)) { range in
             AtmosphereLayer(
                 name: "planes",
@@ -233,7 +178,6 @@ final class Atmosphere {
             )
         }
 
-        // UFOs (above endY). Drift left.
         add(max(endY, birdBandStart), cloudBandEnd) { range in
             AtmosphereLayer(
                 name: "ufos",
@@ -256,9 +200,6 @@ final class Atmosphere {
         return layers
     }
 
-    // MARK: - Spawning
-
-    /// Generic spawn entry. Distributes `count` entities per `segmentSize` slab across `layer.yRange`.
     private func spawn(layer: AtmosphereLayer, layerIndex: Int) {
         let yRange = layer.yRange
         guard yRange.lowerBound < yRange.upperBound, layer.segmentSize > 0 else { return }
@@ -281,7 +222,6 @@ final class Atmosphere {
         }
     }
 
-    /// Spawn a single entity at the given Y. Shared by initial spawn and (later) procedural extension.
     private func spawnEntity(in layer: AtmosphereLayer, layerIndex: Int, atY yPos: CGFloat) {
         let xLow = -layer.xPadding
         let xHigh = GameState.shared.metrics.width + layer.xPadding
@@ -353,8 +293,6 @@ final class Atmosphere {
         }
     }
 
-    // MARK: - Update / recycle
-
     func update() {
         let cameraY = scene.camera?.position.y ?? referenceCameraY ?? 0
         if referenceCameraY == nil {
@@ -363,11 +301,6 @@ final class Atmosphere {
         let cameraDelta = cameraY - referenceCameraY!
 
         for (layerIndex, layer) in layers.enumerated() {
-            // Anchored parallax: each entity's visible Y is anchor + cameraDelta * tracking,
-            // then WRAPPED modulo the layer's band height. Wrapping (instead of clamping)
-            // keeps entities evenly distributed during long dives — no pile-up at the
-            // band edge, and the layer reads as a continuous "river" of objects flowing
-            // past the camera.
             let trackingFactor = 1.0 - layer.parallaxFactor
             let offset = cameraDelta * trackingFactor
 
@@ -376,14 +309,10 @@ final class Atmosphere {
                 recycle(entity: entity, layer: layer, offset: offset)
             }
 
-            // Procedural extension: as camera nears top of populated band, push the
-            // ceiling upward by one segment so high-altitude layers keep populated.
             extendIfNeeded(layerIndex: layerIndex, layer: layer, cameraY: cameraY)
         }
     }
 
-    /// Wrap `y` into `range` using modulo so values cycle through the band rather
-    /// than pile up at its edges. Returns `range.lowerBound` if the band has zero height.
     private static func wrap(_ y: CGFloat, in range: ClosedRange<CGFloat>) -> CGFloat {
         let height = range.upperBound - range.lowerBound
         guard height > 0 else { return range.lowerBound }
@@ -392,12 +321,9 @@ final class Atmosphere {
         return range.lowerBound + (r < 0 ? r + height : r)
     }
 
-    /// When camera approaches `spawnedCeilingByLayer[i]`, spawn (or recycle) a new
-    /// segment-sized batch above it. Hard cap honoured per `layer.maxCount`.
     private func extendIfNeeded(layerIndex: Int, layer: AtmosphereLayer, cameraY: CGFloat) {
         guard layer.extendsUpward else { return }
         let ceiling = spawnedCeilingByLayer[layerIndex]
-        // Trigger when camera is within ~1.5 screen heights of the ceiling.
         guard cameraY + GameState.shared.metrics.height * 1.5 >= ceiling else { return }
 
         let newSlabBottom = ceiling
@@ -405,20 +331,18 @@ final class Atmosphere {
         let count = Int.random(in: layer.countRange)
 
         if entitiesByLayer[layerIndex].count < layer.maxCount {
-            // Headroom: spawn a fresh batch above the existing ceiling.
             for _ in 0..<count {
                 if entitiesByLayer[layerIndex].count >= layer.maxCount { break }
                 let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
                 spawnEntity(in: layer, layerIndex: layerIndex, atY: yPos)
             }
         } else {
-            // Cap reached: recycle the lowest entities upward into the new slab.
             let sortedByY = entitiesByLayer[layerIndex].sorted { $0.node.position.y < $1.node.position.y }
             let toRecycle = min(count, sortedByY.count)
             var recycled = 0
             for entity in sortedByY {
                 if recycled >= toRecycle { break }
-                if entity.node.position.y >= newSlabBottom { break } // already high enough
+                if entity.node.position.y >= newSlabBottom { break }
                 let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
                 let xLow = -layer.xPadding
                 let xHigh = GameState.shared.metrics.width + layer.xPadding
@@ -431,9 +355,6 @@ final class Atmosphere {
         spawnedCeilingByLayer[layerIndex] = newSlabTop
     }
 
-    /// Wrap entity horizontally based on its layer motion, or do nothing for stationary layers.
-    /// `offset` is the current parallax offset for this layer; we use it to place the recycled
-    /// entity so it appears in the right visual spot immediately rather than snapping next frame.
     private func recycle(entity: AtmosphereEntity, layer: AtmosphereLayer, offset: CGFloat) {
         let node = entity.node
 
@@ -461,28 +382,22 @@ final class Atmosphere {
     }
 
     func updateBackgroundColor(for cameraY: CGFloat) {
-        // Determine the current color based on camera y position
         let color: SKColor
         if cameraY <= startY {
             color = Atmosphere.startColor
         } else if cameraY <= middleY {
-            // Interpolate between startColor and middleColor
             let t = (cameraY - startY) / (middleY - startY)
             color = Atmosphere.interpolateColor(from: Atmosphere.startColor, to: Atmosphere.middleColor, fraction: t)
         } else if cameraY <= endY {
-            // Interpolate between middleColor and endColor
             let t = (cameraY - middleY) / (endY - middleY)
             color = Atmosphere.interpolateColor(from: Atmosphere.middleColor, to: Atmosphere.endColor, fraction: t)
         } else {
             color = Atmosphere.endColor
         }
 
-        // Set the background color
         self.scene.backgroundColor = color
     }
 
-    /// SIMD-based linear color interpolation. Replaces the previous version which
-    /// allocated 8 CGFloat outparams per call. Static — no instance state used.
     static func interpolateColor(from color1: SKColor, to color2: SKColor, fraction: CGFloat) -> SKColor {
         let t = Float(max(0, min(1, fraction)))
         let a = simdComponents(color1)
@@ -494,7 +409,6 @@ final class Atmosphere {
                        alpha: CGFloat(mixed.w))
     }
 
-    /// Extract RGBA components into a SIMD4<Float>. Hot path — kept tiny.
     private static func simdComponents(_ color: SKColor) -> SIMD4<Float> {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         color.getRed(&r, green: &g, blue: &b, alpha: &a)

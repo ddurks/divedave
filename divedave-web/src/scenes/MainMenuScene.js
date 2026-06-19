@@ -1,7 +1,3 @@
-// Mirrors divedave-ios/divedave Shared/Scenes/MainMenuScene.swift.
-// Phase 0 verbatim move from divedave.js (renamed from MainMenu →
-// MainMenuScene to match the iOS file name).
-
 import { HEIGHT, WIDTH } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
 import { Haptics } from "../util/Haptics.js";

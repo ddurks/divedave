@@ -1,10 +1,3 @@
-// Mirrors divedave-ios/divedave Shared/Util/Haptics.swift. The web has
-// no UIImpactFeedbackGenerator; we use navigator.vibrate where it
-// exists (Chrome/Android) and silently no-op elsewhere (iOS Safari).
-//
-// Patterns are picked to roughly match the *intent* of each iOS
-// generator, not its exact tactile profile.
-
 function buzz(pattern) {
   if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
     navigator.vibrate(pattern);
