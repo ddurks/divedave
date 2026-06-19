@@ -101,9 +101,12 @@ final class ControlButton: SKNode {
         onReleased?()
         
         if case .staticSprite(let textureName) = spriteType, textureName == "controls-jump" {
-            jumpReleasedAt = Date()
+            // CACurrentMediaTime is a monotonic clock — immune to system clock changes
+            // and faster than allocating a Date(). The companion read site in
+            // DiveScene compares this against landedAt (also CACurrentMediaTime).
+            GameState.shared.jumpReleasedAt = CACurrentMediaTime()
             Haptics.impact(.medium)
-            logger.debug("jumpReleasedAt: \(String(describing: jumpReleasedAt))")
+            logger.debug("jumpReleasedAt: \(GameState.shared.jumpReleasedAt)")
         }
     }
     

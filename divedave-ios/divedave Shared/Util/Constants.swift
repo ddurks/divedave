@@ -59,7 +59,3 @@ enum Game {
     static let customYellow = SKColor(red: 255/255, green: 255/255, blue: 0/255, alpha: 1.0)
 }
 
-// MARK: - Legacy aliases (kept for Globals.swift, owned by a separate lane)
-
-let DEFAULT_WIDTH = Game.defaultWidth
-let DEFAULT_HEIGHT = Game.defaultHeight
