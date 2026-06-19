@@ -197,7 +197,7 @@ final class Atmosphere {
                                       frameWidth: 128, frameHeight: 128,
                                       animationName: "fly",
                                       frameIndices: [0, 0, 0, 0, 1, 2, 3, 4, 3, 2, 1],
-                                      timePerFrame: 0.83),
+                                      timePerFrame: 0.083),
                 motion: .driftLeft(minSpeed: Game.birdMinSpeed, maxSpeed: Game.birdMaxSpeed),
                 countRange: Game.minBirds...Game.maxBirds,
                 yRange: range,

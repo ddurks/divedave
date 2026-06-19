@@ -35,10 +35,20 @@ final class RotationTracker {
 
     // MARK: - Reset
 
-    /// Zero rotation accumulators. Called whenever Dave returns to / is above the board.
+    /// Reset all per-dive-attempt state — rotation accumulators AND tuck state.
+    /// Called whenever Dave returns to / is above the board, so each bounce starts
+    /// a fresh dive attempt. Without resetting tuckCount/tucked here, a re-bounce
+    /// would carry the previous attempt's tucks into scoring, subtracting
+    /// `(tuckCount - 1)` from each judge's score even though the new attempt only
+    /// tucked once.
     func reset() {
         sumRotation = 0
         totalRotations = 0
+        previousAngle = 0
+        currentAngle = 0
+        lastFlipNumber = 0
+        tuckCount = 0
+        tucked = false
     }
 
     /// Drop out of tuck and reset spin velocity to idle. Called when no spin button is held.
