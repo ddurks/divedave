@@ -23,6 +23,16 @@ final class ControlButton: SKNode {
     private var scale: CGFloat = 1
     private var spriteType: SpriteType
     private var spriteNode: SKNode
+
+    /// True when the button renders at full opacity. `setEnabled(false)`
+    /// greys it out visually. Touch tracking stays active either way so
+    /// `isDown` remains accurate across enable/disable flips — that's what
+    /// preserves the hold-jump-to-bounce pattern: the player can keep their
+    /// finger down through `.launching` / `.airborne` (button greyed), and
+    /// when the state returns to `.grounded` (button un-greys) the still-
+    /// true `isDown` flag fires the next jump on the next frame.
+    /// Functional gating lives in the state-machine switch in DiveScene.
+    private(set) var isEnabled = true
     
     init(x: CGFloat, y: CGFloat, spriteType: SpriteType, scale: CGFloat) {
         self.scale = scale
@@ -123,5 +133,13 @@ final class ControlButton: SKNode {
     func stopAnimation() {
         guard let animatedSprite = spriteNode as? AnimatedSprite else { return }
         animatedSprite.stopAnimation()
+    }
+
+    /// Toggle the greyed-out visual. See `isEnabled` for why we don't gate
+    /// touch handling here.
+    func setEnabled(_ enabled: Bool) {
+        guard isEnabled != enabled else { return }
+        isEnabled = enabled
+        alpha = enabled ? 1.0 : 0.4
     }
 }

@@ -83,19 +83,31 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         let diveHeight = (GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight)
         let time = approximateFallTime(from: diveHeight, to: waterLevel, gravity: Game.gravity) / 10
         
-        // Calculate maximum number of flips based on the total rotation in radians
+        // Maximum number of half-flips this dive's height affords.
         let totalRotation = time * (Game.maxSpinVelocity * 0.70)
         let maxFlips = totalRotation / (2 * Double.pi)
-        
-        // Generate a random goal rotation value in terms of half rotations
         let halfFlips = Int(maxFlips * 2)
-        let randomHalfFlips = Double(Int.random(in: 1...halfFlips)) / 2.0
-        
-        // Set goal rotations to the selected half-flip value
+
+        // Guard: very short dives may not afford any rotation.
+        guard halfFlips >= 1 else {
+            goalRotations = 0.5
+            hud.setGoalFlips(flips: goalRotations)
+            return
+        }
+
+        // Goal-difficulty ramp: floor of the random range scales with streak.
+        // Early dives can ask for as little as half a rotation; by streak ~21
+        // the player is reliably asked for at least 70% of the height-afforded
+        // max. Cap at 0.7 so there's always a small bit of randomness.
+        let streak = GameState.shared.streak
+        let streakFactor = min(0.7, Double(streak) / 30.0)
+        let minHalfFlips = max(1, min(halfFlips, Int(Double(halfFlips) * streakFactor)))
+        let randomHalfFlips = Double(Int.random(in: minHalfFlips...halfFlips)) / 2.0
+
         goalRotations = randomHalfFlips
         hud.setGoalFlips(flips: goalRotations)
-        
-        logger.debug("DiveHeight: \(diveHeight), Time (approximated): \(time), Total Rotation (radians): \(totalRotation), Max Flips: \(maxFlips), Half-Flips (integer): \(halfFlips), Random Half-Flips: \(randomHalfFlips), Goal Rotations: \(self.goalRotations)")
+
+        logger.debug("DiveHeight: \(diveHeight), Time: \(time), Total Rotation: \(totalRotation), Max Flips: \(maxFlips), Half-Flips: \(halfFlips), Streak: \(streak), Min Half-Flips: \(minHalfFlips), Goal Rotations: \(self.goalRotations)")
     }
 
     func setupScene() {
@@ -275,30 +287,51 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     
     func didBegin(_ contact: SKPhysicsContact) {
         let bodies = (contact.bodyA.categoryBitMask, contact.bodyB.categoryBitMask)
-        
-        // Check if the contact is between `dave` and `springboard`
-        if (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
-           (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
-            Haptics.impact(.light)
-            boardContact.didBegin(daveDidContactBoard: true)
-            if davePlayer.landedAt == 0 {
-                davePlayer.landedAt = CACurrentMediaTime()
-                dave.playAnimation(name: "idle")
-                logger.debug("LANDED AT \(self.davePlayer.landedAt)")
-                pulseSpringboardBoostWindow()
+        let isDaveBoard =
+            (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
+            (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue))
+        guard isDaveBoard else { return }
 
-                // Input buffer: if the player released the jump button SHORTLY
-                // BEFORE landing (within ~175 ms — same as the OK window), fire
-                // the jump automatically. Makes "tap slightly early" launch you
-                // instead of being swallowed because the button wasn't held on
-                // landing.
-                let timeSinceRelease = (davePlayer.landedAt - GameState.shared.jumpReleasedAt) * 1000
-                if GameState.shared.jumpReleasedAt > 0,
-                   timeSinceRelease > 0,
-                   timeSinceRelease < 175 {
-                    triggerJump()
-                }
-            }
+        Haptics.impact(.light)
+        boardContact.didBegin(daveDidContactBoard: true)
+
+        // Only the .airborne state is eligible for a landing. Once Dave has
+        // committed to a dive (.diving), board collision is disabled at the
+        // physics level so this branch shouldn't even fire — the guard is
+        // belt + suspenders. Also requires a clean-landing-shaped body
+        // (not actively launching upward, not spinning fast); otherwise it's
+        // a board bonk and we ignore it.
+        guard davePlayer.state == .airborne, davePlayer.isCleanLanding() else { return }
+
+        guard davePlayer.transition(to: .grounded) else { return }
+        handleLanded()
+    }
+
+    /// Side effects of a successful landing: snap rotation/spin to a known
+    /// pose, reset per-attempt accumulators, mark landedAt, play the idle
+    /// animation, fire the boost-window pulse, and honor the early-release
+    /// jump input buffer.
+    private func handleLanded() {
+        dave.zRotation = 0
+        dave.physicsBody?.angularVelocity = 0
+
+        // Fresh dive attempt: clear in-flight rotation accumulators + tuck count.
+        rotationTracker.reset()
+
+        davePlayer.landedAt = CACurrentMediaTime()
+        dave.playAnimation(name: "idle")
+        logger.debug("LANDED AT \(self.davePlayer.landedAt)")
+        pulseSpringboardBoostWindow()
+
+        // Input buffer: if the player released the jump button SHORTLY BEFORE
+        // landing (within ~175 ms — same as the OK window), fire the jump
+        // automatically. Makes "tap slightly early" launch you instead of being
+        // swallowed because the button wasn't held on landing.
+        let timeSinceRelease = (davePlayer.landedAt - GameState.shared.jumpReleasedAt) * 1000
+        if GameState.shared.jumpReleasedAt > 0,
+           timeSinceRelease > 0,
+           timeSinceRelease < 175 {
+            triggerJump()
         }
     }
 
@@ -340,10 +373,18 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     
     func didEnd(_ contact: SKPhysicsContact) {
         let bodies = (contact.bodyA.categoryBitMask, contact.bodyB.categoryBitMask)
-        
-        if (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
-           (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
-                boardContact.didEnd(daveDidContactBoard: true)
+        let isDaveBoard =
+            (bodies == (PhysicsCategory.dave.rawValue, PhysicsCategory.springboard.rawValue)) ||
+            (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue))
+        guard isDaveBoard else { return }
+
+        boardContact.didEnd(daveDidContactBoard: true)
+
+        // Leaving the board while grounded = walked off the edge or got bumped
+        // off. The launching → airborne transition is owned by DavePlayer.jump,
+        // so only handle the grounded case here.
+        if davePlayer.state == .grounded {
+            davePlayer.transition(to: .airborne)
         }
     }
     
@@ -395,81 +436,87 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     
-    func daveIsAboveBoard(tolerance: CGFloat = 1.0) -> Bool {
-        guard let dave = dave else { return false }
-        let result = BoardContact.isAbove(dave: dave, board: springboard, tolerance: tolerance)
-        if result {
-            rotationTracker.reset()
-        }
-        return result
-    }
-
-    func daveIsTucked() -> Bool {
-        return davePlayer.daveIsTucked(rotationTrackerTucked: rotationTracker.tucked)
-    }
-
     func playerHandler() {
         guard davePlayer != nil else { return }
 
         davePlayer.applyDamping()
         checkForReset()
-        if !davePlayer.jumping {
+        if davePlayer.state != .launching {
             playerMobileMovementHandler()
-            davePlayer.updateFrame(
-                aboveBoard: daveIsAboveBoard(),
-                isTouching: boardContact.isTouching,
-                tucked: rotationTracker.tucked
-            )
+            davePlayer.updateFrame(tucked: rotationTracker.tucked)
         }
     }
 
 
     func playerMobileMovementHandler() {
         if !diveComplete {
-            if daveIsAboveBoard() {
-                hud?.jumpControls()
-            } else {
-                hud?.flipControls()
-            }
+            // Visual button-enabled state mirrors the state machine. Jump
+            // stays enabled through .airborne so the early-release buffer in
+            // `handleLanded` (which fires triggerJump when jumpReleasedAt is
+            // within ~175ms of landing) has a visually-tappable target —
+            // without that, well-timed early taps land on a greyed button
+            // and feel like the input was eaten. Once the player commits to
+            // a dive (.diving), jump greys out for the rest of the attempt.
+            let jumpEnabled = davePlayer.state == .grounded || davePlayer.state == .airborne
+            let flipEnabled = davePlayer.state == .airborne || davePlayer.state == .diving
+            hud?.updateButtons(jumpEnabled: jumpEnabled, flipEnabled: flipEnabled)
         }
-        
-        // Check mobile control button states and handle movement
-        if hud?.leftButton.isDown == true || hud?.rightButton.isDown == true ||
-           hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true {
-            
-            if !diveComplete {
-                if hud?.leftButton.isDown == true {
-                    dave.physicsBody?.velocity.dx = -Game.daveSpeed
-                    
-                }
-                if hud?.rightButton.isDown == true {
-                    dave.physicsBody?.velocity.dx = Game.daveSpeed
-                }
-                if daveIsAboveBoard() {
-                    if hud?.jumpButton.isDown == true && boardContact.isTouching {
-                        triggerJump()
-                    }
-                } else if (hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true) {
-                    if !daveIsTucked() {
-                        rotationTracker.beginTuck()
-                    } else {
-                        rotationTracker.incrementSpin()
-                    }
-                    dave.physicsBody?.angularVelocity = -rotationTracker.currentVelocity
-                }
-            }
-        } else {
+
+        let anyDown = hud?.leftButton.isDown == true || hud?.rightButton.isDown == true ||
+                      hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true
+
+        guard anyDown else {
             rotationTracker.resetTuck()
+            return
+        }
+        guard !diveComplete else { return }
+
+        if hud?.leftButton.isDown == true {
+            dave.physicsBody?.velocity.dx = -Game.daveSpeed
+        }
+        if hud?.rightButton.isDown == true {
+            dave.physicsBody?.velocity.dx = Game.daveSpeed
+        }
+
+        switch davePlayer.state {
+        case .grounded:
+            if hud?.jumpButton.isDown == true && boardContact.isTouching {
+                triggerJump()
+            }
+        case .airborne, .diving:
+            // Flip is the commit-to-dive input. Pressing it any time Dave is
+            // airborne — even still over the board — transitions to .diving,
+            // which fires `didEnter(.diving)` to zero the board collision
+            // masks. From there Dave passes through the board on the way down
+            // and the jump button stays greyed for the rest of the attempt.
+            // The functional input gate is the state-machine switch itself;
+            // the greyed visual on jumpButton matches the gate.
+            if hud?.flipButton.isDown == true {
+                if rotationTracker.tucked {
+                    rotationTracker.incrementSpin()
+                } else {
+                    rotationTracker.beginTuck()
+                    if davePlayer.state == .airborne {
+                        davePlayer.transition(to: .diving)
+                    }
+                }
+                dave.physicsBody?.angularVelocity = -rotationTracker.currentVelocity
+            }
+        case .launching, .splashed:
+            break
         }
     }
-    
+
     func checkForReset() {
-        // Ensure dive is not already marked as complete
-        if !diveComplete && !daveIsAboveBoard() {
-            // Check if Dave has reached the water level
-            if dave.position.y < waterLevel {
-                Haptics.impact(.heavy)
-                diveComplete = true
+        guard !diveComplete else { return }
+        // Only the airborne/diving states are eligible for water-hit + rotation counting.
+        // Grounded/launching means we're still on the board; splashed means we already fired.
+        guard davePlayer.state == .airborne || davePlayer.state == .diving else { return }
+
+        if dave.position.y < waterLevel {
+            davePlayer.transition(to: .splashed)
+            Haptics.impact(.heavy)
+            diveComplete = true
                 splash.position = CGPoint(x: dave.position.x, y: waterLevel + 100*GameState.shared.metrics.scaleFactorHeight)
                 splash.isHidden = false
                 splash.playAnimation(name: "splash") {
@@ -482,7 +529,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 // Calculate height, angle, and other stats
                 GameState.shared.stats.height = calculateHeightFromWater()
                 GameState.shared.stats.angle = round(dave.zRotation * (180.0 / .pi) * 10.0) / 10
-                GameState.shared.stats.tucked = daveIsTucked()
+                GameState.shared.stats.tucked = rotationTracker.tucked
                 GameState.shared.stats.tuckCount = rotationTracker.tuckCount
                 GameState.shared.stats.rotations = round(rotationTracker.totalRotations * 10) / 10
 
@@ -517,13 +564,12 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                         self.climbdave.isHidden = false
                     }
                 }
-            }
-            
-            // Track rotations while in the air
-            countRotations()
         }
+
+        // Track rotations while in the air.
+        countRotations()
     }
-    
+
     func calculateHeightFromWater() -> Double {
         return DiveScorer.heightInMeters(
             springboardY: springboard.position.y,

@@ -17,6 +17,16 @@ final class AnimatedSprite: SKSpriteNode {
         let repeatForever: Bool
     }
 
+    /// Shared SKAction key for every animation this sprite plays. Using one
+    /// key (instead of the animation name) means each new `playAnimation`
+    /// call REPLACES the previous animation's action via `run(_:withKey:)`
+    /// instead of stacking a second action that fights the first over the
+    /// `texture` property each frame — which was the cause of the Dave-
+    /// jitters-between-idle-and-jump bug. Non-animation actions on the
+    /// same sprite (e.g. the springboard's `boostWindowPulse`) use their
+    /// own keys and are unaffected.
+    private static let animationKey = "animation"
+
     public var frames: [SKTexture] = []
     private var animations: [String: AnimationConfig] = [:]
     public private(set) var currentAnimation: String?
@@ -104,7 +114,7 @@ final class AnimatedSprite: SKSpriteNode {
             action = delay > 0 ? SKAction.sequence([waitAction, animationAction, completionAction]) : SKAction.sequence([animationAction, completionAction])
         }
 
-        self.run(action, withKey: name)
+        self.run(action, withKey: Self.animationKey)
     }
 
     // Backwards-compatible overload that accepts (and ignores) explicit timing

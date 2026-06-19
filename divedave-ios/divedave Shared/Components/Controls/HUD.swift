@@ -24,23 +24,25 @@ final class HUD {
     @MainActor
     init(view: SKView, camera: SKCameraNode, sceneSize: CGSize, scaleFactorHeight: CGFloat) {
         // Position controls relative to the camera node (origin at camera center)
-        let buttonY = -sceneSize.height * 0.425  // Offset from camera's center toward the bottom
+        let jumpButtonY = -sceneSize.height * 0.425  // Bottom-right column
         let buttonScale = 0.65 * scaleFactorHeight
+
+        // Stack flip directly above jump. 512 = button texture native size.
+        // Add a small gap so the two buttons read as separate hit targets.
+        let scaledButtonHeight = 512 * buttonScale
+        let flipButtonY = jumpButtonY + scaledButtonHeight + 10
 
         // Dynamic x-positions as offsets from the camera’s center
         let leftButtonX = -sceneSize.width * 0.35
         let rightButtonX = -sceneSize.width * 0.1
         let jumpButtonX = sceneSize.width * 0.35
-        let flipButtonX = jumpButtonX  // Same as jump button, initially hidden
-        
+        let flipButtonX = jumpButtonX  // Same x as jump; stacked vertically.
+
         // Initialize buttons with updated relative positions
-        leftButton = ControlButton(x: leftButtonX, y: buttonY, spriteType: .staticSprite(textureName: "controls-left"), scale: buttonScale)
-        rightButton = ControlButton(x: rightButtonX, y: buttonY, spriteType: .staticSprite(textureName: "controls-right"), scale: buttonScale)
-        jumpButton = ControlButton(x: jumpButtonX, y: buttonY, spriteType: .staticSprite(textureName: "controls-jump"), scale: buttonScale)
-        flipButton = ControlButton(x: flipButtonX, y: buttonY, spriteType: .staticSprite(textureName: "controls-flip"), scale: buttonScale)
-        
-        // Initially hide the flip button
-        flipButton.isHidden = true
+        leftButton = ControlButton(x: leftButtonX, y: jumpButtonY, spriteType: .staticSprite(textureName: "controls-left"), scale: buttonScale)
+        rightButton = ControlButton(x: rightButtonX, y: jumpButtonY, spriteType: .staticSprite(textureName: "controls-right"), scale: buttonScale)
+        jumpButton = ControlButton(x: jumpButtonX, y: jumpButtonY, spriteType: .staticSprite(textureName: "controls-jump"), scale: buttonScale)
+        flipButton = ControlButton(x: flipButtonX, y: flipButtonY, spriteType: .staticSprite(textureName: "controls-flip"), scale: buttonScale)
         
         // Add buttons to the camera so they stay fixed
         camera.addChild(leftButton)
@@ -126,14 +128,12 @@ final class HUD {
         flipButton.isHidden = !visible
     }
     
-    func jumpControls() {
-        jumpButton.isHidden = false
-        flipButton.isHidden = true
-    }
-    
-    func flipControls() {
-        flipButton.isHidden = false
-        jumpButton.isHidden = true
+    /// Drive the visual enabled/disabled state of the jump and flip buttons
+    /// from the caller's input-eligibility logic. Both buttons remain visible
+    /// at all times; the disabled one greys out.
+    func updateButtons(jumpEnabled: Bool, flipEnabled: Bool) {
+        jumpButton.setEnabled(jumpEnabled)
+        flipButton.setEnabled(flipEnabled)
     }
 }
 
