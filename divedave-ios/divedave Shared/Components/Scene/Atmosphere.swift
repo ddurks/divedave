@@ -82,6 +82,13 @@ private final class AtmosphereEntity {
 
 @MainActor
 final class Atmosphere {
+    // Background palette used by the sky -> space gradient driven by camera Y.
+    // Moved out of Globals.swift as part of the Lane-E refactor — no other file
+    // referenced these.
+    private static let startColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0) // Blue
+    private static let middleColor = SKColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0) // Light white-blue
+    private static let endColor = SKColor.black
+
     private let scene: SKScene
     private let sceneHeight: CGFloat
     private let startY: CGFloat
@@ -457,17 +464,17 @@ final class Atmosphere {
         // Determine the current color based on camera y position
         let color: SKColor
         if cameraY <= startY {
-            color = startColor
+            color = Atmosphere.startColor
         } else if cameraY <= middleY {
             // Interpolate between startColor and middleColor
             let t = (cameraY - startY) / (middleY - startY)
-            color = Atmosphere.interpolateColor(from: startColor, to: middleColor, fraction: t)
+            color = Atmosphere.interpolateColor(from: Atmosphere.startColor, to: Atmosphere.middleColor, fraction: t)
         } else if cameraY <= endY {
             // Interpolate between middleColor and endColor
             let t = (cameraY - middleY) / (endY - middleY)
-            color = Atmosphere.interpolateColor(from: middleColor, to: endColor, fraction: t)
+            color = Atmosphere.interpolateColor(from: Atmosphere.middleColor, to: Atmosphere.endColor, fraction: t)
         } else {
-            color = endColor
+            color = Atmosphere.endColor
         }
 
         // Set the background color
