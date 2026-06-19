@@ -1,12 +1,16 @@
 // Mirrors divedave-ios/divedave Shared/Components/Menu/InfoPanel.swift.
 // Post-dive result overlay: SUCCESS/FAILED text, dave-emotion frame,
-// three judge scores, and a tap-to-restart prompt.
-//
-// Phase 0 is a verbatim move out of divedave.js. Phase 4 will add the
-// staggered judge reveal + haptic beats from iOS commit 28a9b52.
+// three judge scores, and a tap-to-restart prompt. When scores are
+// present, each judge sign + number reveals with a 400 ms beat, a
+// scale-punch, and a medium haptic — classic diving-game tension build.
 
 import { HEIGHT, WIDTH } from "../../util/Constants.js";
+import { Haptics } from "../../util/Haptics.js";
 import { IS_MOBILE } from "../../util/Utilities.js";
+
+// Beat between reveals, ms. Matches iOS SKAction.wait(0.4).
+const REVEAL_BEAT_MS = 400;
+const REVEAL_TWEEN_MS = 200;
 
 export class InfoPanel extends Phaser.GameObjects.Group {
   constructor(scene, depth) {
@@ -85,25 +89,80 @@ export class InfoPanel extends Phaser.GameObjects.Group {
         .setScrollFactor(0);
       height += 75;
     });
-    let width = WIDTH / 2 - 275;
-    if (scores) {
-      scores.forEach((score) => {
-        scene.add
-          .bitmapText(width, HEIGHT / 2 + 325, "red-arial", score, 100)
-          .setOrigin(0.5)
-          .setDepth(this.baseDepth + 3)
-          .setScrollFactor(0);
-        width += 275;
-      });
-    }
-    this.tryAgain.setPosition(WIDTH / 2, sceneHeight - 100);
-    this.tryAgain.setVisible(!!scores);
+
     this.panel.setVisible(true);
     this.daveimage.setFrame(frame);
     this.daveimage.setVisible(true);
-    this.score1.setVisible(!!scores);
-    this.score2.setVisible(!!scores);
-    this.score3.setVisible(!!scores);
+    this.tryAgain.setPosition(WIDTH / 2, sceneHeight - 100);
+
+    if (!scores) {
+      // GAME OVER / FAILED DIVE with no judge scores — keep signs and
+      // tryAgain hidden (matches iOS).
+      this.score1.setVisible(false);
+      this.score2.setVisible(false);
+      this.score3.setVisible(false);
+      this.tryAgain.setVisible(false);
+      return;
+    }
+
+    // Build number labels for each judge — start invisible, revealed
+    // in sequence below. Holding them in locals (not on `this`) is
+    // fine since scene.restart() cleans the whole graph.
+    const signs = [this.score1, this.score2, this.score3];
+    const numberLabels = scores.map((score, i) =>
+      scene.add
+        .bitmapText(
+          WIDTH / 2 - 275 + i * 275,
+          HEIGHT / 2 + 325,
+          "red-arial",
+          score,
+          100
+        )
+        .setOrigin(0.5)
+        .setDepth(this.baseDepth + 3)
+        .setScrollFactor(0)
+        .setAlpha(0)
+        .setScale(0.3)
+    );
+
+    signs.forEach((sign) => {
+      sign.setVisible(true).setAlpha(0).setScale(0.3);
+    });
+    this.tryAgain.setVisible(true).setAlpha(0);
+
+    // Sequential reveal. Use a single boolean guarded by the panel's
+    // visible state so a tap-to-restart that fires mid-sequence
+    // doesn't tween-into-destroyed sprites.
+    const isStillValid = (obj) => obj && obj.active;
+
+    scores.forEach((_score, idx) => {
+      scene.time.delayedCall(REVEAL_BEAT_MS * (idx + 1), () => {
+        if (!isStillValid(signs[idx]) || !isStillValid(numberLabels[idx])) {
+          return;
+        }
+        Haptics.impactMedium();
+        scene.tweens.add({
+          targets: [signs[idx], numberLabels[idx]],
+          alpha: 1,
+          scaleX: { from: 0.3, to: 1.0 },
+          scaleY: { from: 0.3, to: 1.0 },
+          ease: "Back.easeOut",
+          duration: REVEAL_TWEEN_MS,
+        });
+      });
+    });
+
+    // After the last judge reveal, fade in the "tap to dive again"
+    // prompt. Lives a beat after the last score so it doesn't compete
+    // with the haptic moment.
+    scene.time.delayedCall(REVEAL_BEAT_MS * (scores.length + 1), () => {
+      if (!isStillValid(this.tryAgain)) return;
+      scene.tweens.add({
+        targets: this.tryAgain,
+        alpha: 1,
+        duration: REVEAL_TWEEN_MS,
+      });
+    });
   }
 
   close() {
@@ -111,7 +170,7 @@ export class InfoPanel extends Phaser.GameObjects.Group {
     this.panel.setVisible(false);
     this.daveimage.setVisible(false);
     this.score1.setVisible(false);
-    this.score2.setVisible(true);
-    this.score3.setVisible(true);
+    this.score2.setVisible(false);
+    this.score3.setVisible(false);
   }
 }
