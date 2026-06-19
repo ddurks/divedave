@@ -24,15 +24,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var readyForReset = false
     var hud: HUD!
     var waterLevel: CGFloat = 0
-    var jumping = false
     var diveComplete = false
-    /// Monotonic timestamp (CACurrentMediaTime) at which Dave most recently
-    /// landed on the springboard. `0` = never. Compared against
-    /// `GameState.shared.jumpReleasedAt` to score the jump's quickness.
-    var landedAt: CFTimeInterval = 0
-    var boost: CGFloat = 0
     var springboard: AnimatedSprite!
-    var dave: AnimatedSprite!
+    /// Forwards to `davePlayer.dave` so the many existing references can stay short.
+    var dave: AnimatedSprite! { davePlayer?.dave }
     var water: AnimatedSprite!
     var splash: AnimatedSprite!
     var climbdave: AnimatedSprite!
@@ -44,6 +39,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     var highScorePanel: InfoPanel!
     private var atmosphere: Atmosphere!
     private var cameraController: CameraController!
+    private var davePlayer: DavePlayer!
     private let boardContact = BoardContact()
     private let rotationTracker = RotationTracker()
     
@@ -64,7 +60,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         setupInfoPanels()
         setupSpringboard()
         setupHeightLabels()
-        setupDave()
+        davePlayer = DavePlayer(scene: self, springboard: springboard)
         setupSplash()
         calculateGameLogic()
         atmosphere = Atmosphere(scene: self, sceneHeight: GameState.shared.sceneHeight, startY: gettingoutdave.size.height, middleY: GameState.shared.metrics.height * 2, endY: GameState.shared.metrics.height * 4)
@@ -227,41 +223,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         self.view?.presentScene(newScene, transition: SKTransition.fade(withDuration: 0.5))
     }
     
-    func setupDave() {
-        // Initialize dave as an AnimatedSprite with the spritesheet, frame size, and scaling factor
-        dave = AnimatedSprite(spritesheetName: "divedave-spritesheet-extruded",
-                              frameWidth: Game.defaultDaveHeight,
-                              frameHeight: Game.defaultDaveHeight,
-                              margin: 1,
-                              spacing: 2,
-                              scale: GameState.shared.metrics.scaleFactorHeight)
-        
-        // Position and layer `dave`
-        dave.position = CGPoint(x: GameState.shared.metrics.width / 4, y: springboard.position.y + 100)
-        dave.zPosition = 5
-        
-        // Add physics body to `dave`
-        dave.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: dave.size.width/4, height: dave.size.height))
-        dave.physicsBody?.isDynamic = true
-        dave.physicsBody?.mass = Game.daveMass
-        dave.physicsBody?.affectedByGravity = true          // Enable gravity
-        dave.physicsBody?.restitution = 0.0                 // Prevent bouncing
-        dave.physicsBody?.friction = 0.0                    // Prevent friction against surfaces
-        
-        dave.physicsBody?.categoryBitMask = PhysicsCategory.dave.rawValue
-        dave.physicsBody?.contactTestBitMask = PhysicsCategory.springboard.rawValue
-        dave.physicsBody?.collisionBitMask = PhysicsCategory.springboard.rawValue
-        
-        // Add `dave` to the scene
-        addChild(dave)
-        
-        // Define animations for `dave`
-        dave.defineAnimation(name: "idle", frameIndices: [18, 18, 18, 18, 18, 19, 20, 21], timePerFrame: 0.125)
-        dave.defineAnimation(name: "walkRight", frameIndices: [2, 3, 2, 4], timePerFrame: 0.166)
-        dave.defineAnimation(name: "walkLeft", frameIndices: [11, 12, 11, 13], timePerFrame: 0.166)
-        dave.defineAnimation(name: "jump", frameIndices: [5, 5, 6], timePerFrame: 0.1, repeatForever: false)
-    }
-    
     func setupClimbDave(x: CGFloat, y: CGFloat) {
         climbdave = AnimatedSprite(spritesheetName: "climbdave",
                               frameWidth: Game.defaultDaveHeight,
@@ -320,10 +281,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
            (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
             Haptics.impact(.light)
             boardContact.didBegin(daveDidContactBoard: true)
-            if landedAt == 0 {
-                landedAt = CACurrentMediaTime()
+            if davePlayer.landedAt == 0 {
+                davePlayer.landedAt = CACurrentMediaTime()
                 dave.playAnimation(name: "idle")
-                logger.debug("LANDED AT \(self.landedAt)")
+                logger.debug("LANDED AT \(self.davePlayer.landedAt)")
             }
         }
     }
@@ -395,127 +356,25 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func daveIsTucked() -> Bool {
-        if rotationTracker.tucked {
-            dave?.texture = dave.frames[7]
-        }
-        return dave?.texture == dave.frames[7] || rotationTracker.tucked
+        return davePlayer.daveIsTucked(rotationTrackerTucked: rotationTracker.tucked)
     }
 
-    func daveJump() {
-        guard !jumping else { return }
-        if (dave.currentAnimation != "jump") {
-            springboard.playAnimation(name: "flex") {
-                self.springboard.clearCurrentAnimation()
-            }
-            jumping = true
-            dave.playAnimation(name: "jump") { [weak self] in
-                guard let self = self else { return }
-                
-                jumping = false
-                calculateBoost()
-                landedAt = 0
-                
-                dave.physicsBody?.velocity.dy = Game.jumpVelocity + boost;
-            }
-        }
-    }
-    
-    func calculateBoost() {
-//        NSLog("Calculating Boost")
-        // Calculate the time difference between landing and jump release
-        let quickness = diff(landedAt, GameState.shared.jumpReleasedAt)
-        
-        // Determine the boost based on the quickness of the jump release
-        if quickness < 125 {
-            boost = Game.maxBoost
-        } else if quickness < 250 {
-            boost = Game.maxBoost - 50
-        } else if quickness < 350 {
-            boost = Game.maxBoost - 100
-        } else {
-            boost = 0
-        }
-        
-        // Calculate the horizontal distance between Dave and the springboard's center
-        let daveBoardDist = dave.position.x - (springboard.position.x - springboard.size.width / 2)
-        if daveBoardDist > 0 {
-            // Calculate the boost reduction based on Dave's distance from the board
-            var newRatio = daveBoardDist / springboard.size.width
-            newRatio = min(newRatio, 1) // Clamp to a maximum of 1
-            boost *= newRatio
-        }
-    }
-    
-    /// Time delta in milliseconds between two CACurrentMediaTime timestamps,
-    /// or `.greatestFiniteMagnitude` if either side is `0` (never recorded).
-    /// Used to convert the monotonic boost window into the ms thresholds used
-    /// by `calculateBoost()`.
-    func diff(_ start: CFTimeInterval, _ end: CFTimeInterval) -> Double {
-        guard start > 0, end > 0 else { return Double.greatestFiniteMagnitude }
-        return (end - start) * 1000 // Convert seconds to milliseconds
-    }
-
-    
     func playerHandler() {
-        guard dave != nil else { return }
+        guard davePlayer != nil else { return }
 
-        applyCustomDamping()
+        davePlayer.applyDamping()
         checkForReset()
-        if !jumping {
+        if !davePlayer.jumping {
             playerMobileMovementHandler()
-            playerFrameHandler()
+            davePlayer.updateFrame(
+                aboveBoard: daveIsAboveBoard(),
+                isTouching: boardContact.isTouching,
+                tucked: rotationTracker.tucked
+            )
         }
     }
-    
-    func applyCustomDamping() {
-        guard let dave = dave else { return }
 
-        guard let physicsBody = dave.physicsBody else { return }
-        
-        // Apply damping only to the x component of the velocity
-        let newVelocityX = physicsBody.velocity.dx * Game.drag
-        physicsBody.velocity = CGVector(dx: newVelocityX, dy: physicsBody.velocity.dy)
-    }
 
-    
-    func playerFrameHandler() {
-        guard let dave = dave else { return }
-        if !jumping {
-            if daveIsAboveBoard() {
-                if dave.zRotation != 0 {
-                    dave.zRotation = 0
-                }
-                if boardContact.isTouching {
-                    if let velocity = dave.physicsBody?.velocity.dx, velocity > (Game.daveSpeed/10) {
-                        dave.playAnimation(name: "walkRight")
-                    } else if let velocity = dave.physicsBody?.velocity.dx, velocity < -(Game.daveSpeed/10) {
-                        dave.playAnimation(name: "walkLeft")
-                    } else {
-                        dave.playAnimation(name: "idle")
-                    }
-                } else {
-                    dave.stopAnimation()
-                    if ((dave.physicsBody?.velocity.dy)! > 0) {
-                        if ((dave.physicsBody?.velocity.dx)! < 0) {
-                            dave.texture =  dave.frames[15]
-                        } else {
-                            dave.texture =  dave.frames[6]
-                        }
-                    } else {
-                        if ((dave.physicsBody?.velocity.dx)! < 0) {
-                            dave.texture =  dave.frames[11]
-                        } else {
-                            dave.texture =  dave.frames[2]
-                        }
-                    }
-                }
-            } else if !rotationTracker.tucked {
-                dave.texture = dave.zRotation >= -CGFloat.pi / 2 && dave.zRotation <= CGFloat.pi / 2 ? dave.frames[6] : dave.frames[8]
-                dave.clearCurrentAnimation()
-            }
-        }
-    }
-    
     func playerMobileMovementHandler() {
         if !diveComplete {
             if daveIsAboveBoard() {
@@ -539,7 +398,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 }
                 if daveIsAboveBoard() {
                     if hud?.jumpButton.isDown == true && boardContact.isTouching {
-                        daveJump()
+                        davePlayer.jump(springboard: springboard)
                     }
                 } else if (hud?.jumpButton.isDown == true || hud?.flipButton.isDown == true) {
                     if !daveIsTucked() {
@@ -750,7 +609,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         self.readyForReset = true
         GameState.shared.totalScore = 0
         GameState.shared.platformHeight = 703
-        self.restartScene()
+        // Note: previously also called self.restartScene() here, which created
+        // a fresh DiveScene and presented it — followed immediately by this
+        // presentScene(mainMenuScene). Two back-to-back presentScene calls
+        // raced; the menu always won but the wasted DiveScene leaked briefly.
         self.view!.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 }
