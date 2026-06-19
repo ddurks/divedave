@@ -7,6 +7,7 @@
 
 import Foundation
 
+@MainActor
 enum StatsStore {
     // MARK: - Keys
     private enum Key {

@@ -6,6 +6,9 @@
 //
 
 import SpriteKit
+import os
+
+private let logger = Logger(subsystem: "com.drawvid.divedave", category: "input")
 
 enum SpriteType {
     case staticSprite(textureName: String)
@@ -100,9 +103,7 @@ final class ControlButton: SKNode {
         if case .staticSprite(let textureName) = spriteType, textureName == "controls-jump" {
             jumpReleasedAt = Date()
             Haptics.impact(.medium)
-            #if DEBUG
-            NSLog("jumpReleasedAt: \(String(describing: jumpReleasedAt))")
-            #endif
+            logger.debug("jumpReleasedAt: \(String(describing: jumpReleasedAt))")
         }
     }
     

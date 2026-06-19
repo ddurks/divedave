@@ -6,6 +6,9 @@
 //
 
 import SpriteKit
+import os
+
+private let logger = Logger(subsystem: "com.drawvid.divedave", category: "animation")
 
 final class AnimatedSprite: SKSpriteNode {
     struct AnimationConfig {
@@ -97,9 +100,7 @@ final class AnimatedSprite: SKSpriteNode {
                 completion?()
             }
 
-            #if DEBUG
-            NSLog("delay: \(delay)")
-            #endif
+            logger.debug("delay: \(delay)")
             action = delay > 0 ? SKAction.sequence([waitAction, animationAction, completionAction]) : SKAction.sequence([animationAction, completionAction])
         }
 

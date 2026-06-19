@@ -55,6 +55,11 @@ struct AtmosphereLayer {
     /// Hard cap on total entities ever alive in this layer. Procedural extension stops
     /// adding once this is reached and instead recycles low-Y entities upward.
     let maxCount: Int
+    /// If true, the procedural-extension pass continues spawning/repositioning entities
+    /// above the camera as it climbs (used for space-zone layers like stars/UFOs).
+    /// False for layers that should stay inside their natural band (clouds in blue sky,
+    /// birds in blue sky, planes in twilight).
+    let extendsUpward: Bool
 }
 
 /// Per-entity bookkeeping for the generic recycle pass.
@@ -62,11 +67,16 @@ private final class AtmosphereEntity {
     let node: SKNode
     let layerIndex: Int
     let halfWidth: CGFloat
+    /// World-space anchor. The entity's visible Y each frame is
+    /// `anchorY + cameraDelta * (1 - parallaxFactor)`, clamped to the layer's yRange.
+    /// Recycling (horizontal wrap, procedural extension) updates this.
+    var anchorY: CGFloat
 
-    init(node: SKNode, layerIndex: Int, halfWidth: CGFloat) {
+    init(node: SKNode, layerIndex: Int, halfWidth: CGFloat, anchorY: CGFloat) {
         self.node = node
         self.layerIndex = layerIndex
         self.halfWidth = halfWidth
+        self.anchorY = anchorY
     }
 }
 
@@ -80,9 +90,9 @@ final class Atmosphere {
     private var layers: [AtmosphereLayer] = []
     private var entitiesByLayer: [[AtmosphereEntity]] = []
 
-    /// Last observed camera Y; used to compute frame-over-frame deltas for parallax.
-    /// Initialised lazily on the first update() so the first frame doesn't snap.
-    private var lastCameraY: CGFloat?
+    /// Camera Y at the moment update() first runs. All parallax offsets are
+    /// computed relative to this anchor so the effect never accumulates.
+    private var referenceCameraY: CGFloat?
     /// Highest Y already populated per layer. Procedural extension extends this upward.
     private var spawnedCeilingByLayer: [CGFloat] = []
 
@@ -116,9 +126,19 @@ final class Atmosphere {
         let birdBandStart: CGFloat = 0
         let birdBandEnd: CGFloat = sceneHeight - 500 * scaleFactorHeight
 
-        return [
-            // Stars (above endY). Stationary, twinkle animation. Spawned per cloud slab,
-            // doubled to mimic the original `starMult=1` inner loop (0...starMult iterates twice).
+        // Each (lower, upper) pair below comes from `max/min` clamps against
+        // middleY/endY/the band bounds. For short scenes (low platform), some
+        // pairs can invert (lower >= upper) which would crash ClosedRange.
+        // Skip any layer whose computed yRange is empty.
+        var layers: [AtmosphereLayer] = []
+        func add(_ lower: CGFloat, _ upper: CGFloat, _ build: (ClosedRange<CGFloat>) -> AtmosphereLayer) {
+            guard lower < upper else { return }
+            layers.append(build(lower...upper))
+        }
+
+        // Stars (above endY). Stationary, twinkle animation. Spawned per cloud slab,
+        // doubled to mimic the original `starMult=1` inner loop (0...starMult iterates twice).
+        add(max(endY, cloudBandStart), cloudBandEnd) { range in
             AtmosphereLayer(
                 name: "stars",
                 kind: .animatedSprite(spritesheet: "star-spritesheet",
@@ -128,33 +148,41 @@ final class Atmosphere {
                                       timePerFrame: 0.25),
                 motion: .stationary,
                 countRange: (Game.minClouds * 2)...(Game.maxClouds * 2),
-                yRange: max(endY, cloudBandStart)...cloudBandEnd,
+                yRange: range,
                 segmentSize: segment,
                 xPadding: 0,
                 zPosition: 1,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
                 randomRotation: true,
-                parallaxFactor: 0.15,
-                maxCount: 600
-            ),
-            // Clouds (below middleY). Random frame, drifts right.
+                parallaxFactor: 0.3,
+                maxCount: 600,
+                extendsUpward: true
+            )
+        }
+
+        // Clouds (below middleY). Random frame, drifts right.
+        add(cloudBandStart, min(middleY, cloudBandEnd)) { range in
             AtmosphereLayer(
                 name: "clouds",
                 kind: .randomFrameSprite(spritesheet: "clouds", frameWidth: 256, frameHeight: 256),
                 motion: .driftRight(minSpeed: Game.cloudMinSpeed, maxSpeed: Game.cloudMaxSpeed),
                 countRange: Game.minClouds...Game.maxClouds,
-                yRange: cloudBandStart...min(middleY, cloudBandEnd),
+                yRange: range,
                 segmentSize: segment,
                 xPadding: 256 * scaleFactorHeight,
                 zPosition: 0,
                 scaleRange: 0.75...1.5,
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
-                parallaxFactor: 0.5,
-                maxCount: 200
-            ),
-            // Birds (below middleY). Drift left.
+                parallaxFactor: 0.6,
+                maxCount: 200,
+                extendsUpward: false
+            )
+        }
+
+        // Birds (below middleY). Drift left.
+        add(birdBandStart, min(middleY, birdBandEnd)) { range in
             AtmosphereLayer(
                 name: "birds",
                 kind: .animatedSprite(spritesheet: "bird",
@@ -164,7 +192,7 @@ final class Atmosphere {
                                       timePerFrame: 0.83),
                 motion: .driftLeft(minSpeed: Game.birdMinSpeed, maxSpeed: Game.birdMaxSpeed),
                 countRange: Game.minBirds...Game.maxBirds,
-                yRange: birdBandStart...min(middleY, birdBandEnd),
+                yRange: range,
                 segmentSize: segment,
                 xPadding: 128 * scaleFactorHeight,
                 zPosition: 0,
@@ -172,15 +200,19 @@ final class Atmosphere {
                 animationStartDelayRange: 0.0...0.75,
                 randomRotation: false,
                 parallaxFactor: 0.8,
-                maxCount: 80
-            ),
-            // Planes (middleY..endY). Drift left.
+                maxCount: 80,
+                extendsUpward: false
+            )
+        }
+
+        // Planes (middleY..endY). Drift left.
+        add(max(middleY, birdBandStart), min(endY, birdBandEnd)) { range in
             AtmosphereLayer(
                 name: "planes",
                 kind: .staticSprite(imageName: "plane"),
                 motion: .driftLeft(minSpeed: Game.birdMinSpeed, maxSpeed: Game.birdMaxSpeed),
                 countRange: Game.minBirds...Game.maxBirds,
-                yRange: max(middleY, birdBandStart)...min(endY, birdBandEnd),
+                yRange: range,
                 segmentSize: segment,
                 xPadding: 128 * scaleFactorHeight,
                 zPosition: 1,
@@ -188,15 +220,19 @@ final class Atmosphere {
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
                 parallaxFactor: 0.8,
-                maxCount: 80
-            ),
-            // UFOs (above endY). Drift left.
+                maxCount: 80,
+                extendsUpward: false
+            )
+        }
+
+        // UFOs (above endY). Drift left.
+        add(max(endY, birdBandStart), cloudBandEnd) { range in
             AtmosphereLayer(
                 name: "ufos",
                 kind: .staticSprite(imageName: "ufo"),
                 motion: .driftLeft(minSpeed: Game.birdMinSpeed, maxSpeed: Game.birdMaxSpeed),
                 countRange: Game.minBirds...Game.maxBirds,
-                yRange: max(endY, birdBandStart)...cloudBandEnd,
+                yRange: range,
                 segmentSize: segment,
                 xPadding: 128 * scaleFactorHeight,
                 zPosition: 2,
@@ -204,9 +240,12 @@ final class Atmosphere {
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
                 parallaxFactor: 1.0,
-                maxCount: 80
+                maxCount: 80,
+                extendsUpward: true
             )
-        ]
+        }
+
+        return layers
     }
 
     // MARK: - Spawning
@@ -279,7 +318,7 @@ final class Atmosphere {
 
         scene.addChild(node)
         entitiesByLayer[layerIndex].append(
-            AtmosphereEntity(node: node, layerIndex: layerIndex, halfWidth: node.size.width / 2)
+            AtmosphereEntity(node: node, layerIndex: layerIndex, halfWidth: node.size.width / 2, anchorY: yPos)
         )
     }
 
@@ -309,20 +348,24 @@ final class Atmosphere {
     // MARK: - Update / recycle
 
     func update() {
-        // Compute parallax delta. On first frame we have no previous camera Y; treat delta as 0.
-        let cameraY = scene.camera?.position.y ?? lastCameraY ?? 0
-        let cameraDelta = (lastCameraY.map { cameraY - $0 }) ?? 0
-        lastCameraY = cameraY
+        let cameraY = scene.camera?.position.y ?? referenceCameraY ?? 0
+        if referenceCameraY == nil {
+            referenceCameraY = cameraY
+        }
+        let cameraDelta = cameraY - referenceCameraY!
 
         for (layerIndex, layer) in layers.enumerated() {
-            // Layers with parallaxFactor < 1 lag behind world motion. Counter-offset Y by
-            // (1 - parallaxFactor) * cameraDelta so the sprite "drifts" with the camera.
-            let parallaxOffset = (1.0 - layer.parallaxFactor) * cameraDelta
+            // Anchored parallax: each entity's visible Y is anchor + cameraDelta * tracking,
+            // then WRAPPED modulo the layer's band height. Wrapping (instead of clamping)
+            // keeps entities evenly distributed during long dives — no pile-up at the
+            // band edge, and the layer reads as a continuous "river" of objects flowing
+            // past the camera.
+            let trackingFactor = 1.0 - layer.parallaxFactor
+            let offset = cameraDelta * trackingFactor
+
             for entity in entitiesByLayer[layerIndex] {
-                if parallaxOffset != 0 {
-                    entity.node.position.y += parallaxOffset
-                }
-                recycle(entity: entity, layer: layer)
+                entity.node.position.y = Atmosphere.wrap(entity.anchorY + offset, in: layer.yRange)
+                recycle(entity: entity, layer: layer, offset: offset)
             }
 
             // Procedural extension: as camera nears top of populated band, push the
@@ -331,9 +374,20 @@ final class Atmosphere {
         }
     }
 
+    /// Wrap `y` into `range` using modulo so values cycle through the band rather
+    /// than pile up at its edges. Returns `range.lowerBound` if the band has zero height.
+    private static func wrap(_ y: CGFloat, in range: ClosedRange<CGFloat>) -> CGFloat {
+        let height = range.upperBound - range.lowerBound
+        guard height > 0 else { return range.lowerBound }
+        let raw = y - range.lowerBound
+        let r = raw.truncatingRemainder(dividingBy: height)
+        return range.lowerBound + (r < 0 ? r + height : r)
+    }
+
     /// When camera approaches `spawnedCeilingByLayer[i]`, spawn (or recycle) a new
     /// segment-sized batch above it. Hard cap honoured per `layer.maxCount`.
     private func extendIfNeeded(layerIndex: Int, layer: AtmosphereLayer, cameraY: CGFloat) {
+        guard layer.extendsUpward else { return }
         let ceiling = spawnedCeilingByLayer[layerIndex]
         // Trigger when camera is within ~1.5 screen heights of the ceiling.
         guard cameraY + HEIGHT * 1.5 >= ceiling else { return }
@@ -360,6 +414,7 @@ final class Atmosphere {
                 let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
                 let xLow = -layer.xPadding
                 let xHigh = WIDTH + layer.xPadding
+                entity.anchorY = yPos
                 entity.node.position = CGPoint(x: CGFloat.random(in: xLow...xHigh), y: yPos)
                 recycled += 1
             }
@@ -369,27 +424,30 @@ final class Atmosphere {
     }
 
     /// Wrap entity horizontally based on its layer motion, or do nothing for stationary layers.
-    private func recycle(entity: AtmosphereEntity, layer: AtmosphereLayer) {
+    /// `offset` is the current parallax offset for this layer; we use it to place the recycled
+    /// entity so it appears in the right visual spot immediately rather than snapping next frame.
+    private func recycle(entity: AtmosphereEntity, layer: AtmosphereLayer, offset: CGFloat) {
         let node = entity.node
+
         switch layer.motion {
         case .stationary:
             return
         case let .driftRight(minSpeed, maxSpeed):
             guard node.position.x >= WIDTH + entity.halfWidth else { return }
-            let yMin = layer.yRange.lowerBound
-            let yMax = min(layer.yRange.upperBound, middleY)
-            let yPos = CGFloat.random(in: yMin...max(yMin, yMax))
-            node.position = CGPoint(x: -entity.halfWidth * 4, y: yPos)
+            let newAnchor = CGFloat.random(in: layer.yRange)
+            entity.anchorY = newAnchor
+            let visibleY = Atmosphere.wrap(newAnchor + offset, in: layer.yRange)
+            node.position = CGPoint(x: -entity.halfWidth * 4, y: visibleY)
             node.physicsBody?.velocity = CGVector(dx: CGFloat.random(in: minSpeed...maxSpeed), dy: 0)
             if let sprite = node as? AnimatedSprite {
                 sprite.texture = sprite.frames.randomElement()
             }
         case let .driftLeft(minSpeed, maxSpeed):
             guard node.position.x + entity.halfWidth < 0 else { return }
-            let yMin = layer.yRange.lowerBound
-            let yMax = layer.yRange.upperBound
-            let yPos = CGFloat.random(in: yMin...max(yMin, yMax))
-            node.position = CGPoint(x: WIDTH + entity.halfWidth * 4, y: yPos)
+            let newAnchor = CGFloat.random(in: layer.yRange)
+            entity.anchorY = newAnchor
+            let visibleY = Atmosphere.wrap(newAnchor + offset, in: layer.yRange)
+            node.position = CGPoint(x: WIDTH + entity.halfWidth * 4, y: visibleY)
             node.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: minSpeed...maxSpeed), dy: 0)
         }
     }

@@ -6,6 +6,9 @@
 //
 
 import SpriteKit
+import os
+
+private let logger = Logger(subsystem: "com.drawvid.divedave", category: "menu")
 
 final class MainMenuScene: SKScene {
     private var startArcadeButton: MenuButton!
@@ -53,8 +56,8 @@ final class MainMenuScene: SKScene {
         let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, highScore)
         if bestScore > 0 {
             displayHighScore(bestScore)
+            displayMetaStats()
         }
-        displayMetaStats()
     }
     
     func setUpLoadingStuff() {
@@ -117,7 +120,7 @@ final class MainMenuScene: SKScene {
     }
 
     func startGame(challengeMode: Bool) {
-        NSLog("Start Game")
+        logger.debug("Start Game")
         showLoadingLabel()
         CHALLENGE_MODE = challengeMode
         let gameScene = DiveScene(size: CGSize(width: self.size.width, height: self.size.height))
@@ -148,13 +151,15 @@ final class MainMenuScene: SKScene {
     }
     
     private func displayMetaStats() {
-        // Anchor the meta stats below the high-score sign on the left side of
-        // the screen. Sized to feel comparable to the existing menu labels
-        // without crowding the cover image.
+        // Anchor the meta stats just below the high-score sign image on the left
+        // side of the screen. The sign is drawn in displayHighScore with its
+        // center at y = HEIGHT - sign.size.height/8, so its bottom edge is at
+        // y = HEIGHT - 5*sign.size.height/8. We start a bit below that.
         let sign = SKSpriteNode(imageNamed: "sign-xl")
         sign.setScale(scaleFactorHeight * 2)
+        let signBottom = HEIGHT - (5 * sign.size.height / 8)
         let baseX = sign.size.width / 1.5
-        let baseY = HEIGHT - (sign.size.height / 5) - (220 * scaleFactorHeight * 2)
+        let baseY = signBottom - (40 * scaleFactorHeight * 2)
         let lineSpacing: CGFloat = 28 * scaleFactorHeight * 2
 
         let streakLabel = SKLabelNode(fontNamed: "Arial")
@@ -177,7 +182,7 @@ final class MainMenuScene: SKScene {
     }
 
     private func displayHighScore(_ highScore: Int) {
-        NSLog("highScore: \(highScore)")
+        logger.debug("highScore: \(highScore)")
         // Add the sign image
         let sign = SKSpriteNode(imageNamed: "sign-xl")
         sign.setScale(scaleFactorHeight * 2)
