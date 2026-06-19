@@ -8,6 +8,9 @@
 import UIKit
 import SpriteKit
 import GameplayKit
+import os
+
+private let logger = Logger(subsystem: "com.drawvid.divedave", category: "lifecycle")
 
 class GameViewController: UIViewController {
     override func viewDidLoad() {
@@ -20,12 +23,7 @@ class GameViewController: UIViewController {
             scaleFactorHeight = HEIGHT / DEFAULT_HEIGHT
             scaleFactorWidth = WIDTH / DEFAULT_WIDTH
             
-            #if DEBUG
-            NSLog("WIDTH: \(WIDTH)")
-            NSLog("HEIGHT: \(HEIGHT)")
-            NSLog("scaleFactorHeight: \(scaleFactorHeight)")
-            NSLog("scaleFactorWidth: \(scaleFactorWidth)")
-            #endif
+            logger.debug("WIDTH: \(WIDTH), HEIGHT: \(HEIGHT), scaleFactorHeight: \(scaleFactorHeight), scaleFactorWidth: \(scaleFactorWidth)")
             
             // Preload assets for MainMenuScene while showing LoadingScene
             preloadAllAssets {

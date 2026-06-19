@@ -6,6 +6,9 @@
 //
 
 import SpriteKit
+import os
+
+private let logger = Logger(subsystem: "com.drawvid.divedave", category: "loading")
 
 class LoadingScene: SKScene {
     private var loadingAnimation: AnimatedSprite!
@@ -33,7 +36,7 @@ class LoadingScene: SKScene {
         )
         
         // Play the loading animation in a loop
-        NSLog("Playing Animation!!")
+        logger.debug("Playing Animation!!")
         loadingAnimation.playAnimation(name: "loading", timePerFrame: 0.125)
     }
 }

@@ -6,6 +6,9 @@
 //
 
 import SpriteKit
+import os
+
+private let logger = Logger(subsystem: "com.drawvid.divedave", category: "gameplay")
 
 struct DiveStats {
     var height: Double = 0.0
@@ -72,9 +75,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func setupHUD(view: SKView, camera: SKCameraNode) {
-        #if DEBUG
-        NSLog("self.size: \(self.size)")
-        #endif
+        logger.debug("self.size: \(self.size.debugDescription)")
         hud = HUD(view: view, camera: camera, sceneSize: self.size, scaleFactorHeight: scaleFactorHeight)
         hud.onMenuPressed = self.prepareAndPresentMainMenuScene
     }
@@ -102,9 +103,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         goalRotations = randomHalfFlips
         hud.setGoalFlips(flips: goalRotations)
         
-        #if DEBUG
-        NSLog("DiveHeight: \(diveHeight), Time (approximated): \(time), Total Rotation (radians): \(totalRotation), Max Flips: \(maxFlips), Half-Flips (integer): \(halfFlips), Random Half-Flips: \(randomHalfFlips), Goal Rotations: \(goalRotations)")
-        #endif
+        logger.debug("DiveHeight: \(diveHeight), Time (approximated): \(time), Total Rotation (radians): \(totalRotation), Max Flips: \(maxFlips), Half-Flips (integer): \(halfFlips), Random Half-Flips: \(randomHalfFlips), Goal Rotations: \(self.goalRotations)")
     }
 
     func setupScene() {
@@ -156,9 +155,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func setupHeightLabels() {
-        #if DEBUG
-        NSLog("water level: \(waterLevel)")
-        #endif
+        logger.debug("water level: \(self.waterLevel)")
         
         var y = waterLevel
         var currentMeter = 1  // Start at 0 meters from the water level
@@ -321,7 +318,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         splash.zPosition = 7
         
         // Define animations if needed (e.g., "bounce" or other)
-        splash.defineAnimation(name: "splash", frameIndices: [0, 1, 2, 3, 4, 5, 6, 7], timePerFrame: 0.125)
+        splash.defineAnimation(name: "splash", frameIndices: [0, 1, 2, 3, 4, 5, 6, 7], timePerFrame: 0.125, repeatForever: false)
         addChild(splash)
     }
     
@@ -336,9 +333,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             if landedAt == nil {
                 landedAt = Date()
                 dave.playAnimation(name: "idle")
-                #if DEBUG
-                NSLog("LANDED AT \(String(describing: landedAt))")
-                #endif
+                logger.debug("LANDED AT \(String(describing: self.landedAt))")
             }
         }
     }
@@ -622,9 +617,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 stats.tuckCount = tuckCount
                 stats.rotations = round(totalRotations * 10) / 10
                 
-                #if DEBUG
-                NSLog("stats: \(stats)")
-                #endif
+                logger.debug("stats: \(String(describing: stats))")
                 
                 // Display the InfoPanel with calculated stats
                 let result = scoreDive()
