@@ -191,14 +191,17 @@ final class DavePlayer {
         // so abs() still falls through to .miss in that case.
         let quickness = abs(Self.msBetween(landedAt, GameState.shared.jumpReleasedAt))
 
+        // Windows are halfway between the original (125/250/350) and the
+        // post-7e85b69 tightening (50/100/175) — the latter felt too
+        // punishing in playtest. Kept in sync with web's BOOST_*_MS.
         let timing: BoostTiming
-        if quickness < 50 {
+        if quickness < 90 {
             timing = .perfect
             boost = Game.maxBoost
-        } else if quickness < 100 {
+        } else if quickness < 175 {
             timing = .good
             boost = Game.maxBoost - 50
-        } else if quickness < 175 {
+        } else if quickness < 265 {
             timing = .ok
             boost = Game.maxBoost - 100
         } else {
