@@ -1,12 +1,22 @@
 // Mirrors divedave-ios/divedave Shared/Components/Controls/HUD.swift.
-// Phase 0 only renames the class (MobileControls → HUD) so the file
-// layout matches iOS. Behavior is unchanged: jumpControls()/
-// flipControls() toggle visibility one at a time. Phase 3 will switch
-// to the iOS stacked-button layout (both buttons always rendered,
-// gated by enabled state driven from DaveState).
+//
+// Both jump and flip are always rendered (flip stacked above jump) and
+// driven by enabled state via updateButtons(jumpEnabled, flipEnabled),
+// matching iOS. The old jumpControls()/flipControls() toggle pattern is
+// gone — input gating happens in DavePlayer's tryJump/applyTuck state
+// checks, not button visibility.
 
 import { HEIGHT, WIDTH } from "../../util/Constants.js";
 import { ControlButton } from "./ControlButton.js";
+
+// Layout. The control sprites are scaled to 0.5 in ControlButton; the
+// raw texture is 512×512, so each on-screen button is ~256 tall. Stack
+// flip above jump with a small gap so the two read as separate hit
+// targets.
+const BUTTON_SCREEN_HEIGHT = 256;
+const STACK_GAP = 20;
+const JUMP_Y = HEIGHT - 150;
+const FLIP_Y = JUMP_Y - BUTTON_SCREEN_HEIGHT - STACK_GAP;
 
 export class HUD {
   constructor(scene) {
@@ -17,12 +27,11 @@ export class HUD {
       new ControlButton(scene, 450, HEIGHT - 150, "controls-right")
     );
     this.jumpButton = scene.add.existing(
-      new ControlButton(scene, WIDTH - 175, HEIGHT - 150, "controls-jump")
+      new ControlButton(scene, WIDTH - 175, JUMP_Y, "controls-jump")
     );
     this.flipButton = scene.add.existing(
-      new ControlButton(scene, WIDTH - 175, HEIGHT - 150, "controls-flip")
+      new ControlButton(scene, WIDTH - 175, FLIP_Y, "controls-flip")
     );
-    this.flipButton.setVisible(false);
   }
 
   setVisible(visible) {
@@ -32,13 +41,13 @@ export class HUD {
     this.flipButton.setVisible(visible);
   }
 
-  jumpControls() {
-    this.jumpButton.setVisible(true);
-    this.flipButton.setVisible(false);
-  }
-
-  flipControls() {
-    this.flipButton.setVisible(true);
-    this.jumpButton.setVisible(false);
+  /**
+   * Drive the visual enabled/disabled state of the jump and flip
+   * buttons from the caller's input-eligibility logic. Both buttons
+   * remain visible at all times; the disabled one greys out.
+   */
+  updateButtons(jumpEnabled, flipEnabled) {
+    this.jumpButton.setEnabled(jumpEnabled);
+    this.flipButton.setEnabled(flipEnabled);
   }
 }
