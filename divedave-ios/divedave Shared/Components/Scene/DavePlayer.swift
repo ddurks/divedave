@@ -94,16 +94,20 @@ final class DavePlayer {
 
     @discardableResult
     private func calculateBoost(springboard: AnimatedSprite) -> BoostTiming {
-        let quickness = Self.msBetween(landedAt, GameState.shared.jumpReleasedAt)
+        // Symmetric window: tapping slightly EARLY (release before landing)
+        // counts the same as a tap of the same magnitude after landing.
+        // msBetween returns .greatestFiniteMagnitude if either stamp is 0,
+        // so abs() still falls through to .miss in that case.
+        let quickness = abs(Self.msBetween(landedAt, GameState.shared.jumpReleasedAt))
 
         let timing: BoostTiming
-        if quickness < 125 {
+        if quickness < 50 {
             timing = .perfect
             boost = Game.maxBoost
-        } else if quickness < 250 {
+        } else if quickness < 100 {
             timing = .good
             boost = Game.maxBoost - 50
-        } else if quickness < 350 {
+        } else if quickness < 175 {
             timing = .ok
             boost = Game.maxBoost - 100
         } else {
