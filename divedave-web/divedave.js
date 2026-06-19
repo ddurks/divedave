@@ -565,9 +565,20 @@ class DiveScene extends Phaser.Scene {
     
     daveIsAboveBoard() {
         let result = (dave.x + dave.width/4 > 0 && dave.x - dave.width/4 < springboard.x + springboard.width/2 - 10) && dave.y + dave.height/2 < springboard.y - springboard.height/2 + 1;
-        if (result && this.sumRotation !== 0) {
+        if (result) {
+            // Reset all per-dive-attempt state — rotation accumulators AND
+            // tuck state — so each bounce on the board starts a fresh dive
+            // attempt. Without resetting tuckCount/tucked here, a re-bounce
+            // would carry the previous attempt's tucks into scoring,
+            // subtracting (tuckCount - 1) from each judge's score even
+            // though the new attempt only tucked once.
             this.sumRotation = 0;
             this.totalRotations = 0;
+            this.previousAngle = 0;
+            this.currentAngle = 0;
+            this.lastFlipNumber = 0;
+            tuckCount = 0;
+            tucked = false;
         }
         return result;
     }
