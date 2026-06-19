@@ -26,7 +26,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     var waterLevel: CGFloat = 0
     var jumping = false
     var diveComplete = false
-    var landedAt: Date? = nil
+    /// Monotonic timestamp (CACurrentMediaTime) at which Dave most recently
+    /// landed on the springboard. `0` = never. Compared against
+    /// `GameState.shared.jumpReleasedAt` to score the jump's quickness.
+    var landedAt: CFTimeInterval = 0
     var boost: CGFloat = 0
     var currentVelocity: CGFloat = Game.minSpinVelocity
     var tucked = false
@@ -328,10 +331,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
            (bodies == (PhysicsCategory.springboard.rawValue, PhysicsCategory.dave.rawValue)) {
             Haptics.impact(.light)
             daveIsTouchingBoardBool = true
-            if landedAt == nil {
-                landedAt = Date()
+            if landedAt == 0 {
+                landedAt = CACurrentMediaTime()
                 dave.playAnimation(name: "idle")
-                logger.debug("LANDED AT \(String(describing: self.landedAt))")
+                logger.debug("LANDED AT \(self.landedAt)")
             }
         }
     }
@@ -450,7 +453,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 
                 jumping = false
                 calculateBoost()
-                landedAt = nil
+                landedAt = 0
                 
                 dave.physicsBody?.velocity.dy = Game.jumpVelocity + boost;
             }
@@ -460,7 +463,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     func calculateBoost() {
 //        NSLog("Calculating Boost")
         // Calculate the time difference between landing and jump release
-        let quickness = diff(landedAt, jumpReleasedAt)
+        let quickness = diff(landedAt, GameState.shared.jumpReleasedAt)
         
         // Determine the boost based on the quickness of the jump release
         if quickness < 125 {
@@ -483,9 +486,13 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         }
     }
     
-    func diff(_ start: Date?, _ end: Date?) -> Double {
-        guard let start = start, let end = end else { return Double.greatestFiniteMagnitude }
-        return end.timeIntervalSince(start) * 1000 // Convert seconds to milliseconds
+    /// Time delta in milliseconds between two CACurrentMediaTime timestamps,
+    /// or `.greatestFiniteMagnitude` if either side is `0` (never recorded).
+    /// Used to convert the monotonic boost window into the ms thresholds used
+    /// by `calculateBoost()`.
+    func diff(_ start: CFTimeInterval, _ end: CFTimeInterval) -> Double {
+        guard start > 0, end > 0 else { return Double.greatestFiniteMagnitude }
+        return (end - start) * 1000 // Convert seconds to milliseconds
     }
 
     
