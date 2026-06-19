@@ -27,6 +27,7 @@
 		87AB00222CDD30A70036B65E /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AB00112CDD30A70036B65E /* Haptics.swift */; };
 		87B0CAFE2D00000200B0CAFE /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0CAFE2D00000100B0CAFE /* StatsStore.swift */; };
 		87E10A012D10000200E10A01 /* SceneMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E10A002D10000100E10A01 /* SceneMetrics.swift */; };
+		87E10A032D10000400E10A01 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E10A022D10000300E10A01 /* GameState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +52,7 @@
 		87AB00112CDD30A70036B65E /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		87B0CAFE2D00000100B0CAFE /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
 		87E10A002D10000100E10A01 /* SceneMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneMetrics.swift; sourceTree = "<group>"; };
+		87E10A022D10000300E10A01 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +93,7 @@
 				8796068D2CDC9FFD0036B65E /* Utilities.swift */,
 				8796068F2CDD30A70036B65E /* Globals.swift */,
 				87E10A002D10000100E10A01 /* SceneMetrics.swift */,
+				87E10A022D10000300E10A01 /* GameState.swift */,
 				87B0CAFE2D00000100B0CAFE /* StatsStore.swift */,
 				87AB00112CDD30A70036B65E /* Haptics.swift */,
 			);
@@ -244,6 +247,7 @@
 				879FAE6D2CD153F500F4A8E1 /* MainMenuScene.swift in Sources */,
 				879606902CDD30A70036B65E /* Globals.swift in Sources */,
 				87E10A012D10000200E10A01 /* SceneMetrics.swift in Sources */,
+				87E10A032D10000400E10A01 /* GameState.swift in Sources */,
 				87B0CAFE2D00000200B0CAFE /* StatsStore.swift in Sources */,
 				87AB00222CDD30A70036B65E /* Haptics.swift in Sources */,
 				879606972CDDD1CD0036B65E /* Atmosphere.swift in Sources */,
