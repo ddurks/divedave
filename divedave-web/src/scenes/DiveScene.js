@@ -36,10 +36,19 @@ import { StatsStore } from "../util/StatsStore.js";
 import { HUD } from "../components/controls/HUD.js";
 import { InfoPanel } from "../components/menu/InfoPanel.js";
 import {
+  CameraController,
+  ShakeStrength,
+} from "../components/scene/CameraController.js";
+import {
   BoostTiming,
   DavePlayer,
   DaveState,
 } from "../components/scene/DavePlayer.js";
+import {
+  DiveResult,
+  heightInMeters,
+  scoreDive,
+} from "../components/scene/DiveScorer.js";
 
 // Color-coded label + tint for each BoostTiming tier. Miss has no
 // visual — a failed timing reads as "no feedback" rather than a noisy
@@ -132,9 +141,16 @@ export class DiveScene extends Phaser.Scene {
       onComplete: () => label.destroy(),
     });
 
-    if (timing === BoostTiming.Perfect) Haptics.impactHeavy();
-    else if (timing === BoostTiming.Good) Haptics.impactMedium();
-    else Haptics.impactLight();
+    if (timing === BoostTiming.Perfect) {
+      Haptics.impactHeavy();
+      this.camera.shake(ShakeStrength.Medium, 180);
+    } else if (timing === BoostTiming.Good) {
+      Haptics.impactMedium();
+      this.camera.shake(ShakeStrength.Light, 150);
+    } else {
+      Haptics.impactLight();
+      this.camera.shake(ShakeStrength.Light, 120);
+    }
   }
 
   preload() {
@@ -343,8 +359,9 @@ export class DiveScene extends Phaser.Scene {
 
     this.calculateGameLogic();
 
-    this.cameras.main.startFollow(this.player.sprite);
-    this.cameras.main.setBounds(0, 0, WIDTH, this.sceneHeight);
+    this.camera = new CameraController(this);
+    this.camera.follow(this.player.sprite);
+    this.camera.setBounds(0, 0, WIDTH, this.sceneHeight);
 
     this.physics.add.collider(this.player.sprite, GameState.springboard, () => {
       this.player.noteBoardLanded();
@@ -533,16 +550,16 @@ export class DiveScene extends Phaser.Scene {
     if (dave.y > GameState.waterLevel - 15) {
       this.diveComplete = true;
       this.player.transition(DaveState.Splashed);
-      const heightFromWater = GameState.waterLevel - 797;
+      this.camera.shake(ShakeStrength.Heavy, 250);
       this.stats = {
-        height: Math.round((heightFromWater / 2 / 100) * 10) / 10,
+        height: heightInMeters(797, GameState.waterLevel),
         angle: Math.round(dave.angle * 10) / 10,
         tucked: this.player.isTucked(),
         tuckCount: this.player.tuckCount,
         rotations: Math.round(this.totalRotations * 10) / 10,
         scores: [0, 0, 0],
       };
-      const result = this.scoreDive();
+      const result = this.applyDiveOutcome();
       this.runningStreak.setText("streak: " + GameState.streak);
       this.runningScore.setText("score: " + GameState.totalScore);
       this.info.display(
@@ -679,46 +696,26 @@ export class DiveScene extends Phaser.Scene {
     }
   }
 
-  chooseEmotionFrame(angle) {
-    angle = Math.abs(angle);
-    if (angle < 10 || angle > 170) return 4;
-    if ((angle >= 10 && angle < 25) || (angle <= 170 && angle > 155)) return 3;
-    if ((angle >= 25 && angle < 45) || (angle <= 155 && angle > 135)) return 2;
-    if ((angle >= 45 && angle < 70) || (angle <= 135 && angle > 110)) return 1;
-    if (angle >= 70 && angle < 110) return 0;
-    return 2;
-  }
+  /**
+   * Compute the dive outcome via DiveScorer (pure) and apply the
+   * scene-side effects: stash scores/emotion on this.stats, bump
+   * session totals, persist high score, show the game-over panel on
+   * a streak-ending failure. Returns the result-label text.
+   */
+  applyDiveOutcome() {
+    const outcome = scoreDive({
+      goalRotations: this.goalRotations,
+      rotations: this.stats.rotations,
+      angle: this.stats.angle,
+      tuckCount: this.player.tuckCount,
+    });
+    this.stats.emotionFrame = outcome.emotionFrame;
+    this.stats.scores = outcome.scores;
 
-  scoreDive() {
-    const tuckCount = this.player.tuckCount;
-    if (Math.abs(this.stats.rotations - this.goalRotations) < 0.25) {
-      this.stats.emotionFrame = this.chooseEmotionFrame(this.stats.angle);
-      this.stats.scores.forEach((_score, index, scores) => {
-        switch (this.stats.emotionFrame) {
-          case 4:
-            scores[index] = 10 - getRandomInt(0, 1) / 2.0 - (tuckCount - 1);
-            break;
-          case 3:
-            scores[index] = 10 - getRandomInt(3, 6) / 2.0 - (tuckCount - 1);
-            break;
-          case 2:
-            scores[index] = 10 - getRandomInt(7, 10) / 2.0 - (tuckCount - 1);
-            break;
-          case 1:
-            scores[index] = 10 - getRandomInt(10, 15) / 2.0 - (tuckCount - 1);
-            break;
-          case 0:
-            scores[index] = 10 - getRandomInt(14, 18) / 2.0 - (tuckCount - 1);
-            break;
-        }
-      });
-      if (tuckCount > 1) this.stats.emotionFrame -= 1;
+    if (outcome.result === DiveResult.Success) {
       GameState.streak++;
-      GameState.totalScore =
-        GameState.totalScore +
-        this.stats.scores[0] +
-        this.stats.scores[1] +
-        this.stats.scores[2];
+      GameState.totalScore +=
+        outcome.scores[0] + outcome.scores[1] + outcome.scores[2];
       if (
         GameState.challengeMode &&
         GameState.totalScore > GameState.highScore
@@ -727,14 +724,11 @@ export class DiveScene extends Phaser.Scene {
         GameState.highScore = GameState.totalScore;
         GameState.highScoreSession = true;
         this.highScoreText.setVisible(true);
-        setTimeout(() => this.highScoreText.setVisible(false), 5000);
+        this.time.delayedCall(5000, () => this.highScoreText.setVisible(false));
       }
       return "SUCCESS";
     }
-    this.stats.emotionFrame = 0;
-    this.stats.scores.forEach((_score, index, scores) => {
-      scores[index] = 0;
-    });
+
     if (GameState.highScoreSession) {
       this.highScorePanel.display(
         this,
@@ -938,7 +932,7 @@ export class DiveScene extends Phaser.Scene {
   }
 
   updateSkyColor() {
-    const camY = this.cameras.main.scrollY + HEIGHT / 2;
+    const camY = this.camera.scrollY + HEIGHT / 2;
     let color;
 
     if (camY >= this.middleY) {
@@ -963,6 +957,6 @@ export class DiveScene extends Phaser.Scene {
       color = Phaser.Display.Color.GetColor(interp.r, interp.g, interp.b);
     }
 
-    this.cameras.main.setBackgroundColor(color);
+    this.camera.setBackgroundColor(color);
   }
 }
