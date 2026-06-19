@@ -41,7 +41,7 @@ struct AtmosphereLayer {
     /// Horizontal padding outside the screen used during spawn.
     let xPadding: CGFloat
     let zPosition: CGFloat
-    /// Random scale multiplier applied on top of `scaleFactorHeight`.
+    /// Random scale multiplier applied on top of `GameState.shared.metrics.scaleFactorHeight`.
     let scaleRange: ClosedRange<CGFloat>
     /// Random delay (sec) before the looping animation starts. Ignored for non-animated kinds.
     let animationStartDelayRange: ClosedRange<TimeInterval>
@@ -80,6 +80,7 @@ private final class AtmosphereEntity {
     }
 }
 
+@MainActor
 final class Atmosphere {
     private let scene: SKScene
     private let sceneHeight: CGFloat
@@ -115,16 +116,16 @@ final class Atmosphere {
     // MARK: - Layer config
 
     private static func defaultLayers(sceneHeight: CGFloat, middleY: CGFloat, endY: CGFloat) -> [AtmosphereLayer] {
-        let segment = 1000 * scaleFactorHeight
+        let segment = 1000 * GameState.shared.metrics.scaleFactorHeight
         // Vertical bands match the original stride semantics:
         //   clouds/stars stride: from (segment + 500*scale) to (sceneHeight + segment), step segment
         //     -> y slabs ⊂ [500*scale, sceneHeight + segment]
         //   birds/planes/ufos stride: from segment to (sceneHeight - 500*scale), step segment
         //     -> y slabs ⊂ [0, sceneHeight - 500*scale]
-        let cloudBandStart: CGFloat = 500 * scaleFactorHeight
+        let cloudBandStart: CGFloat = 500 * GameState.shared.metrics.scaleFactorHeight
         let cloudBandEnd: CGFloat = sceneHeight + segment
         let birdBandStart: CGFloat = 0
-        let birdBandEnd: CGFloat = sceneHeight - 500 * scaleFactorHeight
+        let birdBandEnd: CGFloat = sceneHeight - 500 * GameState.shared.metrics.scaleFactorHeight
 
         // Each (lower, upper) pair below comes from `max/min` clamps against
         // middleY/endY/the band bounds. For short scenes (low platform), some
@@ -170,7 +171,7 @@ final class Atmosphere {
                 countRange: Game.minClouds...Game.maxClouds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 256 * scaleFactorHeight,
+                xPadding: 256 * GameState.shared.metrics.scaleFactorHeight,
                 zPosition: 0,
                 scaleRange: 0.75...1.5,
                 animationStartDelayRange: 0.0...0.0,
@@ -194,7 +195,7 @@ final class Atmosphere {
                 countRange: Game.minBirds...Game.maxBirds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 128 * scaleFactorHeight,
+                xPadding: 128 * GameState.shared.metrics.scaleFactorHeight,
                 zPosition: 0,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
@@ -214,7 +215,7 @@ final class Atmosphere {
                 countRange: Game.minBirds...Game.maxBirds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 128 * scaleFactorHeight,
+                xPadding: 128 * GameState.shared.metrics.scaleFactorHeight,
                 zPosition: 1,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
@@ -234,7 +235,7 @@ final class Atmosphere {
                 countRange: Game.minBirds...Game.maxBirds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 128 * scaleFactorHeight,
+                xPadding: 128 * GameState.shared.metrics.scaleFactorHeight,
                 zPosition: 2,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
@@ -276,20 +277,20 @@ final class Atmosphere {
     /// Spawn a single entity at the given Y. Shared by initial spawn and (later) procedural extension.
     private func spawnEntity(in layer: AtmosphereLayer, layerIndex: Int, atY yPos: CGFloat) {
         let xLow = -layer.xPadding
-        let xHigh = WIDTH + layer.xPadding
+        let xHigh = GameState.shared.metrics.width + layer.xPadding
         let xPos = CGFloat.random(in: xLow...xHigh)
 
         let node: SKSpriteNode
         switch layer.kind {
         case let .randomFrameSprite(sheet, fw, fh):
-            let scale = scaleFactorHeight * CGFloat.random(in: layer.scaleRange)
+            let scale = GameState.shared.metrics.scaleFactorHeight * CGFloat.random(in: layer.scaleRange)
             let s = AnimatedSprite(spritesheetName: sheet, frameWidth: fw, frameHeight: fh, scale: scale)
             s.texture = s.frames.randomElement()
             attachDriftPhysics(to: s, motion: layer.motion)
             node = s
 
         case let .animatedSprite(sheet, fw, fh, animName, frameIndices, tpf):
-            let scale = scaleFactorHeight * CGFloat.random(in: layer.scaleRange)
+            let scale = GameState.shared.metrics.scaleFactorHeight * CGFloat.random(in: layer.scaleRange)
             let s = AnimatedSprite(spritesheetName: sheet, frameWidth: fw, frameHeight: fh, scale: scale)
             s.defineAnimation(name: animName, frameIndices: frameIndices, timePerFrame: tpf)
             let delay = Double.random(in: layer.animationStartDelayRange)
@@ -305,7 +306,7 @@ final class Atmosphere {
 
         case let .staticSprite(imageName):
             let s = SKSpriteNode(imageNamed: imageName)
-            s.setScale(scaleFactorHeight * CGFloat.random(in: layer.scaleRange))
+            s.setScale(GameState.shared.metrics.scaleFactorHeight * CGFloat.random(in: layer.scaleRange))
             attachDriftPhysics(to: s, motion: layer.motion)
             node = s
         }
@@ -390,7 +391,7 @@ final class Atmosphere {
         guard layer.extendsUpward else { return }
         let ceiling = spawnedCeilingByLayer[layerIndex]
         // Trigger when camera is within ~1.5 screen heights of the ceiling.
-        guard cameraY + HEIGHT * 1.5 >= ceiling else { return }
+        guard cameraY + GameState.shared.metrics.height * 1.5 >= ceiling else { return }
 
         let newSlabBottom = ceiling
         let newSlabTop = ceiling + layer.segmentSize
@@ -413,7 +414,7 @@ final class Atmosphere {
                 if entity.node.position.y >= newSlabBottom { break } // already high enough
                 let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
                 let xLow = -layer.xPadding
-                let xHigh = WIDTH + layer.xPadding
+                let xHigh = GameState.shared.metrics.width + layer.xPadding
                 entity.anchorY = yPos
                 entity.node.position = CGPoint(x: CGFloat.random(in: xLow...xHigh), y: yPos)
                 recycled += 1
@@ -433,7 +434,7 @@ final class Atmosphere {
         case .stationary:
             return
         case let .driftRight(minSpeed, maxSpeed):
-            guard node.position.x >= WIDTH + entity.halfWidth else { return }
+            guard node.position.x >= GameState.shared.metrics.width + entity.halfWidth else { return }
             let newAnchor = CGFloat.random(in: layer.yRange)
             entity.anchorY = newAnchor
             let visibleY = Atmosphere.wrap(newAnchor + offset, in: layer.yRange)
@@ -447,7 +448,7 @@ final class Atmosphere {
             let newAnchor = CGFloat.random(in: layer.yRange)
             entity.anchorY = newAnchor
             let visibleY = Atmosphere.wrap(newAnchor + offset, in: layer.yRange)
-            node.position = CGPoint(x: WIDTH + entity.halfWidth * 4, y: visibleY)
+            node.position = CGPoint(x: GameState.shared.metrics.width + entity.halfWidth * 4, y: visibleY)
             node.physicsBody?.velocity = CGVector(dx: -CGFloat.random(in: minSpeed...maxSpeed), dy: 0)
         }
     }

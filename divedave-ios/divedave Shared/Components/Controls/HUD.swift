@@ -21,6 +21,7 @@ final class HUD {
     var runningScoreLabel: SKLabelNode!
     var highScoreLabel: SKLabelNode!
     
+    @MainActor
     init(view: SKView, camera: SKCameraNode, sceneSize: CGSize, scaleFactorHeight: CGFloat) {
         // Position controls relative to the camera node (origin at camera center)
         let buttonY = -sceneSize.height * 0.425  // Offset from camera's center toward the bottom
@@ -101,7 +102,7 @@ final class HUD {
         camera.addChild(runningStreakLabel)
         
         // High score label
-        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(HEIGHT / 4)), zPosition: 20, fontColor: Game.customGreen)
+        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(GameState.shared.metrics.height / 4)), zPosition: 20, fontColor: Game.customGreen)
         highScoreLabel.horizontalAlignmentMode = .center
         highScoreLabel.isHidden = true
         camera.addChild(highScoreLabel)
