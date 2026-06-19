@@ -324,13 +324,13 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         pulseSpringboardBoostWindow()
 
         // Input buffer: if the player released the jump button SHORTLY BEFORE
-        // landing (within ~175 ms — same as the OK window), fire the jump
-        // automatically. Makes "tap slightly early" launch you instead of being
-        // swallowed because the button wasn't held on landing.
+        // landing (within ~265 ms — same as the relaxed OK window), fire the
+        // jump automatically. Makes "tap slightly early" launch you instead of
+        // being swallowed because the button wasn't held on landing.
         let timeSinceRelease = (davePlayer.landedAt - GameState.shared.jumpReleasedAt) * 1000
         if GameState.shared.jumpReleasedAt > 0,
            timeSinceRelease > 0,
-           timeSinceRelease < 175 {
+           timeSinceRelease < 265 {
             triggerJump()
         }
     }
@@ -453,7 +453,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             // Visual button-enabled state mirrors the state machine. Jump
             // stays enabled through .airborne so the early-release buffer in
             // `handleLanded` (which fires triggerJump when jumpReleasedAt is
-            // within ~175ms of landing) has a visually-tappable target —
+            // within ~265ms of landing) has a visually-tappable target —
             // without that, well-timed early taps land on a greyed button
             // and feel like the input was eaten. Once the player commits to
             // a dive (.diving), jump greys out for the rest of the attempt.
