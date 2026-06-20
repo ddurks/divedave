@@ -33,11 +33,11 @@ import {
   ShakeStrength,
 } from "../components/scene/CameraController.js";
 import {
-  BoostTiming,
   DavePlayer,
   DaveState,
 } from "../components/scene/DavePlayer.js";
 import {
+  BoostTiming,
   DiveResult,
   heightInMeters,
   scoreDive,
@@ -488,11 +488,26 @@ export class DiveScene extends Phaser.Scene {
   }
 
   update() {
+    this.updateBoardCollisionGuard();
     this.physics.world.collide(this.player.sprite, [GameState.springboard]);
     this.updateSkyColor();
     this.handleAtmosphere();
     this.playerHandler();
     this.updateClimbDave();
+  }
+
+  // Once Dave has dropped past the board entirely, drop board collisions so
+  // he can't walk off the side, drift back, and tip onto the board's side
+  // or get pinned by it. Threshold is the board's *bottom* edge (one
+  // full board-height of slack past the top) so floating-point overlap
+  // during contact resolution at launch/landing doesn't false-trigger.
+  updateBoardCollisionGuard() {
+    if (this.player.state !== DaveState.Airborne) return;
+    const dave = this.player.sprite;
+    const board = GameState.springboard;
+    if (dave.y + dave.height / 2 > board.y + board.height / 2) {
+      dave.body.checkCollision.none = true;
+    }
   }
 
   playerHandler() {

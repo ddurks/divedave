@@ -80,6 +80,8 @@ divedave-ios/fastlane/Preview.html
 divedave-ios/fastlane/screenshots/
 divedave-ios/fastlane/test_output/
 
+tools/.build/
+
 # Optional: Ignore IDE-specific files
 .idea/
 .vscode/

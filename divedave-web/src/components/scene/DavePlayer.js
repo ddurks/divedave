@@ -1,8 +1,6 @@
 import {
   ANGULAR_DRAG,
-  BOOST_GOOD_MS,
   BOOST_OK_MS,
-  BOOST_PERFECT_MS,
   DAVE_SPAWN_Y,
   DAVE_SPEED,
   DRAG,
@@ -14,6 +12,7 @@ import {
 } from "../../util/Constants.js";
 import { diff } from "../../util/Utilities.js";
 import { Haptics } from "../../util/Haptics.js";
+import { BoostTiming, classifyBoostTiming } from "./DiveScorer.js";
 
 const EARLY_TAP_WINDOW_MS = BOOST_OK_MS;
 
@@ -23,13 +22,6 @@ export const DaveState = Object.freeze({
   Airborne: "airborne",
   Diving: "diving",
   Splashed: "splashed",
-});
-
-export const BoostTiming = Object.freeze({
-  Perfect: "perfect",
-  Good: "good",
-  Ok: "ok",
-  Miss: "miss",
 });
 
 const ALLOWED_TRANSITIONS = {
@@ -172,19 +164,12 @@ export class DavePlayer {
 
   calculateBoost() {
     const quickness = diff(this.landedAt, this.jumpReleasedAt);
-    let timing;
-    if (quickness < BOOST_PERFECT_MS) {
-      timing = BoostTiming.Perfect;
-      this.boost = MAX_BOOST;
-    } else if (quickness < BOOST_GOOD_MS) {
-      timing = BoostTiming.Good;
-      this.boost = MAX_BOOST - 50;
-    } else if (quickness < BOOST_OK_MS) {
-      timing = BoostTiming.Ok;
-      this.boost = MAX_BOOST - 100;
-    } else {
-      timing = BoostTiming.Miss;
-      this.boost = 0;
+    const timing = classifyBoostTiming(quickness);
+    switch (timing) {
+      case BoostTiming.Perfect: this.boost = MAX_BOOST; break;
+      case BoostTiming.Good:    this.boost = MAX_BOOST - 50; break;
+      case BoostTiming.Ok:      this.boost = MAX_BOOST - 100; break;
+      default:                  this.boost = 0;
     }
 
     const daveBoardDist =

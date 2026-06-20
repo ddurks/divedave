@@ -11,13 +11,6 @@ enum DaveState {
     case splashed
 }
 
-enum BoostTiming {
-    case perfect
-    case good
-    case ok
-    case miss
-}
-
 @MainActor
 final class DavePlayer {
     let dave: AnimatedSprite
@@ -127,20 +120,12 @@ final class DavePlayer {
     @discardableResult
     private func calculateBoost(springboard: AnimatedSprite) -> BoostTiming {
         let quickness = abs(Self.msBetween(landedAt, GameState.shared.jumpReleasedAt))
-
-        let timing: BoostTiming
-        if quickness < 90 {
-            timing = .perfect
-            boost = Game.maxBoost
-        } else if quickness < 175 {
-            timing = .good
-            boost = Game.maxBoost - 50
-        } else if quickness < 265 {
-            timing = .ok
-            boost = Game.maxBoost - 100
-        } else {
-            timing = .miss
-            boost = 0
+        let timing = DiveScorer.classifyBoostTiming(quicknessMs: quickness)
+        switch timing {
+        case .perfect: boost = Game.maxBoost
+        case .good:    boost = Game.maxBoost - 50
+        case .ok:      boost = Game.maxBoost - 100
+        case .miss:    boost = 0
         }
 
         let daveBoardDist = dave.position.x - (springboard.position.x - springboard.size.width / 2)

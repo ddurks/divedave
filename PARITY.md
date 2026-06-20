@@ -23,7 +23,7 @@ These are byte-for-byte identical (no unit conversion):
 | Emotion frame bands | `DiveScorer.chooseEmotionFrame` | Same angle thresholds: 10°, 25°, 45°, 70° (and their reflections) |
 | Failure threshold | `DiveScorer` | `abs(rotations - goal) >= 0.25` |
 
-When you change any of these, change both.
+When you change any of these, change both. The shared values live at the top of each `Constants` file under a labelled block (`=== Shared with ... ===`). The DiveScorer parity tests (see [Tooling](#tooling)) catch drift in scoring and boost-window classification automatically; the other values are stable enough that the inline comment is the enforcement.
 
 ## What intentionally differs
 
@@ -59,3 +59,19 @@ divedave-web/src/components/    ↔  divedave-ios/divedave Shared/Components/
 ```
 
 Same file names, same responsibilities, parallel APIs. If a function exists on one side and not the other, that's a parity bug — flag it.
+
+## Tooling
+
+`tools/parity-fixtures.json` holds input/output cases for `DiveScorer`. Both `tools/parity-test.mjs` (Node) and `tools/parity-test.swift` (compiled with `swiftc`) load the same fixtures and exercise the matching function on each platform. The Swift binary is built on demand into `tools/.build/`.
+
+```
+tools/run-parity.sh
+```
+
+Output is one line per side (`[js] N passed, M failed` / `[swift] ...`). Non-zero exit if either side regresses. Coverage:
+
+- `chooseEmotionFrame` — angle-to-frame staircase, boundary-heavy.
+- `classifyBoostTiming` — quickness-ms-to-tier, which transitively asserts the three boost-window constants match between platforms.
+- `scoreDive` — the deterministic outputs (`result` and `emotionFrame`). The three judge scores include a per-tier random component and are not asserted across runs.
+
+If you change scoring or the boost windows on one side, update the fixtures and confirm both sides still pass before committing.

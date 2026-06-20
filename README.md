@@ -19,8 +19,9 @@ Two parallel implementations that play identically:
 
 | Path                     | What's there                                                                     |
 | ------------------------ | -------------------------------------------------------------------------------- |
-| `divedave-web/`          | Phaser 4 build. See [its README](divedave-web/README.md) for run/build details.  |
-| `divedave-ios/`          | SpriteKit/Swift build. See [its README](divedave-ios/README.md) for Xcode setup. |
-| `promo/`                 | Screen recordings and gifs used in posts.                                        |
-| [`PARITY.md`](PARITY.md) | What's kept in sync between the two codebases, and what intentionally differs.   |
-| [`CLAUDE.md`](CLAUDE.md) | Rules for AI coding assistants working in this repo.                             |
+| `divedave-web/`          | Phaser 4 build. See [its README](divedave-web/README.md) for run/build details.            |
+| `divedave-ios/`          | SpriteKit/Swift build. See [its README](divedave-ios/README.md) for Xcode setup.           |
+| `promo/`                 | Screen recordings and gifs used in posts.                                                  |
+| `tools/`                 | DiveScorer parity tests (`run-parity.sh`). See [`PARITY.md`](PARITY.md#tooling).            |
+| [`PARITY.md`](PARITY.md) | What's kept in sync between the two codebases, and what intentionally differs.             |
+| [`CLAUDE.md`](CLAUDE.md) | Rules for AI coding assistants working in this repo.                                       |

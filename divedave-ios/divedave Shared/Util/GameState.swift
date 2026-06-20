@@ -9,6 +9,7 @@ final class GameState {
     var metrics: SceneMetrics = .default
 
     var challengeMode: Bool = true
+    var duelSeed: String? = nil
 
     var streak: Int = 0
     var totalScore: Int = 0
