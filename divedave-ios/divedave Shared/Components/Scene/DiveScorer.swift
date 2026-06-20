@@ -8,7 +8,18 @@ struct DiveOutcome {
     let emotionFrame: Int
 }
 
+enum BoostTiming {
+    case perfect, good, ok, miss
+}
+
 enum DiveScorer {
+    static func classifyBoostTiming(quicknessMs: Double) -> BoostTiming {
+        if quicknessMs < Game.boostPerfectMs { return .perfect }
+        if quicknessMs < Game.boostGoodMs { return .good }
+        if quicknessMs < Game.boostOkMs { return .ok }
+        return .miss
+    }
+
     static func score(goalRotations: Double, rotations: Double, angle: Double, tuckCount: Int) -> DiveOutcome {
         guard abs(rotations - goalRotations) < 0.25 else {
             return DiveOutcome(result: .failure, scores: [0, 0, 0], emotionFrame: 0)

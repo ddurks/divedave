@@ -15,6 +15,8 @@ struct DiveStats {
 
 final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var readyForReset = false
+    var onDuelComplete: ((Int) -> Void)?
+    private var duelGoalRotations: Double?
     var hud: HUD!
     var waterLevel: CGFloat = 0
     var diveComplete = false
@@ -40,6 +42,13 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.contactDelegate = self
         self.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
         diveComplete = false
+        if let seed = GameState.shared.duelSeed {
+            let params = DiveScene.duelParams(seed: seed)
+            GameState.shared.platformHeight = CGFloat(params.platformHeight)
+            GameState.shared.totalScore = 0
+            GameState.shared.streak = 0
+            duelGoalRotations = params.goalRotations
+        }
         let buffer = GameState.shared.metrics.height/2
         if ((GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight) < GameState.shared.metrics.height - buffer) {
             GameState.shared.sceneHeight = GameState.shared.metrics.height
@@ -71,6 +80,12 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func calculateGameLogic() {
+        if let seeded = duelGoalRotations {
+            goalRotations = seeded
+            hud.setGoalFlips(flips: goalRotations)
+            return
+        }
+
         let diveHeight = (GameState.shared.platformHeight * GameState.shared.metrics.scaleFactorHeight)
         let time = approximateFallTime(from: diveHeight, to: waterLevel, gravity: Game.gravity) / 10
 
@@ -93,6 +108,20 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         hud.setGoalFlips(flips: goalRotations)
 
         logger.debug("DiveHeight: \(diveHeight), Time: \(time), Total Rotation: \(totalRotation), Max Flips: \(maxFlips), Half-Flips: \(halfFlips), Streak: \(streak), Min Half-Flips: \(minHalfFlips), Goal Rotations: \(self.goalRotations)")
+    }
+
+    static func duelParams(seed: String) -> (platformHeight: Double, boardHeightMeters: Double, goalRotations: Double) {
+        var rng = SeededRandom(seed: seed)
+        let platformHeight = rng.nextDouble(in: 703...19000)
+        let boardHeightMeters = round(platformHeight / 200.0 * 10) / 10
+
+        let referenceScaleFactorHeight = 783.0 / Double(Game.defaultHeight)
+        let diveHeight = platformHeight * referenceScaleFactorHeight
+        let time = sqrt(2 * diveHeight / Double(Game.gravity)) / 10
+        let totalRotation = time * (Double(Game.maxSpinVelocity) * 0.70)
+        let halfFlips = Int((totalRotation / (2 * Double.pi)) * 2)
+        let goal = halfFlips >= 1 ? Double(rng.nextInt(in: 1...halfFlips)) / 2.0 : 0.5
+        return (platformHeight, boardHeightMeters, goal)
     }
 
     func setupScene() {
@@ -180,6 +209,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func resetScene() {
+        if GameState.shared.duelSeed != nil { return }
         if (self.diveComplete && self.readyForReset) {
             if (!GameState.shared.challengeMode) {
                 GameState.shared.platformHeight = Double.random(in: 703...(GameState.shared.metrics.height * 25))
@@ -465,6 +495,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
                 let result = scoreDive()
                 Haptics.notify(result == "FAILED DIVE" ? .error : .success)
+                if GameState.shared.duelSeed != nil {
+                    onDuelComplete?(GameState.shared.totalScore)
+                }
                 hud.setRunningStreak(streak: GameState.shared.streak)
                 hud.setRunningScore(score: GameState.shared.totalScore)
                 let displayStrings = [
@@ -669,11 +702,29 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         playerHandler()
         applyPhaserStyleAngularDrag(currentTime: currentTime)
         updateClimbDave()
+        updateBoardCollisionGuard()
         if let davePos = dave?.position {
             cameraController.follow(targetY: davePos.y)
             atmosphere.updateBackgroundColor(for: cameraController.node.position.y)
         }
         atmosphere.update()
+    }
+
+    // Once Dave has dropped past the board entirely, drop board collisions
+    // so he can't walk off the side, drift back, and tip onto the board's
+    // side or get pinned by it. Threshold is the board's *bottom* edge
+    // (one full board-height of slack past the top) so floating-point
+    // overlap during contact resolution at launch/landing doesn't
+    // false-trigger.
+    private func updateBoardCollisionGuard() {
+        guard davePlayer?.state == .airborne else { return }
+        guard let dave = dave, let board = springboard else { return }
+        let daveBottom = dave.position.y - dave.size.height / 2
+        let boardBottom = board.position.y - board.size.height / 2
+        if daveBottom < boardBottom {
+            dave.physicsBody?.collisionBitMask = 0
+            dave.physicsBody?.contactTestBitMask = 0
+        }
     }
 
     func applyPhaserStyleAngularDrag(currentTime: TimeInterval) {

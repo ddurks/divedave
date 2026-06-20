@@ -3,20 +3,38 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0F351D6FF9AC054D6797C50D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 879FAE512CD1474C00F4A8E1 /* Assets.xcassets */; };
+		47F71B763F45E71CB49FE602 /* ChallengeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA495B8AD2A2483075BB1BE /* ChallengeState.swift */; };
+		872F9B542FE6559C00240407 /* LoadingScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87863B3F2CD98C7E006ABC10 /* LoadingScene.swift */; };
+		872F9B552FE6559C00240407 /* DavePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0AD012CDD30A70036B65E /* DavePlayer.swift */; };
+		872F9B562FE6559C00240407 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE702CD1543800F4A8E1 /* Constants.swift */; };
+		872F9B572FE6559C00240407 /* SeededRandom.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0D0D0D0D0D0D0D0D0D0D01 /* SeededRandom.swift */; };
+		872F9B582FE6559C00240407 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E10A022D10000300E10A01 /* GameState.swift */; };
+		872F9B592FE6559C00240407 /* SceneMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E10A002D10000100E10A01 /* SceneMetrics.swift */; };
+		872F9B5A2FE6559C00240407 /* ControlButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE742CD1874D00F4A8E1 /* ControlButton.swift */; };
+		872F9B5B2FE6559C00240407 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8796068D2CDC9FFD0036B65E /* Utilities.swift */; };
+		872F9B5C2FE6559C00240407 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE762CD1877900F4A8E1 /* HUD.swift */; };
+		872F9B5D2FE6559C00240407 /* MenuButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879606912CDDA6CB0036B65E /* MenuButton.swift */; };
+		872F9B5E2FE6559C00240407 /* DiveScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACFE2CDD30A70036B65E /* DiveScorer.swift */; };
+		872F9B5F2FE6559C00240407 /* RotationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACED2CDD30A70036B65E /* RotationTracker.swift */; };
+		872F9B602FE6559C00240407 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0CAFE2D00000100B0CAFE /* StatsStore.swift */; };
+		872F9B612FE6559C00240407 /* BoardContact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACDB2CDD30A70036B65E /* BoardContact.swift */; };
+		872F9B622FE6559C00240407 /* Atmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879606962CDDD1CD0036B65E /* Atmosphere.swift */; };
+		872F9B632FE6559C00240407 /* DiveScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE6E2CD1542000F4A8E1 /* DiveScene.swift */; };
+		872F9B642FE6559C00240407 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AB00112CDD30A70036B65E /* Haptics.swift */; };
+		872F9B652FE6559C00240407 /* AnimatedSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE782CD2B6B000F4A8E1 /* AnimatedSprite.swift */; };
+		872F9B662FE6559C00240407 /* MainMenuScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE6C2CD153F500F4A8E1 /* MainMenuScene.swift */; };
+		872F9B672FE6559C00240407 /* InfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87863B462CDC442A006ABC10 /* InfoPanel.swift */; };
+		872F9B682FE6559C00240407 /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CAFE112CDD30A70036B65E /* CameraController.swift */; };
 		87863B402CD98C7E006ABC10 /* LoadingScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87863B3F2CD98C7E006ABC10 /* LoadingScene.swift */; };
 		87863B472CDC442A006ABC10 /* InfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87863B462CDC442A006ABC10 /* InfoPanel.swift */; };
 		8796068E2CDC9FFD0036B65E /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8796068D2CDC9FFD0036B65E /* Utilities.swift */; };
 		879606922CDDA6CB0036B65E /* MenuButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879606912CDDA6CB0036B65E /* MenuButton.swift */; };
 		879606972CDDD1CD0036B65E /* Atmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879606962CDDD1CD0036B65E /* Atmosphere.swift */; };
-		87CAFE222CDD30A70036B65E /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CAFE112CDD30A70036B65E /* CameraController.swift */; };
-		87B0ACDC2CDD30A70036B65E /* BoardContact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACDB2CDD30A70036B65E /* BoardContact.swift */; };
-		87B0ACEE2CDD30A70036B65E /* RotationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACED2CDD30A70036B65E /* RotationTracker.swift */; };
-		87B0ACFF2CDD30A70036B65E /* DiveScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACFE2CDD30A70036B65E /* DiveScorer.swift */; };
-		87B0AD002CDD30A70036B65E /* DavePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0AD012CDD30A70036B65E /* DavePlayer.swift */; };
 		879FAE5A2CD1474C00F4A8E1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE592CD1474C00F4A8E1 /* AppDelegate.swift */; };
 		879FAE5C2CD1474C00F4A8E1 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE5B2CD1474C00F4A8E1 /* GameViewController.swift */; };
 		879FAE5F2CD1474C00F4A8E1 /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 879FAE5E2CD1474C00F4A8E1 /* Base */; };
@@ -29,22 +47,51 @@
 		879FAE772CD1877900F4A8E1 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE762CD1877900F4A8E1 /* HUD.swift */; };
 		879FAE792CD2B6B000F4A8E1 /* AnimatedSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE782CD2B6B000F4A8E1 /* AnimatedSprite.swift */; };
 		87AB00222CDD30A70036B65E /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AB00112CDD30A70036B65E /* Haptics.swift */; };
+		87B0ACDC2CDD30A70036B65E /* BoardContact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACDB2CDD30A70036B65E /* BoardContact.swift */; };
+		87B0ACEE2CDD30A70036B65E /* RotationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACED2CDD30A70036B65E /* RotationTracker.swift */; };
+		87B0ACFF2CDD30A70036B65E /* DiveScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACFE2CDD30A70036B65E /* DiveScorer.swift */; };
+		87B0AD002CDD30A70036B65E /* DavePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0AD012CDD30A70036B65E /* DavePlayer.swift */; };
 		87B0CAFE2D00000200B0CAFE /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0CAFE2D00000100B0CAFE /* StatsStore.swift */; };
+		87CAFE222CDD30A70036B65E /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CAFE112CDD30A70036B65E /* CameraController.swift */; };
+		87DF85AD2FE6538900592EFD /* Messages.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87DF85AC2FE6538900592EFD /* Messages.framework */; };
+		87DF85B92FE6538A00592EFD /* divedave Messages.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 87DF85AA2FE6538900592EFD /* divedave Messages.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		87E10A012D10000200E10A01 /* SceneMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E10A002D10000100E10A01 /* SceneMetrics.swift */; };
 		87E10A032D10000400E10A01 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E10A022D10000300E10A01 /* GameState.swift */; };
+		DD0D0D0D0D0D0D0D0D0D0D02 /* SeededRandom.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0D0D0D0D0D0D0D0D0D0D01 /* SeededRandom.swift */; };
+		ED839C0FAA2D04B562931B02 /* ChallengeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA495B8AD2A2483075BB1BE /* ChallengeState.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		87DF85B72FE6538A00592EFD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 879FAE492CD1474A00F4A8E1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 87DF85A92FE6538900592EFD;
+			remoteInfo = "divedave Messages";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		87DF85BA2FE6538A00592EFD /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				87DF85B92FE6538A00592EFD /* divedave Messages.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0BA495B8AD2A2483075BB1BE /* ChallengeState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeState.swift; sourceTree = "<group>"; };
 		87863B3F2CD98C7E006ABC10 /* LoadingScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingScene.swift; sourceTree = "<group>"; };
 		87863B462CDC442A006ABC10 /* InfoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoPanel.swift; sourceTree = "<group>"; };
 		8796068D2CDC9FFD0036B65E /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		879606912CDDA6CB0036B65E /* MenuButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuButton.swift; sourceTree = "<group>"; };
 		879606962CDDD1CD0036B65E /* Atmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Atmosphere.swift; sourceTree = "<group>"; };
-		87CAFE112CDD30A70036B65E /* CameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
-		87B0ACDB2CDD30A70036B65E /* BoardContact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardContact.swift; sourceTree = "<group>"; };
-		87B0ACED2CDD30A70036B65E /* RotationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationTracker.swift; sourceTree = "<group>"; };
-		87B0ACFE2CDD30A70036B65E /* DiveScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiveScorer.swift; sourceTree = "<group>"; };
-		87B0AD012CDD30A70036B65E /* DavePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DavePlayer.swift; sourceTree = "<group>"; };
 		879FAE512CD1474C00F4A8E1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		879FAE562CD1474C00F4A8E1 /* divedave.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = divedave.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		879FAE592CD1474C00F4A8E1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -58,10 +105,43 @@
 		879FAE762CD1877900F4A8E1 /* HUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
 		879FAE782CD2B6B000F4A8E1 /* AnimatedSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedSprite.swift; sourceTree = "<group>"; };
 		87AB00112CDD30A70036B65E /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		87B0ACDB2CDD30A70036B65E /* BoardContact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardContact.swift; sourceTree = "<group>"; };
+		87B0ACED2CDD30A70036B65E /* RotationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationTracker.swift; sourceTree = "<group>"; };
+		87B0ACFE2CDD30A70036B65E /* DiveScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiveScorer.swift; sourceTree = "<group>"; };
+		87B0AD012CDD30A70036B65E /* DavePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DavePlayer.swift; sourceTree = "<group>"; };
 		87B0CAFE2D00000100B0CAFE /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
+		87CAFE112CDD30A70036B65E /* CameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
+		87DF85AA2FE6538900592EFD /* divedave Messages.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "divedave Messages.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		87DF85AC2FE6538900592EFD /* Messages.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Messages.framework; path = Library/Frameworks/Messages.framework; sourceTree = DEVELOPER_DIR; };
 		87E10A002D10000100E10A01 /* SceneMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneMetrics.swift; sourceTree = "<group>"; };
 		87E10A022D10000300E10A01 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		DD0D0D0D0D0D0D0D0D0D0D01 /* SeededRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededRandom.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		87DF85BD2FE6538A00592EFD /* Exceptions for "divedave Messages" folder in "divedave Messages" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 87DF85A92FE6538900592EFD /* divedave Messages */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		87DF85AE2FE6538900592EFD /* divedave Messages */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				87DF85BD2FE6538A00592EFD /* Exceptions for "divedave Messages" folder in "divedave Messages" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = "divedave Messages";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		879FAE532CD1474C00F4A8E1 /* Frameworks */ = {
@@ -71,9 +151,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		87DF85A72FE6538900592EFD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				87DF85AD2FE6538900592EFD /* Messages.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		213337E2F1F712538D418465 /* divedave Messages */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = "divedave Messages";
+			path = "divedave Messages";
+			sourceTree = "<group>";
+		};
 		87863B432CDA977F006ABC10 /* Scenes */ = {
 			isa = PBXGroup;
 			children = (
@@ -103,6 +199,8 @@
 				87E10A022D10000300E10A01 /* GameState.swift */,
 				87B0CAFE2D00000100B0CAFE /* StatsStore.swift */,
 				87AB00112CDD30A70036B65E /* Haptics.swift */,
+				DD0D0D0D0D0D0D0D0D0D0D01 /* SeededRandom.swift */,
+				0BA495B8AD2A2483075BB1BE /* ChallengeState.swift */,
 			);
 			path = Util;
 			sourceTree = "<group>";
@@ -144,7 +242,10 @@
 			children = (
 				879FAE4D2CD1474A00F4A8E1 /* divedave Shared */,
 				879FAE582CD1474C00F4A8E1 /* divedave iOS */,
+				87DF85AE2FE6538900592EFD /* divedave Messages */,
+				87DF85AB2FE6538900592EFD /* Frameworks */,
 				879FAE572CD1474C00F4A8E1 /* Products */,
+				213337E2F1F712538D418465 /* divedave Messages */,
 			);
 			sourceTree = "<group>";
 		};
@@ -163,6 +264,7 @@
 			isa = PBXGroup;
 			children = (
 				879FAE562CD1474C00F4A8E1 /* divedave.app */,
+				87DF85AA2FE6538900592EFD /* divedave Messages.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,6 +280,14 @@
 			path = "divedave iOS";
 			sourceTree = "<group>";
 		};
+		87DF85AB2FE6538900592EFD /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				87DF85AC2FE6538900592EFD /* Messages.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -188,15 +298,37 @@
 				879FAE522CD1474C00F4A8E1 /* Sources */,
 				879FAE532CD1474C00F4A8E1 /* Frameworks */,
 				879FAE542CD1474C00F4A8E1 /* Resources */,
+				87DF85BA2FE6538A00592EFD /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				87DF85B82FE6538A00592EFD /* PBXTargetDependency */,
 			);
 			name = "divedave iOS";
 			productName = "divedave iOS";
 			productReference = 879FAE562CD1474C00F4A8E1 /* divedave.app */;
 			productType = "com.apple.product-type.application";
+		};
+		87DF85A92FE6538900592EFD /* divedave Messages */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 87DF85BE2FE6538A00592EFD /* Build configuration list for PBXNativeTarget "divedave Messages" */;
+			buildPhases = (
+				87DF85A62FE6538900592EFD /* Sources */,
+				87DF85A72FE6538900592EFD /* Frameworks */,
+				87DF85A82FE6538900592EFD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				87DF85AE2FE6538900592EFD /* divedave Messages */,
+			);
+			name = "divedave Messages";
+			productName = "divedave Messages";
+			productReference = 87DF85AA2FE6538900592EFD /* divedave Messages.appex */;
+			productType = "com.apple.product-type.app-extension.messages";
 		};
 /* End PBXNativeTarget section */
 
@@ -205,11 +337,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1540;
+				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 1540;
 				TargetAttributes = {
 					879FAE552CD1474C00F4A8E1 = {
 						CreatedOnToolsVersion = 15.4;
+					};
+					87DF85A92FE6538900592EFD = {
+						CreatedOnToolsVersion = 26.5;
 					};
 				};
 			};
@@ -227,6 +362,7 @@
 			projectRoot = "";
 			targets = (
 				879FAE552CD1474C00F4A8E1 /* divedave iOS */,
+				87DF85A92FE6538900592EFD /* divedave Messages */,
 			);
 		};
 /* End PBXProject section */
@@ -239,6 +375,14 @@
 				879FAE5F2CD1474C00F4A8E1 /* Base in Resources */,
 				879FAE622CD1474C00F4A8E1 /* Base in Resources */,
 				879FAE662CD1474C00F4A8E1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		87DF85A82FE6538900592EFD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F351D6FF9AC054D6797C50D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,6 +405,7 @@
 				87E10A032D10000400E10A01 /* GameState.swift in Sources */,
 				87B0CAFE2D00000200B0CAFE /* StatsStore.swift in Sources */,
 				87AB00222CDD30A70036B65E /* Haptics.swift in Sources */,
+				DD0D0D0D0D0D0D0D0D0D0D02 /* SeededRandom.swift in Sources */,
 				879606972CDDD1CD0036B65E /* Atmosphere.swift in Sources */,
 				87CAFE222CDD30A70036B65E /* CameraController.swift in Sources */,
 				87B0ACDC2CDD30A70036B65E /* BoardContact.swift in Sources */,
@@ -271,10 +416,48 @@
 				879FAE5A2CD1474C00F4A8E1 /* AppDelegate.swift in Sources */,
 				879606922CDDA6CB0036B65E /* MenuButton.swift in Sources */,
 				879FAE712CD1543800F4A8E1 /* Constants.swift in Sources */,
+				ED839C0FAA2D04B562931B02 /* ChallengeState.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		87DF85A62FE6538900592EFD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				872F9B542FE6559C00240407 /* LoadingScene.swift in Sources */,
+				872F9B552FE6559C00240407 /* DavePlayer.swift in Sources */,
+				872F9B562FE6559C00240407 /* Constants.swift in Sources */,
+				872F9B572FE6559C00240407 /* SeededRandom.swift in Sources */,
+				872F9B582FE6559C00240407 /* GameState.swift in Sources */,
+				872F9B592FE6559C00240407 /* SceneMetrics.swift in Sources */,
+				872F9B5A2FE6559C00240407 /* ControlButton.swift in Sources */,
+				872F9B5B2FE6559C00240407 /* Utilities.swift in Sources */,
+				872F9B5C2FE6559C00240407 /* HUD.swift in Sources */,
+				872F9B5D2FE6559C00240407 /* MenuButton.swift in Sources */,
+				872F9B5E2FE6559C00240407 /* DiveScorer.swift in Sources */,
+				872F9B5F2FE6559C00240407 /* RotationTracker.swift in Sources */,
+				872F9B602FE6559C00240407 /* StatsStore.swift in Sources */,
+				872F9B612FE6559C00240407 /* BoardContact.swift in Sources */,
+				872F9B622FE6559C00240407 /* Atmosphere.swift in Sources */,
+				872F9B632FE6559C00240407 /* DiveScene.swift in Sources */,
+				872F9B642FE6559C00240407 /* Haptics.swift in Sources */,
+				872F9B652FE6559C00240407 /* AnimatedSprite.swift in Sources */,
+				872F9B662FE6559C00240407 /* MainMenuScene.swift in Sources */,
+				872F9B672FE6559C00240407 /* InfoPanel.swift in Sources */,
+				872F9B682FE6559C00240407 /* CameraController.swift in Sources */,
+				47F71B763F45E71CB49FE602 /* ChallengeState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		87DF85B82FE6538A00592EFD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 87DF85A92FE6538900592EFD /* divedave Messages */;
+			targetProxy = 87DF85B72FE6538A00592EFD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		879FAE5D2CD1474C00F4A8E1 /* Main.storyboard */ = {
@@ -481,6 +664,69 @@
 			};
 			name = Release;
 		};
+		87DF85BB2FE6538A00592EFD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4RHGPJWXAX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "divedave Messages/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Dive Dave";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.drawvid.divedave.divedave-Messages";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		87DF85BC2FE6538A00592EFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4RHGPJWXAX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "divedave Messages/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Dive Dave";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.drawvid.divedave.divedave-Messages";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -498,6 +744,15 @@
 			buildConfigurations = (
 				879FAE6A2CD1474C00F4A8E1 /* Debug */,
 				879FAE6B2CD1474C00F4A8E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		87DF85BE2FE6538A00592EFD /* Build configuration list for PBXNativeTarget "divedave Messages" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				87DF85BB2FE6538A00592EFD /* Debug */,
+				87DF85BC2FE6538A00592EFD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

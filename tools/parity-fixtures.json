@@ -1,0 +1,100 @@
+{
+  "_comment": "Shared fixtures exercised by both runners. If you change DiveScorer behavior, update the fixtures and confirm both sides pass.",
+
+  "chooseEmotionFrame": [
+    { "angle": 0, "expected": 4 },
+    { "angle": 5, "expected": 4 },
+    { "angle": 9.9, "expected": 4 },
+    { "angle": 180, "expected": 4 },
+    { "angle": 175, "expected": 4 },
+    { "angle": -5, "expected": 4 },
+
+    { "angle": 10, "expected": 3 },
+    { "angle": 20, "expected": 3 },
+    { "angle": 24.9, "expected": 3 },
+    { "angle": 156, "expected": 3 },
+    { "angle": 170, "expected": 3 },
+    { "angle": -20, "expected": 3 },
+
+    { "angle": 25, "expected": 2 },
+    { "angle": 35, "expected": 2 },
+    { "angle": 44.9, "expected": 2 },
+    { "angle": 136, "expected": 2 },
+    { "angle": 155, "expected": 2 },
+
+    { "angle": 45, "expected": 1 },
+    { "angle": 60, "expected": 1 },
+    { "angle": 69.9, "expected": 1 },
+    { "angle": 111, "expected": 1 },
+    { "angle": 135, "expected": 1 },
+
+    { "angle": 70, "expected": 0 },
+    { "angle": 90, "expected": 0 },
+    { "angle": 109.9, "expected": 0 },
+    { "angle": -90, "expected": 0 }
+  ],
+
+  "classifyBoostTiming": [
+    { "quicknessMs": 0, "expected": "perfect" },
+    { "quicknessMs": 50, "expected": "perfect" },
+    { "quicknessMs": 89, "expected": "perfect" },
+    { "quicknessMs": 89.999, "expected": "perfect" },
+    { "quicknessMs": 90, "expected": "good" },
+    { "quicknessMs": 100, "expected": "good" },
+    { "quicknessMs": 174.999, "expected": "good" },
+    { "quicknessMs": 175, "expected": "ok" },
+    { "quicknessMs": 200, "expected": "ok" },
+    { "quicknessMs": 264.999, "expected": "ok" },
+    { "quicknessMs": 265, "expected": "miss" },
+    { "quicknessMs": 500, "expected": "miss" },
+    { "quicknessMs": 100000, "expected": "miss" }
+  ],
+
+  "scoreDive": [
+    {
+      "input": { "goalRotations": 1.0, "rotations": 1.0, "angle": 0, "tuckCount": 1 },
+      "expectedResult": "success",
+      "expectedEmotionFrame": 4
+    },
+    {
+      "input": { "goalRotations": 1.0, "rotations": 1.2, "angle": 0, "tuckCount": 1 },
+      "expectedResult": "success",
+      "expectedEmotionFrame": 4
+    },
+    {
+      "input": { "goalRotations": 1.0, "rotations": 1.25, "angle": 0, "tuckCount": 1 },
+      "expectedResult": "failure",
+      "expectedEmotionFrame": 0
+    },
+    {
+      "input": { "goalRotations": 1.0, "rotations": 0.74, "angle": 0, "tuckCount": 1 },
+      "expectedResult": "failure",
+      "expectedEmotionFrame": 0
+    },
+    {
+      "input": { "goalRotations": 2.0, "rotations": 2.1, "angle": 30, "tuckCount": 1 },
+      "expectedResult": "success",
+      "expectedEmotionFrame": 2
+    },
+    {
+      "input": { "goalRotations": 2.0, "rotations": 2.1, "angle": 30, "tuckCount": 2 },
+      "expectedResult": "success",
+      "expectedEmotionFrame": 1
+    },
+    {
+      "input": { "goalRotations": 2.0, "rotations": 2.1, "angle": 30, "tuckCount": 3 },
+      "expectedResult": "success",
+      "expectedEmotionFrame": 1
+    },
+    {
+      "input": { "goalRotations": 1.5, "rotations": 1.49, "angle": 90, "tuckCount": 1 },
+      "expectedResult": "success",
+      "expectedEmotionFrame": 0
+    },
+    {
+      "input": { "goalRotations": 1.5, "rotations": 1.49, "angle": 90, "tuckCount": 2 },
+      "expectedResult": "success",
+      "expectedEmotionFrame": -1
+    }
+  ]
+}

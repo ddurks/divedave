@@ -1,9 +1,28 @@
+import {
+  BOOST_GOOD_MS,
+  BOOST_OK_MS,
+  BOOST_PERFECT_MS,
+} from "../../util/Constants.js";
 import { getRandomInt } from "../../util/Utilities.js";
 
 export const DiveResult = Object.freeze({
   Success: "success",
   Failure: "failure",
 });
+
+export const BoostTiming = Object.freeze({
+  Perfect: "perfect",
+  Good: "good",
+  Ok: "ok",
+  Miss: "miss",
+});
+
+export function classifyBoostTiming(quicknessMs) {
+  if (quicknessMs < BOOST_PERFECT_MS) return BoostTiming.Perfect;
+  if (quicknessMs < BOOST_GOOD_MS) return BoostTiming.Good;
+  if (quicknessMs < BOOST_OK_MS) return BoostTiming.Ok;
+  return BoostTiming.Miss;
+}
 
 export function scoreDive({ goalRotations, rotations, angle, tuckCount }) {
   if (Math.abs(rotations - goalRotations) >= 0.25) {
