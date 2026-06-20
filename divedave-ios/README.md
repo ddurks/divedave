@@ -1,6 +1,6 @@
 # divedave-ios
 
-The SpriteKit iOS build of divedave.
+The SpriteKit iOS build of divedave, with a bundled iMessage extension for sending challenge bubbles to friends.
 
 ## Stack
 
@@ -12,19 +12,26 @@ The SpriteKit iOS build of divedave.
 
 ## Build & run
 
-Open `divedave.xcodeproj` in Xcode, pick the `divedave iOS` scheme, and run on a simulator or device. There is no CI or Fastlane setup in-repo.
+Open `divedave.xcodeproj` in Xcode, pick a scheme, and run on a simulator or device:
+
+- `divedave iOS` — the main app.
+- `divedave Messages` — the bundled iMessage extension. Builds the main app too and embeds the extension. Run it on a simulator and the Messages app opens with the extension available in the app drawer.
+
+There is no CI or Fastlane setup in-repo.
 
 ## Project layout
 
 ```
 divedave-ios/
-  divedave.xcodeproj/     Xcode project
-  divedave iOS/           app-target glue (UIKit entry points)
-  divedave Shared/        the game itself (scenes, components, util, assets)
+  divedave.xcodeproj/     Xcode project (two targets)
+  divedave iOS/           main app glue (AppDelegate, GameViewController, launch storyboard)
+  divedave Shared/        the game itself (scenes, components, util, assets); compiled into both targets
+  divedave Messages/      iMessage extension target (MessagesViewController, Info.plist, Messages App Icon)
+  tools/                  one-shot Xcode-project helpers (e.g. wire-messages-target.rb)
   build/                  xcodebuild derived output, not source
 ```
 
-`divedave iOS/` is thin: just `AppDelegate.swift`, `GameViewController.swift`, and the launch storyboard. All gameplay lives in `divedave Shared/`.
+Both `divedave iOS` and `divedave Messages` compile every file under `divedave Shared/` (multi-target membership), so the extension runs the real `DiveScene` rather than a copy.
 
 `build/` is xcodebuild output and should not be committed.
 
@@ -54,12 +61,32 @@ divedave-ios/
 - `Menu/MenuButton.swift`, `Menu/InfoPanel.swift` — main-menu widgets.
 
 ### Util (`divedave Shared/Util/`)
-- `Constants.swift` — `Game` enum with gravity, speeds, spin limits, drag, cloud/bird counts, etc. Single source of tuning numbers.
-- `GameState.swift` — singleton holding metrics, mode, streak, total score, current `DiveStats`, and `highScore` (persisted to `UserDefaults`).
+- `Constants.swift` — `Game` enum with gravity, speeds, spin limits, drag, cloud/bird counts, etc. Single source of tuning numbers. Top block is shared with the web `Constants.js`; the parity harness watches it.
+- `GameState.swift` — singleton holding metrics, mode, streak, total score, current `DiveStats`, `highScore` (persisted to `UserDefaults`), and `duelSeed` (non-nil when the dive is being driven by an iMessage challenge).
 - `SceneMetrics.swift` — view-bounds-derived sizing (`width`, `height`, scale factors).
 - `Haptics.swift` — `UIImpactFeedbackGenerator` wrapper.
 - `StatsStore.swift` — persistent stats.
 - `Utilities.swift` — misc helpers.
+- `SeededRandom.swift` — deterministic RNG (FNV-1a-of-seed → SplitMix64). Used by duel mode so two devices roll the same dive from the same seed.
+- `ChallengeState.swift` — `Codable` payload that travels through `MSMessage.url` (seed, board height, goal rotations, challenger + responder). `ChallengeStateCodec` handles base64url encode/decode and seed minting.
+
+## iMessage extension (`divedave Messages/`)
+
+A bundled extension that lets two friends play the same seeded dive and compare scores in-bubble. Single App Store listing — installing the main app installs the extension too.
+
+- `MessagesViewController.swift` — `MSMessagesAppViewController` subclass. Reads the incoming `MSMessage`, hosts the `DiveScene` in expanded mode, builds the outgoing message. Scene creation is deferred to `viewDidLayoutSubviews` so it runs against the *expanded* view bounds rather than the stale compact ones.
+- `Assets.xcassets/iMessage App Icon.stickersiconset/` — generated from the main app icon by letterboxing the square onto a sky-blue 4:3 background.
+- `Info.plist` — extension principal class wiring.
+- `Base.lproj/MainInterface.storyboard` — Xcode-template storyboard (unused; the controller programmatically owns its view).
+
+How a round works:
+
+1. Compact bubble offers "Tap to challenge a friend".
+2. Tap → extension expands, `GameState.shared.duelSeed` is set, the dive runs once with `DiveScene.duelParams(seed:)` driving the board height and goal rotations from the seed (so both players get the same dive).
+3. `DiveScene.onDuelComplete` fires with the final score; the controller encodes a fresh `ChallengeState` into `MSMessage.url` and inserts it into the conversation draft.
+4. The recipient taps the bubble → same flow, but with `incomingState` populated — `responder` is filled and the bubble updates to show both scores plus a "Get divedave" App Store link.
+
+The challenge-round URL payload is ~140 chars (base64url JSON) for a finished round, well under Apple's recommended `MSMessage.url` budget. Goal-rotation math uses a phone-reference scale factor so the goal is achievable on the smallest target devices regardless of who's playing.
 
 ## Assets
 
