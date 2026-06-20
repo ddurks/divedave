@@ -7,7 +7,7 @@ A small diving game. Pick a board, time the spring, spin in the air, hit the wat
 Two parallel implementations that play identically:
 
 - **[`divedave-web/`](divedave-web/)** — Phaser 4 / JavaScript. Runs in any modern browser.
-- **[`divedave-ios/`](divedave-ios/)** — SpriteKit / Swift. Native iOS app.
+- **[`divedave-ios/`](divedave-ios/)** — SpriteKit / Swift. Native iOS app, with a bundled iMessage extension for sending challenge bubbles to friends.
 
 ## Play it
 
