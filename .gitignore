@@ -2,3 +2,85 @@
 **/app.bundle.js
 users.txt
 **/node_modules/**
+promo/*.mov
+
+# General macOS files
+*.DS_Store
+
+# Xcode-specific files
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+**/*.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+**/*.xcuserstate
+**/*.xcscmblueprint
+
+# Xcode project and workspace files
+**/xcuserdata/
+**/xcshareddata/xcschemes/*
+
+# iOS Specific
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Build products and intermediate files
+**/build/
+DerivedData/
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Archives
+*.xcarchive
+
+# App binary and debug files
+*.app
+*.app.dSYM
+*.ipa
+*.xcuserstate
+*.xcworkspace
+*.xcodeproj
+
+# Swift PM artifacts
+**/Package.resolved
+
+# Temporary files
+*.temp
+*.swp
+*.swm
+*.swx
+
+# GoogleService-Info.plist (Firebase, if applicable)
+# Uncomment if you use Firebase and keep sensitive info outside source control
+# GoogleService-Info.plist
+
+# Divedave specific paths (adjust these as needed)
+divedave-ios/node_modules/
+divedave-ios/build/
+divedave-ios/Pods/
+divedave-ios/fastlane/report.xml
+divedave-ios/fastlane/Preview.html
+divedave-ios/fastlane/screenshots/
+divedave-ios/fastlane/test_output/
+
+# Optional: Ignore IDE-specific files
+.idea/
+.vscode/
+

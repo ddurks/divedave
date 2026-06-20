@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>dive dave</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #bed5ff;
+            /* Prevent iOS Safari rubber-band scrolling from yanking the
+               canvas around when the player taps near the edge. */
+            overscroll-behavior: none;
+        }
+
+        /* Pin the Phaser container to the dynamic viewport (dvh handles
+           the iOS Safari address-bar collapse — without it the canvas
+           keeps its launch-time height and the bottom edge clips off
+           once the chrome retracts). inset: 0 = top/right/bottom/left 0. */
+        #phaser-div {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100dvh;
+        }
+    </style>
+    <link rel='icon', href='assets/daveicon.ico'>
+    <!-- <script src="//cdn.jsdelivr.net/npm/phaser@3.51.0/dist/phaser.js"></script> -->
+    <script src="lib/phaser.min.js?v=4.2.0"></script>
+    <script type="module" src="src/main.js?v=4.2.0"></script>
+</head>
+<body>
+    <div id="phaser-div"></div>
+</body>
+</html>
