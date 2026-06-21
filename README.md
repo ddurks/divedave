@@ -2,7 +2,7 @@
 
 # dive dave
 
-A small diving game. Pick a board, time the spring, spin in the air, hit the water clean.
+A small springboard diving game. JavaScript for web, Swift for iOS.
 
 Two parallel implementations that play identically:
 
@@ -11,7 +11,7 @@ Two parallel implementations that play identically:
 
 ## Play it
 
-[Live demo (web)](https://drawvid.com/code/divedave/)
+[Live demo (web)](https:divedave.drawvid.com)
 
 ![divedave gameplay](promo/divedave.gif)
 
@@ -19,9 +19,9 @@ Two parallel implementations that play identically:
 
 | Path                     | What's there                                                                     |
 | ------------------------ | -------------------------------------------------------------------------------- |
-| `divedave-web/`          | Phaser 4 build. See [its README](divedave-web/README.md) for run/build details.            |
-| `divedave-ios/`          | SpriteKit/Swift build. See [its README](divedave-ios/README.md) for Xcode setup.           |
-| `promo/`                 | Screen recordings and gifs used in posts.                                                  |
-| `tools/`                 | DiveScorer parity tests (`run-parity.sh`). See [`PARITY.md`](PARITY.md#tooling).            |
-| [`PARITY.md`](PARITY.md) | What's kept in sync between the two codebases, and what intentionally differs.             |
-| [`CLAUDE.md`](CLAUDE.md) | Rules for AI coding assistants working in this repo.                                       |
+| `divedave-web/`          | Phaser 4 build. See [its README](divedave-web/README.md) for run/build details.  |
+| `divedave-ios/`          | SpriteKit/Swift build. See [its README](divedave-ios/README.md) for Xcode setup. |
+| `promo/`                 | Screen recordings and gifs used in posts.                                        |
+| `tools/`                 | DiveScorer parity tests (`run-parity.sh`). See [`PARITY.md`](PARITY.md#tooling). |
+| [`PARITY.md`](PARITY.md) | What's kept in sync between the two codebases, and what intentionally differs.   |
+| [`CLAUDE.md`](CLAUDE.md) | Rules for AI coding assistants working in this repo.                             |
