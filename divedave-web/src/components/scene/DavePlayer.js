@@ -15,6 +15,10 @@ import { Haptics } from "../../util/Haptics.js";
 import { BoostTiming, classifyBoostTiming } from "./DiveScorer.js";
 
 const EARLY_TAP_WINDOW_MS = BOOST_OK_MS;
+// Per-frame duration of the grounded direction-change pivot (5 frames).
+const TURN_FRAME_MS = 50;
+// How long the falling frame is held when tucking straight from the dive pose.
+const TUCK_FALL_MS = 80;
 
 export const DaveState = Object.freeze({
   Grounded: "grounded",
@@ -64,6 +68,19 @@ export class DavePlayer {
     this.currentVelocity = MIN_SPIN_VELOCITY;
     this.tucked = false;
     this.tuckCount = 0;
+    // Facing + turn-on-reversal (grounded only). facing: 1 = right, -1 = left.
+    this.facing = 1;
+    this.prevDesired = 0;
+    this.turning = false;
+    this.turnFrom = 1;
+    this.turnTo = 1;
+    this.turnViaBack = false;
+    this.turnStart = 0;
+    // Tuck transition: slip the falling frame in when tucking from the dive pose.
+    this.wasTucked = false;
+    this.tuckTransitioning = false;
+    this.tuckTransitionStart = 0;
+    this.lastFrame = 11;
 
     sprite.on(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
       if (!anim || anim.key !== "jump") return;
@@ -103,6 +120,8 @@ export class DavePlayer {
       return;
     }
     if (next === DaveState.Grounded) {
+      this.turning = false;
+      this.prevDesired = 0;
       this.tucked = false;
       this.tuckCount = 0;
       this.currentVelocity = MIN_SPIN_VELOCITY;
@@ -125,6 +144,7 @@ export class DavePlayer {
     if (this.state !== DaveState.Grounded) return false;
     if (this.sprite.anims.getName() === "jump") return false;
     if (!this.transition(DaveState.Launching)) return false;
+    this.sprite.setFlipX(false);
     this.springboard.anims.play("flex", true);
     this.sprite.anims.play("jump", true);
     return true;
@@ -209,8 +229,8 @@ export class DavePlayer {
   }
 
   isTucked() {
-    if (this.tucked) this.sprite.setFrame(7);
-    return this.sprite.frame.name === 7 || this.tucked;
+    if (this.tucked) this.sprite.setFrame(13);
+    return this.sprite.frame.name === 13 || this.tucked;
   }
 
   updateFrame() {
@@ -220,32 +240,107 @@ export class DavePlayer {
       case DaveState.Splashed:
         return;
 
-      case DaveState.Grounded:
+      case DaveState.Grounded: {
         if (dave.angle !== 0) dave.setAngle(0);
-        if (dave.body.velocity.x > 0) {
-          dave.anims.play("walkright", true);
-        } else if (dave.body.velocity.x < 0) {
-          dave.anims.play("walkleft", true);
-        } else if (dave.anims.getName() !== "idle") {
-          dave.anims.play("idle", true);
+        if (this.turning) {
+          this.advanceTurn();
+          return;
+        }
+        const thr = DAVE_SPEED / 10;
+        const vx = dave.body.velocity.x;
+        const desired = vx > thr ? 1 : vx < -thr ? -1 : 0;
+        if (desired === 0) {
+          dave.setFlipX(this.facing < 0);
+          if (dave.anims.getName() !== "idle") dave.anims.play("idle", true);
+          this.prevDesired = 0;
+        } else if (desired === this.facing) {
+          dave.setFlipX(this.facing < 0);
+          dave.anims.play("walk", true);
+          this.prevDesired = desired;
+        } else if (this.prevDesired === 0) {
+          // From idle/landing: snap to the new direction, no turn.
+          this.facing = desired;
+          dave.setFlipX(this.facing < 0);
+          dave.anims.play("walk", true);
+          this.prevDesired = desired;
+        } else {
+          // Reversed mid-walk: pivot through the turn frames, then resume walk.
+          this.startTurn(this.facing, desired);
+          this.prevDesired = desired;
         }
         return;
+      }
 
       case DaveState.Airborne:
-        if (dave.body.velocity.y < 0) {
-          dave.setFrame(dave.body.velocity.x < 0 ? 15 : 6);
-        } else {
-          dave.setFrame(dave.body.velocity.x < 0 ? 11 : 2);
-        }
+        // Frames face right; mirror for leftward motion. Ascending = jump-up
+        // (11), descending = falling-down (12).
+        dave.setFlipX(dave.body.velocity.x < 0);
+        this.lastFrame = dave.body.velocity.y < 0 ? 11 : 12;
+        dave.setFrame(this.lastFrame);
         return;
 
-      case DaveState.Diving:
+      case DaveState.Diving: {
+        // Dive pose never mirrors — always the original (right-facing) frame.
+        dave.setFlipX(false);
         if (this.tucked) {
-          dave.setFrame(7);
+          // Tucking straight from the dive (inverted) frame slips the falling
+          // frame in first; from the falling/upright frame it's skipped.
+          if (!this.wasTucked && this.lastFrame === 14) {
+            this.tuckTransitioning = true;
+            this.tuckTransitionStart = this.scene.time.now;
+          }
+          if (
+            this.tuckTransitioning &&
+            this.scene.time.now - this.tuckTransitionStart < TUCK_FALL_MS
+          ) {
+            this.lastFrame = 12;
+          } else {
+            this.tuckTransitioning = false;
+            this.lastFrame = 13;
+          }
         } else {
-          dave.setFrame(dave.angle >= -90 && dave.angle <= 90 ? 6 : 8);
+          this.tuckTransitioning = false;
+          // Falling pose while upright; dive pose once rotated upside down.
+          const upright = dave.angle >= -90 && dave.angle <= 90;
+          this.lastFrame = upright ? 12 : 14;
         }
+        dave.setFrame(this.lastFrame);
+        this.wasTucked = this.tucked;
         return;
+      }
     }
+  }
+
+  startTurn(from, to) {
+    this.turning = true;
+    this.turnFrom = from;
+    this.turnTo = to;
+    this.turnViaBack = Math.random() < 0.5;
+    this.turnStart = this.scene.time.now;
+    this.sprite.anims.stop();
+    this.advanceTurn();
+  }
+
+  advanceTurn() {
+    const mid = this.turnViaBack ? 3 : 1;
+    const pivot = this.turnViaBack ? 4 : 0;
+    const frames = [2, mid, pivot, mid, 2];
+    const dirs = [
+      this.turnFrom,
+      this.turnFrom,
+      this.turnFrom,
+      this.turnTo,
+      this.turnTo,
+    ];
+    const step = Math.floor((this.scene.time.now - this.turnStart) / TURN_FRAME_MS);
+    if (step >= frames.length) {
+      this.turning = false;
+      this.facing = this.turnTo;
+      this.sprite.setFlipX(this.facing < 0);
+      this.sprite.setFrame(2);
+      return;
+    }
+    this.sprite.setFlipX(dirs[step] < 0);
+    this.sprite.setFrame(frames[step]);
   }
 }

@@ -20,6 +20,23 @@ final class DavePlayer {
     var boost: CGFloat = 0
     var landedAt: CFTimeInterval = 0
 
+    // Facing + turn-on-reversal (grounded only). facing: 1 = right, -1 = left.
+    private var facing: CGFloat = 1
+    private var prevDesired: CGFloat = 0
+    private var turning = false
+    private var turnFrom: CGFloat = 1
+    private var turnTo: CGFloat = 1
+    private var turnViaBack = false
+    private var turnStart: TimeInterval = 0
+    private let turnFrameDuration: TimeInterval = 0.05
+
+    // Tuck transition: slip the falling frame in when tucking from the dive pose.
+    private var wasTucked = false
+    private var tuckTransitioning = false
+    private var tuckTransitionStart: TimeInterval = 0
+    private var lastFrame = 11
+    private let tuckFallDuration: TimeInterval = 0.08
+
     private static let allowedTransitions: [DaveState: Set<DaveState>] = [
         .grounded:  [.launching, .airborne],
         .launching: [.airborne],
@@ -52,10 +69,9 @@ final class DavePlayer {
 
         scene.addChild(d)
 
-        d.defineAnimation(name: "idle",      frameIndices: [18, 18, 18, 18, 18, 19, 20, 21], timePerFrame: 0.125)
-        d.defineAnimation(name: "walkRight", frameIndices: [2, 3, 2, 4], timePerFrame: 0.166)
-        d.defineAnimation(name: "walkLeft",  frameIndices: [11, 12, 11, 13], timePerFrame: 0.166)
-        d.defineAnimation(name: "jump",      frameIndices: [5, 5, 6], timePerFrame: 0.1, repeatForever: false)
+        d.defineAnimation(name: "idle", frameIndices: [15, 15, 15, 15, 15, 16, 17, 18], timePerFrame: 0.125)
+        d.defineAnimation(name: "walk", frameIndices: [5, 6, 7, 8], timePerFrame: 0.125)
+        d.defineAnimation(name: "jump", frameIndices: [10, 10, 11], timePerFrame: 0.1, repeatForever: false)
 
         self.dave = d
     }
@@ -79,7 +95,10 @@ final class DavePlayer {
             // Drop board collision once committed to a dive — Dave passes through.
             dave.physicsBody?.collisionBitMask = 0
             dave.physicsBody?.contactTestBitMask = 0
-        case .grounded, .launching, .airborne, .splashed:
+        case .grounded:
+            turning = false
+            prevDesired = 0
+        case .launching, .airborne, .splashed:
             break
         }
     }
@@ -104,6 +123,7 @@ final class DavePlayer {
 
         onJumpStarted?()
 
+        setFacing(left: false)
         springboard.playAnimation(name: "flex") {
             springboard.clearCurrentAnimation()
         }
@@ -149,42 +169,111 @@ final class DavePlayer {
         body.velocity = CGVector(dx: newVelocityX, dy: body.velocity.dy)
     }
 
-    func updateFrame(tucked: Bool) {
+    // Frames face right; a negative xScale mirrors Dave for leftward motion.
+    // The physics body is a centered rectangle, so mirroring leaves it unchanged.
+    private func setFacing(left: Bool) {
+        dave.xScale = left ? -abs(dave.xScale) : abs(dave.xScale)
+    }
+
+    func updateFrame(tucked: Bool, currentTime: TimeInterval) {
         switch state {
         case .launching, .splashed:
             return
 
         case .grounded:
             if dave.zRotation != 0 { dave.zRotation = 0 }
+            if turning {
+                advanceTurn(currentTime: currentTime)
+                return
+            }
+            let thr = Game.daveSpeed / 10
             let dx = dave.physicsBody?.velocity.dx ?? 0
-            if dx > Game.daveSpeed / 10 {
-                dave.playAnimation(name: "walkRight")
-            } else if dx < -Game.daveSpeed / 10 {
-                dave.playAnimation(name: "walkLeft")
-            } else {
+            let desired: CGFloat = dx > thr ? 1 : (dx < -thr ? -1 : 0)
+            if desired == 0 {
+                setFacing(left: facing < 0)
                 dave.playAnimation(name: "idle")
+                prevDesired = 0
+            } else if desired == facing {
+                setFacing(left: facing < 0)
+                dave.playAnimation(name: "walk")
+                prevDesired = desired
+            } else if prevDesired == 0 {
+                // From idle/landing: snap to the new direction, no turn.
+                facing = desired
+                setFacing(left: facing < 0)
+                dave.playAnimation(name: "walk")
+                prevDesired = desired
+            } else {
+                // Reversed mid-walk: pivot through the turn frames, then walk.
+                startTurn(from: facing, to: desired, currentTime: currentTime)
+                prevDesired = desired
             }
 
         case .airborne:
             dave.stopAnimation()
             let dx = dave.physicsBody?.velocity.dx ?? 0
             let dy = dave.physicsBody?.velocity.dy ?? 0
-            if dy > 0 {
-                dave.texture = dx < 0 ? dave.frames[15] : dave.frames[6]
-            } else {
-                dave.texture = dx < 0 ? dave.frames[11] : dave.frames[2]
-            }
+            setFacing(left: dx < 0)
+            // dy > 0 ascending = jump-up (11), else falling-down (12)
+            lastFrame = dy > 0 ? 11 : 12
+            dave.texture = dave.frames[lastFrame]
 
         case .diving:
             dave.stopAnimation()
+            // Dive pose never mirrors — always the original (right-facing) frame.
+            setFacing(left: false)
             if tucked {
-                dave.texture = dave.frames[7]
+                // Tucking straight from the dive (inverted) frame slips the
+                // falling frame in first; from the falling/upright frame it's skipped.
+                if !wasTucked && lastFrame == 14 {
+                    tuckTransitioning = true
+                    tuckTransitionStart = currentTime
+                }
+                if tuckTransitioning && currentTime - tuckTransitionStart < tuckFallDuration {
+                    lastFrame = 12
+                } else {
+                    tuckTransitioning = false
+                    lastFrame = 13
+                }
             } else {
-                let r = dave.zRotation
-                dave.texture = (r >= -CGFloat.pi / 2 && r <= CGFloat.pi / 2)
-                    ? dave.frames[6]
-                    : dave.frames[8]
+                tuckTransitioning = false
+                // Falling pose while upright; dive pose once rotated upside down.
+                // Normalize accumulated spin to [-pi, pi] before the test.
+                let twoPi = 2 * CGFloat.pi
+                var r = dave.zRotation.truncatingRemainder(dividingBy: twoPi)
+                if r > .pi { r -= twoPi } else if r < -.pi { r += twoPi }
+                let upright = r >= -CGFloat.pi / 2 && r <= CGFloat.pi / 2
+                lastFrame = upright ? 12 : 14
             }
+            dave.texture = dave.frames[lastFrame]
+            wasTucked = tucked
         }
+    }
+
+    private func startTurn(from: CGFloat, to: CGFloat, currentTime: TimeInterval) {
+        turning = true
+        turnFrom = from
+        turnTo = to
+        turnViaBack = Bool.random()
+        turnStart = currentTime
+        dave.stopAnimation()
+        advanceTurn(currentTime: currentTime)
+    }
+
+    private func advanceTurn(currentTime: TimeInterval) {
+        let mid = turnViaBack ? 3 : 1
+        let pivot = turnViaBack ? 4 : 0
+        let frames = [2, mid, pivot, mid, 2]
+        let dirs = [turnFrom, turnFrom, turnFrom, turnTo, turnTo]
+        let step = Int((currentTime - turnStart) / turnFrameDuration)
+        if step >= frames.count {
+            turning = false
+            facing = turnTo
+            setFacing(left: facing < 0)
+            dave.texture = dave.frames[2]
+            return
+        }
+        setFacing(left: dirs[step] < 0)
+        dave.texture = dave.frames[frames[step]]
     }
 }

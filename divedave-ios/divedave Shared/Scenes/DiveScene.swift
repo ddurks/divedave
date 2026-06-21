@@ -240,9 +240,11 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func setupClimbDave(x: CGFloat, y: CGFloat) {
-        climbdave = AnimatedSprite(spritesheetName: "climbdave",
+        climbdave = AnimatedSprite(spritesheetName: "divedave-spritesheet-extruded",
                               frameWidth: Game.defaultDaveHeight,
                               frameHeight: Game.defaultDaveHeight,
+                              margin: 1,
+                              spacing: 2,
                               scale: GameState.shared.metrics.scaleFactorHeight)
         climbdave.position = CGPoint(x: x - (5*climbdave.size.width/7), y: y + climbdave.size.height/3)
         climbdave.zPosition = 5
@@ -257,7 +259,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(climbdave)
 
-        climbdave.defineAnimation(name: "climb", frameIndices: [0, 1, 2, 3], timePerFrame: 0.125)
+        climbdave.defineAnimation(name: "climb", frameIndices: [20, 21, 22, 23], timePerFrame: 0.125)
     }
 
     func setupSpringboard() {
@@ -410,14 +412,14 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
 
-    func playerHandler() {
+    func playerHandler(currentTime: TimeInterval) {
         guard davePlayer != nil else { return }
 
         davePlayer.applyDamping()
         checkForReset()
         if davePlayer.state != .launching {
             playerMobileMovementHandler()
-            davePlayer.updateFrame(tucked: rotationTracker.tucked)
+            davePlayer.updateFrame(tucked: rotationTracker.tucked, currentTime: currentTime)
         }
     }
 
@@ -699,7 +701,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     override func update(_ currentTime: TimeInterval) {
-        playerHandler()
+        playerHandler(currentTime: currentTime)
         applyPhaserStyleAngularDrag(currentTime: currentTime)
         updateClimbDave()
         updateBoardCollisionGuard()
@@ -737,7 +739,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             if (climbdave.position.y > platformTop.position.y) {
                 climbdave.physicsBody?.velocity.dy = 0
                 climbdave.stopAnimation()
-                climbdave.texture = climbdave.frames[0]
+                climbdave.texture = climbdave.frames[20]
             }
         }
     }
