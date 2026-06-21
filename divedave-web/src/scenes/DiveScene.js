@@ -393,7 +393,10 @@ export class DiveScene extends Phaser.Scene {
 
     this.camera = new CameraController(this);
     this.camera.follow(this.player.sprite);
-    this.camera.setBounds(0, 0, WIDTH, this.sceneHeight);
+    // Anchor short worlds to the bottom so the pool sits at the viewport's
+    // bottom edge instead of floating above empty background.
+    const camHeight = Math.max(this.sceneHeight, HEIGHT);
+    this.camera.setBounds(0, this.sceneHeight - camHeight, WIDTH, camHeight);
 
     this.physics.add.collider(this.player.sprite, GameState.springboard, () => {
       this.player.noteBoardLanded();
