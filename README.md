@@ -4,7 +4,7 @@
 
 A small springboard diving game. JavaScript for web, Swift for iOS.
 
-Two parallel implementations that play identically:
+Two parallel implementations that play similarly:
 
 - **[`divedave-web/`](divedave-web/)** — Phaser 4 / JavaScript. Runs in any modern browser.
 - **[`divedave-ios/`](divedave-ios/)** — SpriteKit / Swift. Native iOS app, with a bundled iMessage extension for sending challenge bubbles to friends.
