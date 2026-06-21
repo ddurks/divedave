@@ -37,10 +37,7 @@ import {
   CameraController,
   ShakeStrength,
 } from "../components/scene/CameraController.js";
-import {
-  DavePlayer,
-  DaveState,
-} from "../components/scene/DavePlayer.js";
+import { DavePlayer, DaveState } from "../components/scene/DavePlayer.js";
 import {
   BoostTiming,
   DiveResult,
@@ -64,6 +61,20 @@ const TIMING_FEEDBACK = {
     font: "red-arial",
     tint: TIMING_TINT_OK,
   },
+};
+
+// Mirrored in divedave-ios GetOut.
+const GETTING_OUT = {
+  ladderX: 937,
+  ladderYUp: 191,
+  ladderScale: 0.87,
+  emergeYUp: 207,
+  deckYUp: 325,
+  walkSpeed: 0.45,
+  turnFrameMs: 70,
+  climbX: 28,
+  climbSpeed: 200,
+  ladderOverlapPx: 70,
 };
 
 export class DiveScene extends Phaser.Scene {
@@ -113,7 +124,7 @@ export class DiveScene extends Phaser.Scene {
       feedback.font,
       feedback.label,
       50,
-      4
+      4,
     )
       .setDepth(15)
       .setScale(0.3)
@@ -153,22 +164,22 @@ export class DiveScene extends Phaser.Scene {
     this.load.bitmapFont(
       "Arial",
       "assets/fonts/Arial20.png",
-      "assets/fonts/Arial20.xml"
+      "assets/fonts/Arial20.xml",
     );
     this.load.bitmapFont(
       "green-arial",
       "assets/fonts/green-arial.png",
-      "assets/fonts/green-arial.xml"
+      "assets/fonts/green-arial.xml",
     );
     this.load.bitmapFont(
       "yellow-arial",
       "assets/fonts/yellow-arial.png",
-      "assets/fonts/yellow-arial.xml"
+      "assets/fonts/yellow-arial.xml",
     );
     this.load.bitmapFont(
       "red-arial",
       "assets/fonts/red-arial.png",
-      "assets/fonts/red-arial.xml"
+      "assets/fonts/red-arial.xml",
     );
     this.load.spritesheet("springboard", "assets/board.png", {
       frameWidth: 440,
@@ -190,12 +201,13 @@ export class DiveScene extends Phaser.Scene {
     });
     this.load.spritesheet(
       "gettingoutdave",
-      "assets/getting-out-spritesheet.png",
+      "assets/divedave-spritesheet_gettingout.png",
       {
-        frameWidth: 1250,
-        frameHeight: 500,
-      }
+        frameWidth: 256,
+        frameHeight: 256,
+      },
     );
+    this.load.image("ladder", "assets/ladder.png");
     this.load.image("plane", "assets/plane.png");
     this.load.image("ufo", "assets/ufo.png");
     this.load.spritesheet("menu-button", "assets/menu-spritesheet.png", {
@@ -282,7 +294,7 @@ export class DiveScene extends Phaser.Scene {
         PLATFORM_TOP_Y - 10,
         "black-arial",
         "   " + Math.round((heightFromWater / 2 / 100) * 10) / 10 + "m",
-        50
+        50,
       )
       .setDepth(14)
       .setActive(false);
@@ -315,16 +327,33 @@ export class DiveScene extends Phaser.Scene {
     GameState.springboard.body.setImmovable(true);
 
     this.gettingoutdave = this.add
-      .sprite(WIDTH / 2, GameState.waterLevel - 150, "gettingoutdave")
-      .setDepth(11);
+      .sprite(
+        GETTING_OUT.ladderX,
+        this.sceneHeight - GETTING_OUT.emergeYUp,
+        "gettingoutdave",
+      )
+      .setDepth(12);
     this.gettingoutdave.setVisible(false);
 
-    this.climbdave = this.physics.add
-      .sprite(28, this.sceneHeight - 200, "dave")
+    this.poolLadder = this.add
+      .image(
+        GETTING_OUT.ladderX,
+        this.sceneHeight - GETTING_OUT.ladderYUp,
+        "ladder",
+      )
+      .setScale(GETTING_OUT.ladderScale)
+      .setDepth(13)
+      .setVisible(false);
+
+    this.climbdave = this.add
+      .sprite(
+        GETTING_OUT.climbX,
+        this.sceneHeight - GETTING_OUT.deckYUp,
+        "dave",
+      )
       .setDepth(8);
     this.climbdave.setVisible(false);
-    this.climbdave.body.setAllowGravity(false);
-    this.climbdave.setVelocityY(0);
+    this.goState = "idle";
 
     this.info = new InfoPanel(this, 20);
     this.highScorePanel = new InfoPanel(this, 24);
@@ -376,15 +405,15 @@ export class DiveScene extends Phaser.Scene {
       down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S, false),
       right: this.input.keyboard.addKey(
         Phaser.Input.Keyboard.KeyCodes.D,
-        false
+        false,
       ),
       space: this.input.keyboard.addKey(
         Phaser.Input.Keyboard.KeyCodes.SPACE,
-        false
+        false,
       ),
       enter: this.input.keyboard.addKey(
         Phaser.Input.Keyboard.KeyCodes.ENTER,
-        false
+        false,
       ),
       r: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R, false),
       cursors: this.input.keyboard.createCursorKeys(),
@@ -394,7 +423,7 @@ export class DiveScene extends Phaser.Scene {
 
     GameState.controls.up.on("up", () => this.player.noteJumpReleased());
     GameState.controls.cursors.up.on("up", () =>
-      this.player.noteJumpReleased()
+      this.player.noteJumpReleased(),
     );
     this.input.on("pointerup", () => this.player.noteJumpReleased());
   }
@@ -424,7 +453,7 @@ export class DiveScene extends Phaser.Scene {
       frameRate: 10,
       frames: this.anims.generateFrameNumbers("gettingoutdave", {
         start: 0,
-        end: 27,
+        end: 9,
       }),
       repeat: 0,
     });
@@ -486,13 +515,13 @@ export class DiveScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time, delta) {
     this.updateBoardCollisionGuard();
     this.physics.world.collide(this.player.sprite, [GameState.springboard]);
     this.updateSkyColor();
     this.handleAtmosphere();
     this.playerHandler();
-    this.updateClimbDave();
+    this.updateGettingOut(delta);
   }
 
   // Once Dave has dropped past the board entirely, drop board collisions so
@@ -531,16 +560,107 @@ export class DiveScene extends Phaser.Scene {
     this.player.updateFrame();
   }
 
-  updateClimbDave() {
-    if (
-      this.climbdave &&
-      this.climbdave.visible &&
-      this.climbdave.y <= PLATFORM_TOP_Y
-    ) {
-      this.climbdave.setVelocityY(0);
+  startGettingOut() {
+    this.goState = "emerge";
+    this.gettingoutdave.setVisible(true);
+    this.poolLadder.setVisible(false);
+    this.gettingoutdave.play("getout");
+    this.gettingoutdave.once(
+      Phaser.Animations.Events.ANIMATION_COMPLETE,
+      () => {
+        this.gettingoutdave.setVisible(false);
+        this.climbdave
+          .setPosition(
+            GETTING_OUT.ladderX,
+            this.sceneHeight - GETTING_OUT.deckYUp,
+          )
+          .setFlipX(true)
+          .setFrame(4)
+          .setVisible(true);
+        this.startTurn("turn1");
+      },
+    );
+  }
+
+  startTurn(which) {
+    this.goState = which;
+    this.goTurnElapsed = 0;
+    if (which === "turn1") {
+      this.goTurnFrames = [4, 3, 2];
+      this.goTurnFlips = [true, true, true];
+    } else {
+      this.goTurnFrames = [2, 1, 0, 1, 2];
+      this.goTurnFlips = [true, true, false, false, false];
+    }
+  }
+
+  updateGettingOut(delta) {
+    switch (this.goState) {
+      case "turn1":
+      case "turn2":
+        this.advanceTurn(delta);
+        break;
+      case "walk":
+        this.advanceWalk(delta);
+        break;
+      case "climb":
+        this.advanceClimb(delta);
+        break;
+      default:
+        break;
+    }
+    this.updateLadderOverlay();
+  }
+
+  advanceTurn(delta) {
+    this.goTurnElapsed += delta;
+    const step = Math.floor(this.goTurnElapsed / GETTING_OUT.turnFrameMs);
+    if (step >= this.goTurnFrames.length) {
+      if (this.goState === "turn1") {
+        this.goState = "walk";
+        this.climbdave.setFlipX(true).play("walk");
+      } else {
+        this.goState = "climb";
+        this.climbdave.anims.stop();
+        this.climbdave.setFlipX(false).play("climb");
+      }
+      return;
+    }
+    this.climbdave.setFrame(this.goTurnFrames[step]);
+    this.climbdave.setFlipX(this.goTurnFlips[step]);
+  }
+
+  advanceWalk(delta) {
+    this.climbdave.x -= GETTING_OUT.walkSpeed * delta;
+    if (this.climbdave.x <= GETTING_OUT.climbX) {
+      this.climbdave.x = GETTING_OUT.climbX;
+      this.climbdave.anims.stop();
+      this.startTurn("turn2");
+    }
+  }
+
+  advanceClimb(delta) {
+    this.climbdave.y -= (GETTING_OUT.climbSpeed * delta) / 1000;
+    if (this.climbdave.y <= PLATFORM_TOP_Y) {
+      this.climbdave.y = PLATFORM_TOP_Y;
       this.climbdave.anims.stop();
       this.climbdave.setFrame(20);
+      this.goState = "done";
     }
+  }
+
+  updateLadderOverlay() {
+    if (this.goState === "turn1") {
+      this.poolLadder.setVisible(true);
+      return;
+    }
+    if (this.goState === "walk") {
+      const overlap =
+        this.climbdave.x > GETTING_OUT.ladderX - GETTING_OUT.ladderOverlapPx;
+      this.poolLadder.setVisible(overlap);
+      return;
+    }
+    this.poolLadder.setVisible(false);
   }
 
   checkForReset() {
@@ -580,10 +700,14 @@ export class DiveScene extends Phaser.Scene {
         ],
         this.stats.emotionFrame,
         this.stats.scores,
-        this.sceneHeight
+        this.sceneHeight,
       );
       this.hud.setVisible(false);
-      const splash = this.add.sprite(dave.x, GameState.waterLevel - 100, "splash");
+      const splash = this.add.sprite(
+        dave.x,
+        GameState.waterLevel - 100,
+        "splash",
+      );
       splash.setDepth(14);
       splash.anims.play("splash");
       splash.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
@@ -591,17 +715,7 @@ export class DiveScene extends Phaser.Scene {
       });
       setTimeout(() => {
         this.readyForReset = true;
-        this.gettingoutdave.setVisible(true);
-        this.gettingoutdave.play("getout");
-        this.gettingoutdave.on(
-          Phaser.Animations.Events.ANIMATION_COMPLETE,
-          () => {
-            this.gettingoutdave.setVisible(false);
-            this.climbdave.setVisible(true);
-            this.climbdave.play("climb");
-            this.climbdave.setVelocityY(-200);
-          }
-        );
+        this.startGettingOut();
       }, 1000);
     }
     this.countRotations();
@@ -623,15 +737,14 @@ export class DiveScene extends Phaser.Scene {
 
   calculateGameLogic() {
     const springboard = GameState.springboard;
-    const diveHeight = GameState.waterLevel - springboard.y;
     const fallTime = this.approximateFallTime(
       springboard.y,
       GameState.waterLevel,
-      GRAVITY
+      GRAVITY,
     );
 
     const spinVelocityRadPerSec = Phaser.Math.DegToRad(
-      MAX_SPIN_VELOCITY * 0.75
+      MAX_SPIN_VELOCITY * 0.75,
     );
     const totalRotation = fallTime * spinVelocityRadPerSec;
     const maxFlips = totalRotation / (2 * Math.PI);
@@ -641,18 +754,6 @@ export class DiveScene extends Phaser.Scene {
 
     this.goalRotations = goalRotations;
 
-    console.log("🎯 Dive Debug Info:");
-    console.log("• Platform Y:", springboard.y.toFixed(2));
-    console.log("• Water Y:", GameState.waterLevel.toFixed(2));
-    console.log("• Dive Height (waterY - platformY):", diveHeight.toFixed(2));
-    console.log("• Approximated Fall Time (s):", fallTime.toFixed(3));
-    console.log("• Spin Velocity (deg/s):", MAX_SPIN_VELOCITY.toFixed(2));
-    console.log("• Total Rotation (radians):", totalRotation.toFixed(3));
-    console.log("• Max Flips:", maxFlips.toFixed(3));
-    console.log("• Half-Flips (int):", halfFlips);
-    console.log("• Random Half-Flips (selected):", randomHalfFlips / 2);
-    console.log("• Goal Rotations:", goalRotations);
-
     this.add
       .bitmapText(
         WIDTH - 25,
@@ -661,7 +762,7 @@ export class DiveScene extends Phaser.Scene {
         "GOAL: " +
           this.goalRotations +
           (this.goalRotations < 1.5 ? " FLIP" : " FLIPS"),
-        65
+        65,
       )
       .setOrigin(1, 0)
       .setScrollFactor(0)
@@ -695,7 +796,7 @@ export class DiveScene extends Phaser.Scene {
           roundedRotations > this.goalRotations ? "red-arial" : "green-arial",
           roundedRotations,
           75,
-          5
+          5,
         )
           .setDepth(14)
           .setActive(false);
@@ -745,7 +846,7 @@ export class DiveScene extends Phaser.Scene {
         ],
         3,
         null,
-        HEIGHT / 2
+        HEIGHT / 2,
       );
     }
     GameState.streak = 0;
@@ -784,7 +885,8 @@ export class DiveScene extends Phaser.Scene {
     if (!this.diveComplete) {
       hud.updateButtons(
         player.state !== DaveState.Diving,
-        player.state === DaveState.Airborne || player.state === DaveState.Diving
+        player.state === DaveState.Airborne ||
+          player.state === DaveState.Diving,
       );
     }
 
@@ -930,7 +1032,7 @@ export class DiveScene extends Phaser.Scene {
         Phaser.Display.Color.ValueToColor(START_COLOR),
         Phaser.Display.Color.ValueToColor(MIDDLE_COLOR),
         100,
-        t * 100
+        t * 100,
       );
       color = Phaser.Display.Color.GetColor(interp.r, interp.g, interp.b);
     } else {
@@ -939,7 +1041,7 @@ export class DiveScene extends Phaser.Scene {
         Phaser.Display.Color.ValueToColor(MIDDLE_COLOR),
         Phaser.Display.Color.ValueToColor(END_COLOR),
         100,
-        t * 100
+        t * 100,
       );
       color = Phaser.Display.Color.GetColor(interp.r, interp.g, interp.b);
     }

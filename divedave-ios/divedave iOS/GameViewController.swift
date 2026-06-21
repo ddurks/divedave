@@ -23,8 +23,6 @@ class GameViewController: UIViewController {
             }
 
             skView.ignoresSiblingOrder = true
-            skView.showsFPS = true
-            skView.showsNodeCount = true
         }
     }
 
@@ -36,7 +34,8 @@ class GameViewController: UIViewController {
             SKTexture(imageNamed: "arcade"),
             SKTexture(imageNamed: "controls-help"),
             SKTexture(imageNamed: "landscape"),
-            SKTexture(imageNamed: "getting-out-spritesheet"),
+            SKTexture(imageNamed: "divedave-spritesheet_gettingout"),
+            SKTexture(imageNamed: "ladder"),
             SKTexture(imageNamed: "divedave-spritesheet-extruded"),
             SKTexture(imageNamed: "water"),
             SKTexture(imageNamed: "board"),
