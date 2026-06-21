@@ -2,6 +2,8 @@ name: Deploy divedave to S3 + CloudFront
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'divedave-web/**'
   workflow_dispatch:
 jobs:
   deploy:
