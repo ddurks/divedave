@@ -1,5 +1,4 @@
 import { HEIGHT, WIDTH } from "../../util/Constants.js";
-import { Haptics } from "../../util/Haptics.js";
 import { IS_MOBILE, makeShadowedBitmapText } from "../../util/Utilities.js";
 import { ControlButton } from "./ControlButton.js";
 
@@ -74,23 +73,12 @@ export class HUD {
     this.menuButton.onPressed = () => {
       if (this._menuHandled) return;
       this._menuHandled = true;
-      Haptics.impactLight();
       this.menuButton.play("menuClicked");
       this.menuButton.once(
         Phaser.Animations.Events.ANIMATION_COMPLETE,
         () => this.onMenuPressed && this.onMenuPressed()
       );
     };
-
-    for (const b of [
-      this.leftButton,
-      this.rightButton,
-      this.jumpButton,
-      this.flipButton,
-    ]) {
-      b.onPressed = () => Haptics.impactLight();
-    }
-    this.jumpButton.onReleased = () => Haptics.impactMedium();
 
     if (IS_MOBILE) {
       this.moveHint.setVisible(false);

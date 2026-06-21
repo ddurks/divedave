@@ -1,6 +1,5 @@
 import { HEIGHT, WIDTH } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
-import { Haptics } from "../util/Haptics.js";
 import { fadeOutScene, getRandomInt } from "../util/Utilities.js";
 import { MenuDave } from "../components/menu/MenuDave.js";
 
@@ -136,7 +135,6 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   pressButton(button, action) {
-    Haptics.impactLight();
     const base = button.scaleX;
     this.tweens.chain({
       targets: button,

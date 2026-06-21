@@ -23,7 +23,9 @@ Before implementing:
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
 - If you write 200 lines and it could be 50, rewrite it.
-- No comments. Code must be explicit and self-readable through naming and structure. Add a comment ONLY for a genuine WHY (non-obvious rationale the code can't express) — never to restate what the code does.
+- No comments. Code must be explicit and self-readable through naming and structure. Add a comment ONLY for a genuine WHY (non-obvious rationale the code can't express) — never to restate what the code does, and never as changelog/history ("now lives in...", "moved from...").
+  - **Litmus test:** delete the comment. If names and structure still make the behavior and intent clear, leave it deleted. Keep it only when removing it would let a reader misunderstand *why* the code is this way.
+  - Legitimate WHY in this repo: a magic number's meaning, a cross-platform parity tie ("Mirrors ...", the `Shared with ...` blocks), an engine/OS workaround, or a non-obvious tolerance (e.g. floating-point slack). When in doubt, put the WHY in a name, not a comment.
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 

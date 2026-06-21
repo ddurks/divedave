@@ -19,8 +19,6 @@ class MenuButton: SKSpriteNode {
     }
 
     func triggerAction() {
-        Haptics.impact(.light)
-
         let scaleUpAction = SKAction.scale(to: 0.625, duration: 0.5)
         let scaleBackAction = SKAction.scale(to: self.xScale, duration: 0.5)
         let runAction = SKAction.run { [weak self] in

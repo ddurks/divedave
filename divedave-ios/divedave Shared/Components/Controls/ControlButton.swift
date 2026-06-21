@@ -95,7 +95,6 @@ final class ControlButton: SKNode {
 
         if case .staticSprite(let textureName) = spriteType, textureName == "controls-jump" {
             GameState.shared.jumpReleasedAt = CACurrentMediaTime()
-            Haptics.impact(.medium)
             logger.debug("jumpReleasedAt: \(GameState.shared.jumpReleasedAt)")
         }
     }

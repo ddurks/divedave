@@ -24,7 +24,6 @@
 		872F9B612FE6559C00240407 /* BoardContact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACDB2CDD30A70036B65E /* BoardContact.swift */; };
 		872F9B622FE6559C00240407 /* Atmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879606962CDDD1CD0036B65E /* Atmosphere.swift */; };
 		872F9B632FE6559C00240407 /* DiveScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE6E2CD1542000F4A8E1 /* DiveScene.swift */; };
-		872F9B642FE6559C00240407 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AB00112CDD30A70036B65E /* Haptics.swift */; };
 		872F9B652FE6559C00240407 /* AnimatedSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE782CD2B6B000F4A8E1 /* AnimatedSprite.swift */; };
 		872F9B662FE6559C00240407 /* MainMenuScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE6C2CD153F500F4A8E1 /* MainMenuScene.swift */; };
 		872F9B672FE6559C00240407 /* InfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87863B462CDC442A006ABC10 /* InfoPanel.swift */; };
@@ -44,7 +43,6 @@
 		879FAE752CD1874D00F4A8E1 /* ControlButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE742CD1874D00F4A8E1 /* ControlButton.swift */; };
 		879FAE772CD1877900F4A8E1 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE762CD1877900F4A8E1 /* HUD.swift */; };
 		879FAE792CD2B6B000F4A8E1 /* AnimatedSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE782CD2B6B000F4A8E1 /* AnimatedSprite.swift */; };
-		87AB00222CDD30A70036B65E /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AB00112CDD30A70036B65E /* Haptics.swift */; };
 		87B0ACDC2CDD30A70036B65E /* BoardContact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACDB2CDD30A70036B65E /* BoardContact.swift */; };
 		87B0ACEE2CDD30A70036B65E /* RotationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACED2CDD30A70036B65E /* RotationTracker.swift */; };
 		87B0ACFF2CDD30A70036B65E /* DiveScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0ACFE2CDD30A70036B65E /* DiveScorer.swift */; };
@@ -101,7 +99,6 @@
 		879FAE742CD1874D00F4A8E1 /* ControlButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlButton.swift; sourceTree = "<group>"; };
 		879FAE762CD1877900F4A8E1 /* HUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
 		879FAE782CD2B6B000F4A8E1 /* AnimatedSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedSprite.swift; sourceTree = "<group>"; };
-		87AB00112CDD30A70036B65E /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		87B0ACDB2CDD30A70036B65E /* BoardContact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardContact.swift; sourceTree = "<group>"; };
 		87B0ACED2CDD30A70036B65E /* RotationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationTracker.swift; sourceTree = "<group>"; };
 		87B0ACFE2CDD30A70036B65E /* DiveScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiveScorer.swift; sourceTree = "<group>"; };
@@ -194,7 +191,6 @@
 				87E10A002D10000100E10A01 /* SceneMetrics.swift */,
 				87E10A022D10000300E10A01 /* GameState.swift */,
 				87B0CAFE2D00000100B0CAFE /* StatsStore.swift */,
-				87AB00112CDD30A70036B65E /* Haptics.swift */,
 				DD0D0D0D0D0D0D0D0D0D0D01 /* SeededRandom.swift */,
 				0BA495B8AD2A2483075BB1BE /* ChallengeState.swift */,
 			);
@@ -399,7 +395,6 @@
 				87E10A012D10000200E10A01 /* SceneMetrics.swift in Sources */,
 				87E10A032D10000400E10A01 /* GameState.swift in Sources */,
 				87B0CAFE2D00000200B0CAFE /* StatsStore.swift in Sources */,
-				87AB00222CDD30A70036B65E /* Haptics.swift in Sources */,
 				DD0D0D0D0D0D0D0D0D0D0D02 /* SeededRandom.swift in Sources */,
 				879606972CDDD1CD0036B65E /* Atmosphere.swift in Sources */,
 				87CAFE222CDD30A70036B65E /* CameraController.swift in Sources */,
@@ -434,7 +429,6 @@
 				872F9B612FE6559C00240407 /* BoardContact.swift in Sources */,
 				872F9B622FE6559C00240407 /* Atmosphere.swift in Sources */,
 				872F9B632FE6559C00240407 /* DiveScene.swift in Sources */,
-				872F9B642FE6559C00240407 /* Haptics.swift in Sources */,
 				872F9B652FE6559C00240407 /* AnimatedSprite.swift in Sources */,
 				872F9B662FE6559C00240407 /* MainMenuScene.swift in Sources */,
 				872F9B672FE6559C00240407 /* InfoPanel.swift in Sources */,
@@ -601,6 +595,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -618,7 +613,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -636,6 +631,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -653,7 +649,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

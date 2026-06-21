@@ -11,7 +11,6 @@ import {
   WIDTH,
 } from "../../util/Constants.js";
 import { diff } from "../../util/Utilities.js";
-import { Haptics } from "../../util/Haptics.js";
 import { BoostTiming, classifyBoostTiming } from "./DiveScorer.js";
 
 const EARLY_TAP_WINDOW_MS = BOOST_OK_MS;
@@ -50,7 +49,7 @@ export class DavePlayer {
     this.springboard = springboard;
 
     const sprite = scene.physics.add
-      .sprite(WIDTH / 8, DAVE_SPAWN_Y, "dave")
+      .sprite(springboard.x - springboard.width / 4, DAVE_SPAWN_Y, "dave")
       .setDepth(12);
     sprite.setOrigin(0.5, 0.5);
     sprite.body.setSize(64, 256);
@@ -112,11 +111,9 @@ export class DavePlayer {
   didEnter(next /*, prev */) {
     if (next === DaveState.Diving) {
       this.sprite.body.checkCollision.none = true;
-      Haptics.impactLight();
       return;
     }
     if (next === DaveState.Splashed) {
-      Haptics.notificationSuccess();
       return;
     }
     if (next === DaveState.Grounded) {
@@ -128,7 +125,6 @@ export class DavePlayer {
       if (typeof this.scene.resetDiveAttempt === "function") {
         this.scene.resetDiveAttempt();
       }
-      Haptics.impactLight();
       // jumpReleasedAt is intentionally NOT cleared — calculateBoost()
       // reads it to score the next jump's quickness.
       if (

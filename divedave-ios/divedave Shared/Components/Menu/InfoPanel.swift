@@ -11,10 +11,14 @@ final class InfoPanel {
     private var score3: SKSpriteNode
     private var tryAgain: SKLabelNode
     private var scene: SKScene
+    private let scoreSpacing: CGFloat
 
     init(scene: SKScene, depth: CGFloat) {
         self.scene = scene
         self.baseDepth = depth
+        self.scoreSpacing = GameState.shared.isPad
+            ? 275 * GameState.shared.metrics.scaleFactorHeight
+            : 275 * GameState.shared.metrics.scaleFactorWidth
 
         panel = SKSpriteNode(imageNamed: "panel")
         panel.position = CGPoint(x: GameState.shared.metrics.width / 2, y: GameState.shared.metrics.height / 2)
@@ -31,7 +35,7 @@ final class InfoPanel {
         scene.addChild(daveImage)
 
         score1 = SKSpriteNode(imageNamed: "sign")
-        score1.position = CGPoint(x: GameState.shared.metrics.width / 2 - (275 * GameState.shared.metrics.scaleFactorWidth), y: GameState.shared.metrics.height / 2 - (325 * GameState.shared.metrics.scaleFactorHeight))
+        score1.position = CGPoint(x: GameState.shared.metrics.width / 2 - scoreSpacing, y: GameState.shared.metrics.height / 2 - (325 * GameState.shared.metrics.scaleFactorHeight))
         score1.setScale(GameState.shared.metrics.scaleFactorHeight)
         score1.zPosition = baseDepth + 2
         score1.isHidden = true
@@ -45,7 +49,7 @@ final class InfoPanel {
         scene.addChild(score2)
 
         score3 = SKSpriteNode(imageNamed: "sign")
-        score3.position = CGPoint(x: GameState.shared.metrics.width / 2 + (275 * GameState.shared.metrics.scaleFactorWidth), y: GameState.shared.metrics.height / 2 - (325 * GameState.shared.metrics.scaleFactorHeight))
+        score3.position = CGPoint(x: GameState.shared.metrics.width / 2 + scoreSpacing, y: GameState.shared.metrics.height / 2 - (325 * GameState.shared.metrics.scaleFactorHeight))
         score3.setScale(GameState.shared.metrics.scaleFactorHeight)
         score3.zPosition = baseDepth + 2
         score3.isHidden = true
@@ -84,7 +88,7 @@ final class InfoPanel {
 
         var scoreLabels: [SKLabelNode] = []
         if let scores = scores {
-            var width = GameState.shared.metrics.width / 2 - (275 * GameState.shared.metrics.scaleFactorWidth)
+            var width = GameState.shared.metrics.width / 2 - scoreSpacing
             for score in scores {
                 let scoreLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
                 scoreLabel.text = "\(score)"
@@ -96,7 +100,7 @@ final class InfoPanel {
                 scoreLabel.setScale(0.3)
                 scene.addChild(scoreLabel)
                 scoreLabels.append(scoreLabel)
-                width += (275 * GameState.shared.metrics.scaleFactorWidth)
+                width += scoreSpacing
             }
         }
 
@@ -128,7 +132,6 @@ final class InfoPanel {
                 let label = scoreLabels[idx]
                 seq.append(SKAction.wait(forDuration: 0.4))
                 seq.append(SKAction.run {
-                    Haptics.impact(.medium)
                     sign.run(SKAction.group([
                         SKAction.fadeIn(withDuration: 0.1),
                         SKAction.sequence([

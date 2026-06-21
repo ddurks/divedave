@@ -52,7 +52,7 @@ final class DavePlayer {
                                margin: 1,
                                spacing: 2,
                                scale: GameState.shared.metrics.scaleFactorHeight)
-        d.position = CGPoint(x: GameState.shared.metrics.width / 4,
+        d.position = CGPoint(x: springboard.frame.minX + springboard.frame.width / 4,
                              y: springboard.position.y + 100)
         d.zPosition = 5
 

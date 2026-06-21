@@ -10,8 +10,6 @@ enum StatsStore {
         static let totalDives      = "stats.totalDives"
         static let totalFlips      = "stats.totalFlips"
         static let hasSeenTutorial = "stats.hasSeenTutorial"
-        static let audioEnabled    = "settings.audio"
-        static let hapticsEnabled  = "settings.haptics"
 
         static let legacyHighScore = "highScore"
     }
@@ -82,15 +80,5 @@ enum StatsStore {
     static var hasSeenTutorial: Bool {
         get { bool(forKey: Key.hasSeenTutorial, default: false) }
         set { set(newValue, forKey: Key.hasSeenTutorial) }
-    }
-
-    static var audioEnabled: Bool {
-        get { bool(forKey: Key.audioEnabled, default: true) }
-        set { set(newValue, forKey: Key.audioEnabled) }
-    }
-
-    static var hapticsEnabled: Bool {
-        get { bool(forKey: Key.hapticsEnabled, default: true) }
-        set { set(newValue, forKey: Key.hapticsEnabled) }
     }
 }

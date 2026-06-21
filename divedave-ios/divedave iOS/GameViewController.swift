@@ -8,10 +8,10 @@ private let logger = Logger(subsystem: "com.drawvid.divedave", category: "lifecy
 class GameViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        Haptics.prepare()
 
         if let skView = self.view as? SKView {
             GameState.shared.metrics = SceneMetrics(viewBounds: skView.bounds.size)
+            GameState.shared.isPad = UIDevice.current.userInterfaceIdiom == .pad
             let m = GameState.shared.metrics
 
             logger.debug("WIDTH: \(m.width), HEIGHT: \(m.height), scaleFactorHeight: \(m.scaleFactorHeight), scaleFactorWidth: \(m.scaleFactorWidth)")

@@ -79,7 +79,6 @@ final class MainMenuScene: SKScene {
         loadingLabel.isHidden = true;
         addChild(loadingLabel)
 
-        // Crouch pose now lives in the consolidated Dave sheet (frame 10).
         let crouch = AnimatedSprite(spritesheetName: "divedave-spritesheet-extruded",
                                     frameWidth: Game.defaultDaveHeight,
                                     frameHeight: Game.defaultDaveHeight,

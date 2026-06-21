@@ -7,6 +7,7 @@ final class GameState {
     private init() {}
 
     var metrics: SceneMetrics = .default
+    var isPad: Bool = false
 
     var challengeMode: Bool = true
     var duelSeed: String? = nil

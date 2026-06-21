@@ -1,5 +1,4 @@
 import { HEIGHT, WIDTH } from "../../util/Constants.js";
-import { Haptics } from "../../util/Haptics.js";
 import { IS_MOBILE } from "../../util/Utilities.js";
 
 const REVEAL_BEAT_MS = 400;
@@ -125,7 +124,6 @@ export class InfoPanel extends Phaser.GameObjects.Group {
         if (!isStillValid(signs[idx]) || !isStillValid(numberLabels[idx])) {
           return;
         }
-        Haptics.impactMedium();
         scene.tweens.add({
           targets: [signs[idx], numberLabels[idx]],
           alpha: 1,

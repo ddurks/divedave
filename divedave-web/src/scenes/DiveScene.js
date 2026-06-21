@@ -29,7 +29,6 @@ import {
   getRandomInt,
   makeShadowedBitmapText,
 } from "../util/Utilities.js";
-import { Haptics } from "../util/Haptics.js";
 import { StatsStore } from "../util/StatsStore.js";
 import { HUD } from "../components/controls/HUD.js";
 import { InfoPanel } from "../components/menu/InfoPanel.js";
@@ -108,7 +107,6 @@ export class DiveScene extends Phaser.Scene {
   onJumpBoostApplied(timing) {
     const feedback = TIMING_FEEDBACK[timing];
     if (!feedback) {
-      Haptics.impactLight();
       return;
     }
 
@@ -141,13 +139,10 @@ export class DiveScene extends Phaser.Scene {
     });
 
     if (timing === BoostTiming.Perfect) {
-      Haptics.impactHeavy();
       this.camera.shake(ShakeStrength.Medium, 180);
     } else if (timing === BoostTiming.Good) {
-      Haptics.impactMedium();
       this.camera.shake(ShakeStrength.Light, 150);
     } else {
-      Haptics.impactLight();
       this.camera.shake(ShakeStrength.Light, 120);
     }
   }
@@ -803,7 +798,6 @@ export class DiveScene extends Phaser.Scene {
         )
           .setDepth(14)
           .setActive(false);
-        Haptics.impactLight();
         this.lastFlipNumber = roundedRotations;
       }
     }
