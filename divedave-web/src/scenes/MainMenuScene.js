@@ -88,6 +88,7 @@ export class MainMenuScene extends Phaser.Scene {
     startChallengeText
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => {
+        GameState.challengeMode = true;
         this.pressButton(startChallengeText, () => this.clickStart(this));
       });
     if (GameState.highScore > 0) {
