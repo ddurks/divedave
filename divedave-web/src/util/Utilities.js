@@ -18,6 +18,17 @@ export function diff(a, b) {
   return a > b ? a - b : b - a;
 }
 
+// A bitmap-text label with a black drop-shadow behind it, matching the iOS
+// HUD (PERFECT/GOOD/OK feedback, flip count). Returns a Container so callers
+// can position, scale, tween, or toggle the label and its shadow as one unit.
+export function makeShadowedBitmapText(scene, x, y, font, text, size, offset = 4) {
+  const shadow = scene.add
+    .bitmapText(offset, offset, "black-arial", text, size)
+    .setOrigin(0.5);
+  const main = scene.add.bitmapText(0, 0, font, text, size).setOrigin(0.5);
+  return scene.add.container(x, y, [shadow, main]);
+}
+
 export function fadeOutScene(sceneName, context, height) {
   context.cameras.main.fadeOut(250);
   context.time.addEvent({

@@ -1,14 +1,14 @@
 import { HEIGHT, WIDTH } from "../../util/Constants.js";
 import { Haptics } from "../../util/Haptics.js";
-import { IS_MOBILE } from "../../util/Utilities.js";
+import { IS_MOBILE, makeShadowedBitmapText } from "../../util/Utilities.js";
 import { ControlButton } from "./ControlButton.js";
 
 const BUTTON_SCREEN_HEIGHT = 256;
 const STACK_GAP = 20;
 const JUMP_Y = HEIGHT - 150;
 const FLIP_Y = JUMP_Y - BUTTON_SCREEN_HEIGHT - STACK_GAP;
-const MOVE_HINT_X = 312;
-const MOVE_HINT_Y = HEIGHT - 150;
+const MOVE_HINT_X = WIDTH / 2;
+const MOVE_HINT_Y = HEIGHT - 50;
 
 export class HUD {
   constructor(scene) {
@@ -18,15 +18,15 @@ export class HUD {
     this.rightButton = scene.add.existing(
       new ControlButton(scene, 450, HEIGHT - 150, "controls-right")
     );
-    this.moveHint = scene.add
-      .bitmapText(
-        MOVE_HINT_X,
-        MOVE_HINT_Y,
-        "black-arial",
-        "[A] [D]  or  [<] [>]  to move",
-        40
-      )
-      .setOrigin(0.5)
+    this.moveHint = makeShadowedBitmapText(
+      scene,
+      MOVE_HINT_X,
+      MOVE_HINT_Y,
+      "red-arial",
+      "[A] [D]  or  [<] [>]  to move",
+      40,
+      3
+    )
       .setScrollFactor(0)
       .setDepth(14);
 

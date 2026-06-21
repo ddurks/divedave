@@ -23,7 +23,12 @@ import {
   WIDTH,
 } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
-import { diff, fadeOutScene, getRandomInt } from "../util/Utilities.js";
+import {
+  diff,
+  fadeOutScene,
+  getRandomInt,
+  makeShadowedBitmapText,
+} from "../util/Utilities.js";
 import { Haptics } from "../util/Haptics.js";
 import { StatsStore } from "../util/StatsStore.js";
 import { HUD } from "../components/controls/HUD.js";
@@ -101,9 +106,15 @@ export class DiveScene extends Phaser.Scene {
     this.time.delayedCall(250, () => board.clearTint());
 
     const labelY = board.y - board.height / 2 - 10;
-    const label = this.add
-      .bitmapText(board.x, labelY, feedback.font, feedback.label, 50)
-      .setOrigin(0.5)
+    const label = makeShadowedBitmapText(
+      this,
+      board.x,
+      labelY,
+      feedback.font,
+      feedback.label,
+      50,
+      4
+    )
       .setDepth(15)
       .setScale(0.3)
       .setAlpha(0);
@@ -185,10 +196,6 @@ export class DiveScene extends Phaser.Scene {
         frameHeight: 500,
       }
     );
-    this.load.spritesheet("climbdave", "assets/climbdave.png", {
-      frameWidth: 256,
-      frameHeight: 256,
-    });
     this.load.image("plane", "assets/plane.png");
     this.load.image("ufo", "assets/ufo.png");
     this.load.spritesheet("menu-button", "assets/menu-spritesheet.png", {
@@ -313,7 +320,7 @@ export class DiveScene extends Phaser.Scene {
     this.gettingoutdave.setVisible(false);
 
     this.climbdave = this.physics.add
-      .sprite(28, this.sceneHeight - 200, "climbdave")
+      .sprite(28, this.sceneHeight - 200, "dave")
       .setDepth(8);
     this.climbdave.setVisible(false);
     this.climbdave.body.setAllowGravity(false);
@@ -397,28 +404,20 @@ export class DiveScene extends Phaser.Scene {
       key: "idle",
       frameRate: 8,
       frames: this.anims.generateFrameNumbers("dave", {
-        frames: [18, 18, 18, 18, 18, 19, 20, 21],
+        frames: [15, 15, 15, 15, 15, 16, 17, 18],
       }),
       repeat: -1,
     });
     this.anims.create({
-      key: "walkright",
-      frameRate: 6,
-      frames: this.anims.generateFrameNumbers("dave", { frames: [2, 3, 2, 4] }),
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "walkleft",
-      frameRate: 6,
-      frames: this.anims.generateFrameNumbers("dave", {
-        frames: [11, 12, 11, 13],
-      }),
+      key: "walk",
+      frameRate: 8,
+      frames: this.anims.generateFrameNumbers("dave", { frames: [5, 6, 7, 8] }),
       repeat: -1,
     });
     this.anims.create({
       key: "jump",
       frameRate: 12,
-      frames: this.anims.generateFrameNumbers("dave", { frames: [5, 5, 6] }),
+      frames: this.anims.generateFrameNumbers("dave", { frames: [10, 10, 11] }),
     });
     this.anims.create({
       key: "getout",
@@ -432,8 +431,8 @@ export class DiveScene extends Phaser.Scene {
     this.anims.create({
       key: "climb",
       frameRate: 8,
-      frames: this.anims.generateFrameNumbers("climbdave", {
-        frames: [0, 1, 2, 3],
+      frames: this.anims.generateFrameNumbers("dave", {
+        frames: [20, 21, 22, 23],
       }),
       repeat: -1,
     });
@@ -540,7 +539,7 @@ export class DiveScene extends Phaser.Scene {
     ) {
       this.climbdave.setVelocityY(0);
       this.climbdave.anims.stop();
-      this.climbdave.setFrame(0);
+      this.climbdave.setFrame(20);
     }
   }
 
@@ -689,14 +688,15 @@ export class DiveScene extends Phaser.Scene {
       const flipDelta = this.totalRotations - this.lastFlipNumber;
       if (flipDelta >= 1) {
         const roundedRotations = Math.round(this.totalRotations);
-        this.add
-          .bitmapText(
-            dave.x,
-            dave.y,
-            roundedRotations > this.goalRotations ? "red-arial" : "green-arial",
-            roundedRotations,
-            75
-          )
+        makeShadowedBitmapText(
+          this,
+          dave.x,
+          dave.y,
+          roundedRotations > this.goalRotations ? "red-arial" : "green-arial",
+          roundedRotations,
+          75,
+          5
+        )
           .setDepth(14)
           .setActive(false);
         Haptics.impactLight();

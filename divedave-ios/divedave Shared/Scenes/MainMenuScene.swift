@@ -59,8 +59,15 @@ final class MainMenuScene: SKScene {
         loadingLabel.isHidden = true;
         addChild(loadingLabel)
 
-        loadingDave = SKSpriteNode(imageNamed: "divedave-crouched")
-        loadingDave.setScale(GameState.shared.metrics.scaleFactorHeight)
+        // Crouch pose now lives in the consolidated Dave sheet (frame 10).
+        let crouch = AnimatedSprite(spritesheetName: "divedave-spritesheet-extruded",
+                                    frameWidth: Game.defaultDaveHeight,
+                                    frameHeight: Game.defaultDaveHeight,
+                                    margin: 1,
+                                    spacing: 2,
+                                    scale: GameState.shared.metrics.scaleFactorHeight)
+        crouch.texture = crouch.frames[10]
+        loadingDave = crouch
         loadingDave.position = CGPoint(x: loadingLabel.position.x, y: loadingLabel.position.y + loadingDave.size.height)
         loadingDave.isHidden = true;
         addChild(loadingDave)
