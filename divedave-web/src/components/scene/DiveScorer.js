@@ -3,7 +3,7 @@ import {
   BOOST_OK_MS,
   BOOST_PERFECT_MS,
 } from "../../util/Constants.js";
-import { getRandomInt } from "../../util/Utilities.js";
+import { getRandomIntInclusive } from "../../util/Utilities.js";
 
 export const DiveResult = Object.freeze({
   Success: "success",
@@ -39,15 +39,15 @@ export function scoreDive({ goalRotations, rotations, angle, tuckCount }) {
 function scoreForFrame(frame, tuckCount) {
   switch (frame) {
     case 4:
-      return 10 - getRandomInt(0, 1) / 2.0 - (tuckCount - 1);
+      return Math.trunc(10 - getRandomIntInclusive(0, 1) / 2.0 - (tuckCount - 1));
     case 3:
-      return 10 - getRandomInt(3, 6) / 2.0 - (tuckCount - 1);
+      return Math.trunc(10 - getRandomIntInclusive(3, 6) / 2.0 - (tuckCount - 1));
     case 2:
-      return 10 - getRandomInt(7, 10) / 2.0 - (tuckCount - 1);
+      return Math.trunc(10 - getRandomIntInclusive(7, 10) / 2.0 - (tuckCount - 1));
     case 1:
-      return 10 - getRandomInt(10, 15) / 2.0 - (tuckCount - 1);
+      return Math.trunc(10 - getRandomIntInclusive(10, 15) / 2.0 - (tuckCount - 1));
     case 0:
-      return 10 - getRandomInt(14, 18) / 2.0 - (tuckCount - 1);
+      return Math.trunc(10 - getRandomIntInclusive(14, 18) / 2.0 - (tuckCount - 1));
     default:
       return 0;
   }
