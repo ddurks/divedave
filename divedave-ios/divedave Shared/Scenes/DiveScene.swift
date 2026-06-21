@@ -13,6 +13,23 @@ struct DiveStats {
     var emotionFrame: Int = 2
 }
 
+// Mirror of divedave-web GETTING_OUT, scaled to points by scaleFactorWidth.
+private enum GetOut {
+    static let ladderX: CGFloat = 937
+    static let ladderYUp: CGFloat = 191
+    static let ladderScale: CGFloat = 0.87
+    static let emergeYUp: CGFloat = 207
+    static let deckYUp: CGFloat = 325
+    static let walkSpeed: CGFloat = 450
+    static let turnFrameDuration: TimeInterval = 0.07
+    static let climbX: CGFloat = 28
+    static let climbXNudge: CGFloat = 3 // iOS-only: aligns the climb pose on the tower
+    static let climbSpeed: CGFloat = 200
+    static let ladderOverlapPx: CGFloat = 70
+}
+
+private enum GetOutState { case idle, emerge, turn1, walk, turn2, climb, done }
+
 final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var readyForReset = false
     var onDuelComplete: ((Int) -> Void)?
@@ -36,6 +53,14 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var davePlayer: DavePlayer!
     private let boardContact = BoardContact()
     private let rotationTracker = RotationTracker()
+    private var poolLadder: SKSpriteNode!
+    private var landscapeHeight: CGFloat = 0
+    private var goState: GetOutState = .idle
+    private var goTurnElapsed: TimeInterval = 0
+    private var goTurnFrames: [Int] = []
+    private var goTurnFlips: [Bool] = []
+    private var goLastTime: TimeInterval = 0
+    private var sfw: CGFloat { GameState.shared.metrics.scaleFactorWidth }
 
     override func didMove(to view: SKView) {
         physicsWorld.gravity = CGVector(dx: 0, dy: -Game.gravity)
@@ -64,7 +89,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         davePlayer = DavePlayer(scene: self, springboard: springboard)
         setupSplash()
         calculateGameLogic()
-        atmosphere = Atmosphere(scene: self, sceneHeight: GameState.shared.sceneHeight, startY: gettingoutdave.size.height, middleY: GameState.shared.metrics.height * 2, endY: GameState.shared.metrics.height * 4)
+        atmosphere = Atmosphere(scene: self, sceneHeight: GameState.shared.sceneHeight, startY: landscapeHeight, middleY: GameState.shared.metrics.height * 2, endY: GameState.shared.metrics.height * 4)
     }
 
     func setupHUD(view: SKView, camera: SKCameraNode) {
@@ -150,7 +175,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         platformBase.setScale(GameState.shared.metrics.scaleFactorHeight)
         addChild(platformBase)
 
-        setupClimbDave(x: platformBase.position.x, y: platformBase.position.y)
+        setupClimbDave()
 
         let offset = 100.0
         self.physicsBody = SKPhysicsBody(edgeLoopFrom: CGRect(x: platformTop.position.x - (platformTop.size.width/2), y: -offset, width: GameState.shared.metrics.width, height: GameState.shared.sceneHeight + 2*offset))
@@ -239,26 +264,20 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         self.view?.presentScene(newScene, transition: SKTransition.fade(withDuration: 0.5))
     }
 
-    func setupClimbDave(x: CGFloat, y: CGFloat) {
+    func setupClimbDave() {
         climbdave = AnimatedSprite(spritesheetName: "divedave-spritesheet-extruded",
                               frameWidth: Game.defaultDaveHeight,
                               frameHeight: Game.defaultDaveHeight,
                               margin: 1,
                               spacing: 2,
-                              scale: GameState.shared.metrics.scaleFactorHeight)
-        climbdave.position = CGPoint(x: x - (5*climbdave.size.width/7), y: y + climbdave.size.height/3)
+                              scale: sfw)
+        climbdave.position = CGPoint(x: GetOut.climbX * sfw, y: GetOut.deckYUp * sfw)
         climbdave.zPosition = 5
-
-        climbdave.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: 64 * GameState.shared.metrics.scaleFactorWidth, height: 256 * GameState.shared.metrics.scaleFactorHeight))
-        climbdave.physicsBody?.isDynamic = true
-        climbdave.physicsBody?.affectedByGravity = false
-        climbdave.physicsBody?.linearDamping = 0
-        climbdave.physicsBody?.collisionBitMask = 0
-        climbdave.physicsBody?.contactTestBitMask = 0
         climbdave.isHidden = true
 
         addChild(climbdave)
 
+        climbdave.defineAnimation(name: "walk", frameIndices: [5, 6, 7, 8], timePerFrame: 0.125)
         climbdave.defineAnimation(name: "climb", frameIndices: [20, 21, 22, 23], timePerFrame: 0.125)
     }
 
@@ -374,6 +393,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         landscape.position = CGPoint(x: GameState.shared.metrics.width / 2, y: landscape.size.height / 2)
         landscape.zPosition = 1
         addChild(landscape)
+        landscapeHeight = landscape.size.height
 
         water = AnimatedSprite(
             spritesheetName: "water",
@@ -394,21 +414,27 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         water.playAnimation(name: "idle")
 
         gettingoutdave = AnimatedSprite(
-            spritesheetName: "getting-out-spritesheet",
-            frameWidth: 1250,
-            frameHeight: 500,
+            spritesheetName: "divedave-spritesheet_gettingout",
+            frameWidth: 256,
+            frameHeight: 256,
             margin: 0,
             spacing: 0,
-            scale: 1.0
+            scale: sfw
         )
 
-        gettingoutdave.defineAnimation(name: "getOut", frameIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27], timePerFrame: 0.125, repeatForever: false)
+        gettingoutdave.defineAnimation(name: "getOut", frameIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], timePerFrame: 0.1, repeatForever: false)
 
-        gettingoutdave.size = CGSize(width: GameState.shared.metrics.width, height: GameState.shared.metrics.width / aspectRatio)
-        gettingoutdave.position = CGPoint(x: GameState.shared.metrics.width / 2, y: landscape.size.height / 2)
+        gettingoutdave.position = CGPoint(x: GetOut.ladderX * sfw, y: GetOut.emergeYUp * sfw)
         gettingoutdave.zPosition = 7
         gettingoutdave.isHidden = true
         addChild(gettingoutdave)
+
+        poolLadder = SKSpriteNode(imageNamed: "ladder")
+        poolLadder.setScale(GetOut.ladderScale * sfw)
+        poolLadder.position = CGPoint(x: GetOut.ladderX * sfw, y: GetOut.ladderYUp * sfw)
+        poolLadder.zPosition = 8
+        poolLadder.isHidden = true
+        addChild(poolLadder)
     }
 
 
@@ -515,14 +541,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.readyForReset = true
-
-                    self.gettingoutdave.isHidden = false
-                    self.gettingoutdave.playAnimation(name: "getOut") {
-                        self.climbdave.physicsBody?.velocity.dy = 50
-                        self.gettingoutdave.isHidden = true
-                        self.climbdave.playAnimation(name: "climb")
-                        self.climbdave.isHidden = false
-                    }
+                    self.startGettingOut()
                 }
         }
 
@@ -703,7 +722,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     override func update(_ currentTime: TimeInterval) {
         playerHandler(currentTime: currentTime)
         applyPhaserStyleAngularDrag(currentTime: currentTime)
-        updateClimbDave()
+        updateGettingOut(currentTime: currentTime)
         updateBoardCollisionGuard()
         if let davePos = dave?.position {
             cameraController.follow(targetY: davePos.y)
@@ -734,13 +753,100 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         rotationTracker.applyAngularDrag(to: body, currentTime: currentTime)
     }
 
-    func updateClimbDave() {
-        if (diveComplete && climbdave != nil && platformTop != nil) {
-            if (climbdave.position.y > platformTop.position.y) {
-                climbdave.physicsBody?.velocity.dy = 0
+    func startGettingOut() {
+        goState = .emerge
+        gettingoutdave.isHidden = false
+        poolLadder.isHidden = true
+        gettingoutdave.playAnimation(name: "getOut") { [weak self] in
+            guard let self else { return }
+            self.gettingoutdave.isHidden = true
+            self.climbdave.position = CGPoint(x: GetOut.ladderX * self.sfw, y: GetOut.deckYUp * self.sfw)
+            self.climbdave.xScale = -self.sfw
+            self.climbdave.texture = self.climbdave.frames[4]
+            self.climbdave.isHidden = false
+            self.startTurn(.turn1)
+        }
+    }
+
+    private func startTurn(_ which: GetOutState) {
+        goState = which
+        goTurnElapsed = 0
+        if which == .turn1 {
+            goTurnFrames = [4, 3, 2]
+            goTurnFlips = [true, true, true]
+        } else {
+            goTurnFrames = [2, 1, 0, 1, 2]
+            goTurnFlips = [true, true, false, false, false]
+        }
+    }
+
+    func updateGettingOut(currentTime: TimeInterval) {
+        if goLastTime == 0 { goLastTime = currentTime }
+        let dt = currentTime - goLastTime
+        goLastTime = currentTime
+        switch goState {
+        case .turn1, .turn2:
+            advanceTurn(dt)
+        case .walk:
+            advanceWalk(dt)
+        case .climb:
+            advanceClimb(dt)
+        default:
+            break
+        }
+        updateLadderOverlay()
+    }
+
+    private func advanceTurn(_ dt: TimeInterval) {
+        goTurnElapsed += dt
+        let step = Int(goTurnElapsed / GetOut.turnFrameDuration)
+        if step >= goTurnFrames.count {
+            if goState == .turn1 {
+                goState = .walk
+                climbdave.xScale = -sfw
+                climbdave.playAnimation(name: "walk")
+            } else {
+                goState = .climb
                 climbdave.stopAnimation()
-                climbdave.texture = climbdave.frames[20]
+                climbdave.xScale = sfw
+                climbdave.position.x = GetOut.climbX * sfw - GetOut.climbXNudge
+                climbdave.playAnimation(name: "climb")
             }
+            return
+        }
+        climbdave.texture = climbdave.frames[goTurnFrames[step]]
+        climbdave.xScale = goTurnFlips[step] ? -sfw : sfw
+    }
+
+    private func advanceWalk(_ dt: TimeInterval) {
+        climbdave.position.x -= GetOut.walkSpeed * sfw * CGFloat(dt)
+        if climbdave.position.x <= GetOut.climbX * sfw {
+            climbdave.position.x = GetOut.climbX * sfw
+            climbdave.stopAnimation()
+            startTurn(.turn2)
+        }
+    }
+
+    private func advanceClimb(_ dt: TimeInterval) {
+        guard platformTop != nil else { return }
+        climbdave.position.y += GetOut.climbSpeed * sfw * CGFloat(dt)
+        if climbdave.position.y >= platformTop.position.y {
+            climbdave.position.y = platformTop.position.y
+            climbdave.stopAnimation()
+            climbdave.texture = climbdave.frames[20]
+            goState = .done
+        }
+    }
+
+    private func updateLadderOverlay() {
+        switch goState {
+        case .turn1:
+            poolLadder.isHidden = false
+        case .walk:
+            let overlap = climbdave.position.x > (GetOut.ladderX - GetOut.ladderOverlapPx) * sfw
+            poolLadder.isHidden = !overlap
+        default:
+            poolLadder.isHidden = true
         }
     }
 
