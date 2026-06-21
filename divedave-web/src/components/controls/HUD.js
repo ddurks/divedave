@@ -65,6 +65,7 @@ export class HUD {
       new ControlButton(scene, 125, 315, "menu-button", 1)
     );
     this.menuButton.setScale(1.0);
+    this.menuButton.growsOnPress = false;
     this.onMenuPressed = null;
     // Guard against repeated presses during the click animation queuing
     // multiple ANIMATION_COMPLETE handlers and firing the transition
@@ -102,7 +103,6 @@ export class HUD {
   setVisible(visible) {
     this.jumpButton.setVisible(visible);
     this.flipButton.setVisible(visible);
-    this.menuButton.setVisible(visible);
     if (IS_MOBILE) {
       this.leftButton.setVisible(visible);
       this.rightButton.setVisible(visible);
