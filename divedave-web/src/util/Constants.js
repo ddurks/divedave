@@ -26,7 +26,7 @@ export const UFO_PARALLAX = 1.0;
 export const HIGH_SCORE_KEY = "highScore";
 // === End shared block. ===
 
-export const GRAVITY = 1000;
+export const GRAVITY = 1200;
 
 export const REF_HEIGHT = 1500;
 
@@ -44,9 +44,10 @@ export const DAVE_SPAWN_Y = REF_HEIGHT / 3;
 
 export const DAVE_SPEED = 300;
 export const JUMP_VELOCITY = 800;
-export const DRAG = 500;
+// Per-frame horizontal velocity multiplier, mirrors iOS Game.drag.
+export const DRAG = 0.94;
 export const ANGULAR_DRAG = 150;
-export const MAX_BOOST = 200;
+export const MAX_BOOST = 400;
 export const IDLE_DELAY = 1000;
 
 export const TIMING_TINT_PERFECT = 0x57e857;

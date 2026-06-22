@@ -19,6 +19,7 @@ import {
   diff,
   fadeOutScene,
   getRandomInt,
+  getRandomIntInclusive,
   makeShadowedBitmapText,
 } from "../util/Utilities.js";
 import { StatsStore } from "../util/StatsStore.js";
@@ -549,6 +550,7 @@ export class DiveScene extends Phaser.Scene {
   }
 
   playerHandler() {
+    this.player.applyDamping();
     this.checkForReset();
     if (this.player.state === DaveState.Launching) return;
 
@@ -752,16 +754,21 @@ export class DiveScene extends Phaser.Scene {
       GRAVITY,
     );
 
-    const spinVelocityRadPerSec = Phaser.Math.DegToRad(
-      MAX_SPIN_VELOCITY * 0.75,
-    );
+    const spinVelocityRadPerSec = Phaser.Math.DegToRad(MAX_SPIN_VELOCITY * 0.7);
     const totalRotation = fallTime * spinVelocityRadPerSec;
     const maxFlips = totalRotation / (2 * Math.PI);
     const halfFlips = Math.floor(maxFlips * 2);
-    const randomHalfFlips = getRandomInt(1, halfFlips);
-    const goalRotations = randomHalfFlips / 2;
 
-    this.goalRotations = goalRotations;
+    if (halfFlips < 1) {
+      this.goalRotations = 0.5;
+    } else {
+      const streakFactor = Math.min(0.7, GameState.streak / 30);
+      const minHalfFlips = Math.max(
+        1,
+        Math.min(halfFlips, Math.floor(halfFlips * streakFactor)),
+      );
+      this.goalRotations = getRandomIntInclusive(minHalfFlips, halfFlips) / 2;
+    }
 
     this.add
       .bitmapText(

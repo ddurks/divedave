@@ -55,7 +55,6 @@ export class DavePlayer {
     sprite.body.setSize(64, 256);
     sprite.body.setAllowGravity(true);
     sprite.speed = DAVE_SPEED;
-    sprite.setDrag(DRAG, 1);
     sprite.body.setAngularDrag(ANGULAR_DRAG);
     sprite.body.setAllowDrag(true);
     this.sprite = sprite;
@@ -178,13 +177,16 @@ export class DavePlayer {
     if (!this.landedAt) this.landedAt = Date.now();
   }
 
+  applyDamping() {
+    this.sprite.body.velocity.x *= DRAG;
+  }
+
   calculateBoost() {
     const quickness = diff(this.landedAt, this.jumpReleasedAt);
     const timing = classifyBoostTiming(quickness);
     switch (timing) {
       case BoostTiming.Perfect: this.boost = MAX_BOOST; break;
-      case BoostTiming.Good:    this.boost = MAX_BOOST - 50; break;
-      case BoostTiming.Ok:      this.boost = MAX_BOOST - 100; break;
+      case BoostTiming.Good:    this.boost = MAX_BOOST / 2; break;
       default:                  this.boost = 0;
     }
 
