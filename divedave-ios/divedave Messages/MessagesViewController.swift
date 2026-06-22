@@ -70,9 +70,10 @@ final class MessagesViewController: MSMessagesAppViewController {
     }
 
     private func renderOutgoingPrompt() {
+        let image = makeImage("divedave_challenge")
         let label = makeLabel("Tap to challenge a friend")
         let button = makeButton("Play", action: #selector(playTapped))
-        stack([label, button])
+        stack([image, label, button])
     }
 
     private func renderIncomingPreview(_ state: ChallengeState) {
@@ -87,7 +88,7 @@ final class MessagesViewController: MSMessagesAppViewController {
         guard let responder = state.responder else { return }
         let summary = "\(state.challenger.name): \(state.challenger.score)  vs  \(responder.name): \(responder.score)"
         let label = makeLabel(summary)
-        let button = makeButton("Get divedave", action: #selector(getAppTapped))
+        let button = makeButton("Get Dive Dave", action: #selector(getAppTapped))
         stack([label, button])
     }
 
@@ -194,6 +195,17 @@ final class MessagesViewController: MSMessagesAppViewController {
         label.numberOfLines = 0
         label.textAlignment = .center
         return label
+    }
+
+    private func makeImage(_ name: String) -> UIImageView {
+        let imageView = UIImageView(image: UIImage(named: name))
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            imageView.widthAnchor.constraint(equalToConstant: 120),
+            imageView.heightAnchor.constraint(equalToConstant: 120),
+        ])
+        return imageView
     }
 
     private func makeButton(_ title: String, action: Selector) -> UIButton {
