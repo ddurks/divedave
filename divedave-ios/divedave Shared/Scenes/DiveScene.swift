@@ -160,7 +160,9 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
     static func duelParams(seed: String) -> (platformHeight: Double, boardHeightMeters: Double, goalRotations: Double) {
         var rng = SeededRandom(seed: seed)
-        let platformHeight = rng.nextDouble(in: 703...19000)
+        // 3–100 m dive (platformHeight / 200 = metres), matching the rest of the
+        // game and web.
+        let platformHeight = rng.nextDouble(in: 600...20000)
         let boardHeightMeters = round(platformHeight / 200.0 * 10) / 10
 
         let referenceScaleFactorHeight = 783.0 / Double(Game.defaultHeight)
@@ -262,11 +264,13 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         if GameState.shared.duelSeed != nil { return }
         if (self.diveComplete && self.readyForReset) {
             if (!GameState.shared.challengeMode) {
-                GameState.shared.platformHeight = Double.random(in: 703...(GameState.shared.metrics.height * 25))
+                // 3–100 m dive (platformHeight / 200 = metres); static so the
+                // range matches every device and web.
+                GameState.shared.platformHeight = Double.random(in: 600...20000)
                 restartScene()
             } else {
                 if (GameState.shared.totalScore == 0) {
-                    GameState.shared.platformHeight = 703
+                    GameState.shared.platformHeight = 600
                     restartScene()
                 } else {
                     let streakFactor = 2.0 * Double(GameState.shared.streak)
@@ -900,7 +904,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         self.diveComplete = true
         self.readyForReset = true
         GameState.shared.totalScore = 0
-        GameState.shared.platformHeight = 703
+        GameState.shared.platformHeight = 600
         self.view!.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 }

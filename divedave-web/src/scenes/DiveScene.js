@@ -286,7 +286,7 @@ export class DiveScene extends Phaser.Scene {
         PLATFORM_TOP_Y - 10,
         "black-arial",
         "   " + Math.round((heightFromWater / 2 / 100) * 10) / 10 + "m",
-        50,
+        100,
       )
       .setDepth(14)
       .setActive(false);
@@ -298,12 +298,12 @@ export class DiveScene extends Phaser.Scene {
       if (currHeight < 10) labelColor = "green-arial";
       if (heightFromWater % 200 === 0) {
         this.add
-          .bitmapText(WIDTH - 250, i, labelColor, "-- " + currHeight, 32)
+          .bitmapText(WIDTH - 250, i, labelColor, "-- " + currHeight, 64)
           .setDepth(14)
           .setActive(false);
       } else if (heightFromWater % 20 === 0) {
         this.add
-          .bitmapText(WIDTH - 250, i, labelColor, "-", 32)
+          .bitmapText(WIDTH - 250, i, labelColor, "-", 64)
           .setDepth(14)
           .setActive(false);
       }
@@ -814,7 +814,7 @@ export class DiveScene extends Phaser.Scene {
           dave.y,
           roundedRotations > this.goalRotations ? "red-arial" : "green-arial",
           roundedRotations,
-          75,
+          150,
           5,
         )
           .setDepth(14)
@@ -874,7 +874,9 @@ export class DiveScene extends Phaser.Scene {
   resetScene() {
     if (!(this.diveComplete && this.readyForReset)) return;
     if (!GameState.challengeMode) {
-      this.scene.restart({ height: getRandomInt(1500, 10000) });
+      // 3–100 m dive (height label = (sceneHeight − PLATFORM_TOP_Y − 100)/200 m),
+      // matched to iOS so the range is the same on both.
+      this.scene.restart({ height: getRandomInt(1500, 20900) });
     } else if (GameState.totalScore === 0) {
       this.scene.restart({ height: 1500 });
     } else {
