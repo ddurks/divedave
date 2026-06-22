@@ -280,16 +280,6 @@ export class DiveScene extends Phaser.Scene {
 
     GameState.waterLevel = this.sceneHeight - 100;
     let heightFromWater = GameState.waterLevel - PLATFORM_TOP_Y;
-    this.add
-      .bitmapText(
-        WIDTH - 200,
-        PLATFORM_TOP_Y - 10,
-        "black-arial",
-        "   " + Math.round((heightFromWater / 2 / 100) * 10) / 10 + "m",
-        100,
-      )
-      .setDepth(14)
-      .setActive(false);
     heightFromWater--;
     for (let i = PLATFORM_TOP_Y + 1; i < GameState.waterLevel; i++) {
       let labelColor = "red-arial";
@@ -298,7 +288,7 @@ export class DiveScene extends Phaser.Scene {
       if (currHeight < 10) labelColor = "green-arial";
       if (heightFromWater % 200 === 0) {
         this.add
-          .bitmapText(WIDTH - 250, i, labelColor, "-- " + currHeight, 64)
+          .bitmapText(WIDTH - 250, i, labelColor, "- " + currHeight + "m", 64)
           .setDepth(14)
           .setActive(false);
       } else if (heightFromWater % 20 === 0) {
