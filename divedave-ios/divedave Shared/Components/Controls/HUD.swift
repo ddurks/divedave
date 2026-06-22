@@ -22,7 +22,12 @@ final class HUD {
         let flipButtonY = jumpButtonY + scaledButtonHeight + 10
 
         let leftButtonX = -sceneSize.width * 0.35
-        let rightButtonX = -sceneSize.width * 0.1
+        // iPad's width would otherwise spread the movement pair apart; anchor the
+        // right button to the left one at a fixed button-width gap so the spacing
+        // between them is the same regardless of viewport width.
+        let rightButtonX = GameState.shared.isPad
+            ? leftButtonX + scaledButtonHeight + 10
+            : -sceneSize.width * 0.1
         let jumpButtonX = sceneSize.width * 0.35
         let flipButtonX = jumpButtonX
 

@@ -16,6 +16,13 @@ export const MAX_CLOUDS = 12;
 export const MIN_BIRDS = 0;
 export const MAX_BIRDS = 3;
 
+// Atmosphere parallax depth: 0 = pinned to camera (deepest), 1 = full world-space.
+export const STAR_PARALLAX = 0.3;
+export const CLOUD_PARALLAX = 0.6;
+export const BIRD_PARALLAX = 0.8;
+export const PLANE_PARALLAX = 0.8;
+export const UFO_PARALLAX = 1.0;
+
 export const HIGH_SCORE_KEY = "highScore";
 // === End shared block. ===
 

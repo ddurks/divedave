@@ -74,6 +74,9 @@ final class InfoPanel {
         resultLabel.zPosition = baseDepth + 1
         scene.addChild(resultLabel)
 
+        let lineSpacing = GameState.shared.isPad
+            ? 75 * GameState.shared.metrics.scaleFactorHeight
+            : 75 * GameState.shared.metrics.scaleFactorWidth
         for string in strings {
             let color = (string.contains("rotations") && (result == "FAILED DIVE" || result == "GAME OVER")) ? SKColor.red : SKColor.black
             let stringLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
@@ -83,7 +86,7 @@ final class InfoPanel {
             stringLabel.position = CGPoint(x: GameState.shared.metrics.width / 2, y: height)
             stringLabel.zPosition = baseDepth + 1
             scene.addChild(stringLabel)
-            height -= (75 * GameState.shared.metrics.scaleFactorWidth)
+            height -= lineSpacing
         }
 
         var scoreLabels: [SKLabelNode] = []
@@ -152,7 +155,14 @@ final class InfoPanel {
             seq.append(SKAction.run { [weak self] in
                 guard let self = self else { return }
                 self.tryAgain.isHidden = false
-                self.tryAgain.run(SKAction.fadeIn(withDuration: 0.2))
+                let blink = SKAction.repeatForever(SKAction.sequence([
+                    SKAction.fadeAlpha(to: 0.2, duration: 0.5),
+                    SKAction.fadeAlpha(to: 1.0, duration: 0.5)
+                ]))
+                self.tryAgain.run(SKAction.sequence([
+                    SKAction.fadeIn(withDuration: 0.2),
+                    blink
+                ]), withKey: "blink")
             })
             scene.run(SKAction.sequence(seq))
         } else {
@@ -164,6 +174,7 @@ final class InfoPanel {
     }
 
     func close() {
+        tryAgain.removeAction(forKey: "blink")
         tryAgain.isHidden = true
         panel.isHidden = true
         daveImage.isHidden = true

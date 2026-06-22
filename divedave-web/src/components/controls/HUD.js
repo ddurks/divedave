@@ -12,19 +12,19 @@ const MOVE_HINT_Y = HEIGHT - 40;
 export class HUD {
   constructor(scene) {
     this.leftButton = scene.add.existing(
-      new ControlButton(scene, 175, HEIGHT - 150, "controls-left")
+      new ControlButton(scene, 175, HEIGHT - 150, "controls-left"),
     );
     this.rightButton = scene.add.existing(
-      new ControlButton(scene, 450, HEIGHT - 150, "controls-right")
+      new ControlButton(scene, 450, HEIGHT - 150, "controls-right"),
     );
     this.moveHint = makeShadowedBitmapText(
       scene,
       MOVE_HINT_X,
       MOVE_HINT_Y,
       "red-arial",
-      "[A] [D]  or  [<] [>]  to move",
+      "[A] [D]  or  [<] [>]  to walk",
       40,
-      3
+      3,
     )
       .setScrollFactor(0)
       .setDepth(14);
@@ -50,10 +50,10 @@ export class HUD {
     this.moveHint.addAt(plaque, 0);
 
     this.jumpButton = scene.add.existing(
-      new ControlButton(scene, WIDTH - 175, JUMP_Y, "controls-jump")
+      new ControlButton(scene, WIDTH - 175, JUMP_Y, "controls-jump"),
     );
     this.flipButton = scene.add.existing(
-      new ControlButton(scene, WIDTH - 175, FLIP_Y, "controls-flip")
+      new ControlButton(scene, WIDTH - 175, FLIP_Y, "controls-flip"),
     );
 
     // Menu button matches the sign's width (both 256-px native frames,
@@ -61,7 +61,7 @@ export class HUD {
     // board hangs from the sign by its visible chains (≈ sign.y + 0.80 *
     // signHeight); iOS uses the sign-xl asset and needs its own offset.
     this.menuButton = scene.add.existing(
-      new ControlButton(scene, 125, 315, "menu-button", 1)
+      new ControlButton(scene, 125, 315, "menu-button", 1),
     );
     this.menuButton.setScale(1.0);
     this.menuButton.growsOnPress = false;
@@ -76,7 +76,7 @@ export class HUD {
       this.menuButton.play("menuClicked");
       this.menuButton.once(
         Phaser.Animations.Events.ANIMATION_COMPLETE,
-        () => this.onMenuPressed && this.onMenuPressed()
+        () => this.onMenuPressed && this.onMenuPressed(),
       );
     };
 

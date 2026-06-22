@@ -49,7 +49,7 @@ export class InfoPanel extends Phaser.GameObjects.Group {
       .setVisible(false);
   }
 
-  display(scene, result, strings, frame, scores, sceneHeight) {
+  display(scene, result, strings, frame, scores) {
     let height = HEIGHT / 2 + 5;
     scene.add
       .bitmapText(
@@ -85,7 +85,7 @@ export class InfoPanel extends Phaser.GameObjects.Group {
     this.panel.setVisible(true);
     this.daveimage.setFrame(frame);
     this.daveimage.setVisible(true);
-    this.tryAgain.setPosition(WIDTH / 2, sceneHeight - 100);
+    this.tryAgain.setPosition(WIDTH / 2, HEIGHT - 100);
 
     if (!scores) {
       this.score1.setVisible(false);
@@ -141,6 +141,15 @@ export class InfoPanel extends Phaser.GameObjects.Group {
         targets: this.tryAgain,
         alpha: 1,
         duration: REVEAL_TWEEN_MS,
+        onComplete: () => {
+          scene.tweens.add({
+            targets: this.tryAgain,
+            alpha: 0.2,
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+          });
+        },
       });
     });
   }

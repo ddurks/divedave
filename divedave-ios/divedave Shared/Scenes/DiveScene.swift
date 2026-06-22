@@ -447,11 +447,14 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         )
         outerwater.defineAnimation(name: "idle", frameIndices: [0, 1, 2, 3], timePerFrame: 0.25)
         outerwater.size = water.size
-        // Front water band sits in front of Dave (z 6 > Dave's 5) but only spans
-        // the submerged zone (top edge at waterLevel), so he reads as entering the
-        // surface before it hides him. Mirrors divedave-web's back/outer water
-        // pair that brackets Dave's depth.
-        outerwater.position = CGPoint(x: GameState.shared.metrics.width / 2, y: waterLevel - water.size.height / 2)
+        // Front band (z6 > Dave's z5) hides Dave once submerged: the back water
+        // shifted down a quarter of the water height. Mirrors divedave-web, where the
+        // front/back water centers differ by 50pt of the 200pt sprite (¼) — Dave
+        // enters at the surface and goes under a quarter-height below it.
+        outerwater.position = CGPoint(
+            x: GameState.shared.metrics.width / 2,
+            y: water.position.y - water.size.height / 4
+        )
         outerwater.zPosition = 6
         addChild(outerwater)
         outerwater.playAnimation(name: "idle")

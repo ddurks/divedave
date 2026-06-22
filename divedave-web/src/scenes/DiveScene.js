@@ -1,18 +1,10 @@
 import {
-  BIRDMAXSPEED,
-  BIRDMINSPEED,
   BOARD_Y,
-  CLOUDMAXSPEED,
-  CLOUDMINSPEED,
   END_COLOR,
   GRAVITY,
   HEIGHT,
-  MAX_CLOUDS,
   MAX_SPIN_VELOCITY,
   MIDDLE_COLOR,
-  MIN_BIRDS,
-  MAX_BIRDS,
-  MIN_CLOUDS,
   PLATFORM_SECTION_START_Y,
   PLATFORM_TOP_Y,
   REF_HEIGHT,
@@ -32,6 +24,7 @@ import {
 import { StatsStore } from "../util/StatsStore.js";
 import { HUD } from "../components/controls/HUD.js";
 import { InfoPanel } from "../components/menu/InfoPanel.js";
+import { Atmosphere } from "../components/scene/Atmosphere.js";
 import {
   CameraController,
   ShakeStrength,
@@ -368,7 +361,12 @@ export class DiveScene extends Phaser.Scene {
     };
 
     this.registerAnimations();
-    this.spawnAtmosphere();
+    this.atmosphere = new Atmosphere(
+      this,
+      this.sceneHeight,
+      this.middleY,
+      this.endY,
+    );
 
     const water = this.add
       .sprite(WIDTH / 2, this.sceneHeight - 100, "water")
@@ -517,9 +515,25 @@ export class DiveScene extends Phaser.Scene {
     this.updateBoardCollisionGuard();
     this.physics.world.collide(this.player.sprite, [GameState.springboard]);
     this.updateSkyColor();
-    this.handleAtmosphere();
+    const cam = this.cameras.main;
+    this.atmosphere.update(this.cameraScrollForFrame(cam), cam.height, delta);
     this.playerHandler();
     this.updateGettingOut(delta);
+  }
+
+  // Reproduce the scroll Phaser's follow camera will use at render, so the
+  // manually-positioned parallax stays locked to the foreground. Arcade syncs
+  // the sprite from its body at POST_UPDATE — after update() — so sprite.y here
+  // still holds last frame's value; adding the body's pending delta gives the
+  // position the camera will actually center on this frame (lerp 1, no
+  // deadzone/offset, so it matches preRender exactly).
+  cameraScrollForFrame(cam) {
+    const camHeight = Math.max(this.sceneHeight, HEIGHT);
+    const boundsY = this.sceneHeight - camHeight;
+    const maxScrollY = Math.max(boundsY + camHeight - cam.height, boundsY);
+    const body = this.player.sprite.body;
+    const renderY = this.player.sprite.y + (body ? body.deltaY() : 0);
+    return Phaser.Math.Clamp(renderY - cam.height / 2, boundsY, maxScrollY);
   }
 
   // Once Dave has dropped past the board entirely, drop board collisions so
@@ -698,7 +712,6 @@ export class DiveScene extends Phaser.Scene {
         ],
         this.stats.emotionFrame,
         this.stats.scores,
-        this.sceneHeight,
       );
       this.hud.setVisible(false);
       const splash = this.add.sprite(
@@ -843,7 +856,6 @@ export class DiveScene extends Phaser.Scene {
         ],
         3,
         null,
-        HEIGHT / 2,
       );
     }
     GameState.streak = 0;
@@ -913,108 +925,6 @@ export class DiveScene extends Phaser.Scene {
     } else {
       player.releaseTuck();
     }
-  }
-
-  spawnAtmosphere() {
-    const segmentSize = 1000;
-    this.clouds = [];
-    this.birds = [];
-    this.planes = [];
-    this.ufos = [];
-    this.stars = [];
-
-    for (let s = 0; s < this.sceneHeight; s += segmentSize) {
-      const yMin = s;
-      const yMax = s + segmentSize;
-
-      const cloudCount = getRandomInt(MIN_CLOUDS, MAX_CLOUDS);
-      const birdCount = getRandomInt(MIN_BIRDS, MAX_BIRDS);
-      const starMult = 1;
-
-      for (let i = 0; i < cloudCount; i++) {
-        const y = getRandomInt(yMin, yMax);
-        const x = getRandomInt(-256, WIDTH + 256);
-
-        if (y >= this.middleY) {
-          const cloud = this.physics.add.sprite(x, y, "cloud");
-          cloud.setFrame(getRandomInt(0, 8));
-          cloud.setDepth(1);
-          cloud.setScale(getRandomInt(75, 150) / 100);
-          cloud.body.setAllowGravity(false);
-          cloud.setVelocityX(getRandomInt(CLOUDMINSPEED, CLOUDMAXSPEED));
-          this.clouds.push(cloud);
-        } else if (y < this.endY) {
-          for (let j = 0; j < starMult; j++) {
-            const star = this.add
-              .sprite(getRandomInt(0, WIDTH), y, "star")
-              .setDepth(1);
-            star.setScale(0.75);
-            star.setRotation(Phaser.Math.FloatBetween(0, 2 * Math.PI));
-            this.time.delayedCall(getRandomInt(0, 750), () => {
-              star.play("sparkle");
-            });
-            this.stars.push(star);
-          }
-        }
-      }
-
-      for (let i = 0; i < birdCount; i++) {
-        const y = getRandomInt(yMin, yMax);
-        const x = getRandomInt(-128, WIDTH + 128);
-
-        if (y >= this.middleY) {
-          const bird = this.physics.add.sprite(x, y, "bird");
-          bird.body.setAllowGravity(false);
-          bird.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
-          this.time.delayedCall(getRandomInt(0, 750), () => {
-            bird.play("fly");
-          });
-          this.birds.push(bird);
-        } else if (y >= this.endY) {
-          const plane = this.physics.add.sprite(x, y, "plane");
-          plane.body.setAllowGravity(false);
-          plane.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
-          this.planes.push(plane);
-        } else {
-          const ufo = this.physics.add.sprite(x, y, "ufo");
-          ufo.body.setAllowGravity(false);
-          ufo.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
-          this.ufos.push(ufo);
-        }
-      }
-    }
-  }
-
-  handleAtmosphere() {
-    this.clouds.forEach((cloud) => {
-      if (cloud.x >= WIDTH + cloud.width / 2) {
-        const y = getRandomInt(this.middleY, this.sceneHeight - 500);
-        cloud.setPosition(-cloud.width * 2, y);
-        cloud.setVelocityX(getRandomInt(CLOUDMINSPEED, CLOUDMAXSPEED));
-        cloud.setFrame(getRandomInt(0, 8));
-      }
-    });
-    this.birds.forEach((bird) => {
-      if (bird.x + bird.width / 2 < 0) {
-        const y = getRandomInt(this.middleY, this.sceneHeight - 500);
-        bird.setPosition(WIDTH + bird.width * 2, y);
-        bird.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
-      }
-    });
-    this.planes.forEach((plane) => {
-      if (plane.x + plane.width / 2 < 0) {
-        const y = getRandomInt(this.endY, this.middleY);
-        plane.setPosition(WIDTH + plane.width * 2, y);
-        plane.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
-      }
-    });
-    this.ufos.forEach((ufo) => {
-      if (ufo.x + ufo.width / 2 < 0) {
-        const y = getRandomInt(0, this.endY);
-        ufo.setPosition(WIDTH + ufo.width * 2, y);
-        ufo.setVelocityX(-getRandomInt(BIRDMINSPEED, BIRDMAXSPEED));
-      }
-    });
   }
 
   updateSkyColor() {
