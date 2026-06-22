@@ -27,6 +27,13 @@ enum Game {
     static let minBirds = 0
     static let maxBirds = 3
 
+    // Atmosphere parallax depth: 0 = pinned to camera (deepest), 1 = full world-space.
+    static let starParallax: CGFloat = 0.3
+    static let cloudParallax: CGFloat = 0.6
+    static let birdParallax: CGFloat = 0.8
+    static let planeParallax: CGFloat = 0.8
+    static let ufoParallax: CGFloat = 1.0
+
     static let highScoreKey = "highScore"
     // === End shared block. ===
 

@@ -28,7 +28,6 @@ struct AtmosphereLayer {
     // 0 = static relative to camera (deepest distance), 1 = full world-space.
     let parallaxFactor: CGFloat
     let maxCount: Int
-    let extendsUpward: Bool
 }
 
 private final class AtmosphereEntity {
@@ -61,7 +60,6 @@ final class Atmosphere {
     private var entitiesByLayer: [[AtmosphereEntity]] = []
 
     private var referenceCameraY: CGFloat?
-    private var spawnedCeilingByLayer: [CGFloat] = []
 
     init(scene: SKScene, sceneHeight: CGFloat, startY: CGFloat, middleY: CGFloat, endY: CGFloat) {
         self.scene = scene
@@ -72,7 +70,6 @@ final class Atmosphere {
 
         self.layers = Atmosphere.defaultLayers(sceneHeight: sceneHeight, middleY: middleY, endY: endY)
         self.entitiesByLayer = Array(repeating: [], count: layers.count)
-        self.spawnedCeilingByLayer = layers.map { $0.yRange.upperBound }
 
         for (idx, layer) in layers.enumerated() {
             spawn(layer: layer, layerIndex: idx)
@@ -111,9 +108,8 @@ final class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
                 randomRotation: true,
-                parallaxFactor: 0.3,
-                maxCount: 600,
-                extendsUpward: true
+                parallaxFactor: Game.starParallax,
+                maxCount: 600
             )
         }
 
@@ -130,9 +126,8 @@ final class Atmosphere {
                 scaleRange: 0.75...1.5,
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
-                parallaxFactor: 0.6,
-                maxCount: 200,
-                extendsUpward: false
+                parallaxFactor: Game.cloudParallax,
+                maxCount: 200
             )
         }
 
@@ -153,9 +148,8 @@ final class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
                 randomRotation: false,
-                parallaxFactor: 0.8,
-                maxCount: 80,
-                extendsUpward: false
+                parallaxFactor: Game.birdParallax,
+                maxCount: 80
             )
         }
 
@@ -172,9 +166,8 @@ final class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
-                parallaxFactor: 0.8,
-                maxCount: 80,
-                extendsUpward: false
+                parallaxFactor: Game.planeParallax,
+                maxCount: 80
             )
         }
 
@@ -191,9 +184,8 @@ final class Atmosphere {
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
                 randomRotation: false,
-                parallaxFactor: 1.0,
-                maxCount: 80,
-                extendsUpward: true
+                parallaxFactor: Game.ufoParallax,
+                maxCount: 80
             )
         }
 
@@ -308,8 +300,6 @@ final class Atmosphere {
                 entity.node.position.y = Atmosphere.wrap(entity.anchorY + offset, in: layer.yRange)
                 recycle(entity: entity, layer: layer, offset: offset)
             }
-
-            extendIfNeeded(layerIndex: layerIndex, layer: layer, cameraY: cameraY)
         }
     }
 
@@ -319,40 +309,6 @@ final class Atmosphere {
         let raw = y - range.lowerBound
         let r = raw.truncatingRemainder(dividingBy: height)
         return range.lowerBound + (r < 0 ? r + height : r)
-    }
-
-    private func extendIfNeeded(layerIndex: Int, layer: AtmosphereLayer, cameraY: CGFloat) {
-        guard layer.extendsUpward else { return }
-        let ceiling = spawnedCeilingByLayer[layerIndex]
-        guard cameraY + GameState.shared.metrics.height * 1.5 >= ceiling else { return }
-
-        let newSlabBottom = ceiling
-        let newSlabTop = ceiling + layer.segmentSize
-        let count = Int.random(in: layer.countRange)
-
-        if entitiesByLayer[layerIndex].count < layer.maxCount {
-            for _ in 0..<count {
-                if entitiesByLayer[layerIndex].count >= layer.maxCount { break }
-                let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
-                spawnEntity(in: layer, layerIndex: layerIndex, atY: yPos)
-            }
-        } else {
-            let sortedByY = entitiesByLayer[layerIndex].sorted { $0.node.position.y < $1.node.position.y }
-            let toRecycle = min(count, sortedByY.count)
-            var recycled = 0
-            for entity in sortedByY {
-                if recycled >= toRecycle { break }
-                if entity.node.position.y >= newSlabBottom { break }
-                let yPos = CGFloat.random(in: newSlabBottom...newSlabTop)
-                let xLow = -layer.xPadding
-                let xHigh = GameState.shared.metrics.width + layer.xPadding
-                entity.anchorY = yPos
-                entity.node.position = CGPoint(x: CGFloat.random(in: xLow...xHigh), y: yPos)
-                recycled += 1
-            }
-        }
-
-        spawnedCeilingByLayer[layerIndex] = newSlabTop
     }
 
     private func recycle(entity: AtmosphereEntity, layer: AtmosphereLayer, offset: CGFloat) {
