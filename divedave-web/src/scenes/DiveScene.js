@@ -252,9 +252,13 @@ export class DiveScene extends Phaser.Scene {
     }
     this.add.image(205, this.sceneHeight - 200, "platformbase").setDepth(13);
 
-    this.startY = this.sceneHeight - REF_HEIGHT;
-    this.middleY = this.sceneHeight - REF_HEIGHT * 2;
-    this.endY = this.sceneHeight - REF_HEIGHT * 4;
+    // Atmosphere/sky bands keyed to the same altitudes as iOS: planes from
+    // ~30m, stars from ~60m. iOS keys these off its 3000-unit reference screen
+    // (middleY = height*2, endY = height*4); web's REF_HEIGHT is 1500, half of
+    // that, so the multipliers are doubled to land on the same meter marks.
+    this.startY = this.sceneHeight - REF_HEIGHT * 2;
+    this.middleY = this.sceneHeight - REF_HEIGHT * 4;
+    this.endY = this.sceneHeight - REF_HEIGHT * 8;
 
     this.add
       .image(125, 110, "sign")
@@ -524,15 +528,19 @@ export class DiveScene extends Phaser.Scene {
   // Reproduce the scroll Phaser's follow camera will use at render, so the
   // manually-positioned parallax stays locked to the foreground. Arcade syncs
   // the sprite from its body at POST_UPDATE — after update() — so sprite.y here
-  // still holds last frame's value; adding the body's pending delta gives the
-  // position the camera will actually center on this frame (lerp 1, no
-  // deadzone/offset, so it matches preRender exactly).
+  // still holds last frame's value; POST_UPDATE will add (position - prevFrame),
+  // the body's total movement this frame, to it. We predict with that same
+  // quantity rather than deltaY(): under the default fixedStep, a render frame
+  // can run 0 or 2 physics steps and deltaY() reports only the last one, so on
+  // high-refresh displays it mis-predicts the camera and the parallax jitters.
+  // (lerp 1, no deadzone/offset, so it matches preRender exactly.)
   cameraScrollForFrame(cam) {
     const camHeight = Math.max(this.sceneHeight, HEIGHT);
     const boundsY = this.sceneHeight - camHeight;
     const maxScrollY = Math.max(boundsY + camHeight - cam.height, boundsY);
     const body = this.player.sprite.body;
-    const renderY = this.player.sprite.y + (body ? body.deltaY() : 0);
+    const frameDeltaY = body ? body.position.y - body.prevFrame.y : 0;
+    const renderY = this.player.sprite.y + frameDeltaY;
     return Phaser.Math.Clamp(renderY - cam.height / 2, boundsY, maxScrollY);
   }
 
