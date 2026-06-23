@@ -3,6 +3,15 @@
 // classification. The remaining values are stable; check the matching
 // Swift declaration when changing any of them.
 export const WIDTH = 1250;
+// Reference world height; the FOV clamps to at least this (iOS Game.refHeight).
+export const REF_HEIGHT = 1500;
+
+// Kinematics in the fixed 1250-wide world — byte-identical to iOS (both engines
+// set velocities directly). Gravity is the exception (engine-specific), below.
+export const DAVE_SPEED = 352;
+export const JUMP_VELOCITY = 704;
+export const MAX_BOOST = 352;
+export const DRAG = 0.94;
 
 export const MIN_SPIN_VELOCITY = 100;
 export const MAX_SPIN_VELOCITY = 550;
@@ -26,9 +35,9 @@ export const UFO_PARALLAX = 1.0;
 export const HIGH_SCORE_KEY = "highScore";
 // === End shared block. ===
 
-export const GRAVITY = 1200;
-
-export const REF_HEIGHT = 1500;
+// Phaser Arcade gravity (px/s² at a fixed 60 Hz step). Engine-specific: iOS's
+// SpriteKit value (Game.gravity ≈ 7.04) is NOT this number. 1 m = 200px.
+export const GRAVITY = 1083;
 
 function computeViewportHeight() {
   if (typeof window === "undefined") return REF_HEIGHT;
@@ -42,12 +51,7 @@ export const PLATFORM_TOP_Y = 797;
 export const PLATFORM_SECTION_START_Y = 897;
 export const DAVE_SPAWN_Y = REF_HEIGHT / 3;
 
-export const DAVE_SPEED = 300;
-export const JUMP_VELOCITY = 800;
-// Per-frame horizontal velocity multiplier, mirrors iOS Game.drag.
-export const DRAG = 0.94;
 export const ANGULAR_DRAG = 150;
-export const MAX_BOOST = 400;
 export const IDLE_DELAY = 1000;
 
 export const TIMING_TINT_PERFECT = 0x57e857;

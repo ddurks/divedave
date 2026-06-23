@@ -80,6 +80,16 @@ struct ParityTest {
             }
         }
 
+        if let cases = root["goalHalfFlips"] as? [[String: Any]] {
+            for c in cases {
+                guard let h = (c["heightMeters"] as? NSNumber)?.doubleValue,
+                      let expected = (c["expected"] as? NSNumber)?.intValue else { continue }
+                check("goalHalfFlips(\(h))",
+                      expected: expected,
+                      actual: DiveScorer.goalHalfFlips(heightMeters: h))
+            }
+        }
+
         print("[swift] \(passed) passed, \(failed) failed")
         if failed > 0 {
             for f in failures { print(f) }

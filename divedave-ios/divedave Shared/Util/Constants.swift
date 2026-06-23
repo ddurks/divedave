@@ -14,6 +14,17 @@ enum Game {
     // classification. The remaining values are stable; check the matching
     // JS declaration when changing any of them.
     static let defaultWidth: CGFloat = 1250
+    // Reference world height; the device-aspect FOV is clamped to at least this
+    // (mirrors divedave-web REF_HEIGHT). 1 m = 200 units throughout.
+    static let refHeight: CGFloat = 1500
+
+    // Kinematics in the fixed 1250-wide world. Both engines set these as
+    // velocities directly, so they are byte-identical to web. Gravity is the lone
+    // exception (SpriteKit integrator ≠ Phaser) and stays platform-specific below.
+    static let daveSpeed: CGFloat = 352
+    static let jumpVelocity: CGFloat = 704
+    static let maxBoost: CGFloat = 352
+    static let drag: CGFloat = 0.94
 
     static let minSpinVelocity: CGFloat = 100.0 * .pi / 180.0
     static let maxSpinVelocity: CGFloat = 550.0 * .pi / 180.0
@@ -37,19 +48,24 @@ enum Game {
     static let highScoreKey = "highScore"
     // === End shared block. ===
 
-    static let gravity: CGFloat = 2
+    // SpriteKit-specific: applied by SKPhysicsWorld (≈150 pt/m, variable-substep
+    // integrator), so NOT web's Phaser value (1083 px/s² at a fixed 60 Hz step).
+    // 7.04 = the old 2 × 3.52 (3000/852): the world is now the fixed 1250-wide
+    // space instead of per-device points, so velocities and gravity both scaled
+    // by 3.52, preserving the prior trajectory feel.
+    static let gravity: CGFloat = 7.04
     static let daveMass: CGFloat = 1.0
 
-    static let defaultHeight: CGFloat = 3000
     static let defaultDaveHeight: CGFloat = 256
     static let defaultButtonHeight: CGFloat = 256
 
-    static let daveSpeed: CGFloat = 100
-    static let jumpVelocity: CGFloat = 200
-    static let drag: CGFloat = 0.94
+    // Reference ratio for the goal half-flip heuristic only (DiveScorer.goalHalfFlips,
+    // parity-tested). No longer scales physics or layout.
+    static let defaultHeight: CGFloat = 3000
+    static let referenceScreenHeight: CGFloat = 852
+
     static let angularDrag: CGFloat = 0.9
     static let linearAngularDrag: CGFloat = 2.618
-    static let maxBoost: CGFloat = 100
 
     static let cloudMinSpeed: CGFloat = 8
     static let cloudMaxSpeed: CGFloat = 20

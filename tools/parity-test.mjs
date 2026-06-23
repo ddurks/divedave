@@ -12,7 +12,7 @@ Object.defineProperty(globalThis, "navigator", {
   writable: true,
 });
 const scorerPath = resolve(HERE, "../divedave-web/src/components/scene/DiveScorer.js");
-const { chooseEmotionFrame, classifyBoostTiming, scoreDive } = await import(scorerPath);
+const { chooseEmotionFrame, classifyBoostTiming, goalHalfFlips, scoreDive } = await import(scorerPath);
 
 let failed = 0;
 let passed = 0;
@@ -40,6 +40,10 @@ for (const c of fixtures.scoreDive) {
   const input = JSON.stringify(c.input);
   check(`scoreDive(${input}).result`, c.expectedResult, out.result);
   check(`scoreDive(${input}).emotionFrame`, c.expectedEmotionFrame, out.emotionFrame);
+}
+
+for (const c of fixtures.goalHalfFlips) {
+  check(`goalHalfFlips(${c.heightMeters})`, c.expected, goalHalfFlips(c.heightMeters));
 }
 
 console.log(`[js]  ${passed} passed, ${failed} failed`);

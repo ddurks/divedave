@@ -1,29 +1,26 @@
 import CoreGraphics
 
+// The scene is a fixed 1250-wide world (Game.defaultWidth, == divedave-web WIDTH).
+// Only the vertical field-of-view adapts to the device, mirroring web's
+// computeViewportHeight: height = max(refHeight, round(width * deviceAspect)).
+// `.aspectFit` then maps this fixed space to any screen, so all gameplay
+// positions, sprite scales, and physics are device-independent by construction.
 struct SceneMetrics {
     let width: CGFloat
     let height: CGFloat
-    let scaleFactorWidth: CGFloat
-    let scaleFactorHeight: CGFloat
 
-    static let `default` = SceneMetrics(
-        width: Game.defaultWidth,
-        height: Game.defaultHeight,
-        scaleFactorWidth: 1.0,
-        scaleFactorHeight: 1.0
-    )
+    static let `default` = SceneMetrics(width: Game.defaultWidth, height: Game.refHeight)
 
-    init(viewBounds: CGSize) {
-        self.width = viewBounds.width
-        self.height = viewBounds.height
-        self.scaleFactorWidth = viewBounds.width / Game.defaultWidth
-        self.scaleFactorHeight = viewBounds.height / Game.defaultHeight
-    }
-
-    init(width: CGFloat, height: CGFloat, scaleFactorWidth: CGFloat, scaleFactorHeight: CGFloat) {
+    private init(width: CGFloat, height: CGFloat) {
         self.width = width
         self.height = height
-        self.scaleFactorWidth = scaleFactorWidth
-        self.scaleFactorHeight = scaleFactorHeight
+    }
+
+    init(deviceBounds: CGSize) {
+        let aspect = deviceBounds.width > 0
+            ? deviceBounds.height / deviceBounds.width
+            : Game.refHeight / Game.defaultWidth
+        self.width = Game.defaultWidth
+        self.height = max(Game.refHeight, (Game.defaultWidth * aspect).rounded())
     }
 }

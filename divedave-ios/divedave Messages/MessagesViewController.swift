@@ -120,11 +120,11 @@ final class MessagesViewController: MSMessagesAppViewController {
         GameState.shared.duelSeed = seed
         GameState.shared.challengeMode = false
 
-        let sceneSize = view.bounds.size
-        GameState.shared.metrics = SceneMetrics(viewBounds: sceneSize)
+        GameState.shared.metrics = SceneMetrics(deviceBounds: view.bounds.size)
 
-        let scene = DiveScene(size: sceneSize)
-        scene.scaleMode = .aspectFill
+        let m = GameState.shared.metrics
+        let scene = DiveScene(size: CGSize(width: m.width, height: m.height))
+        scene.scaleMode = .aspectFit
         scene.onDuelComplete = { [weak self] score in
             Task { @MainActor in self?.finishDuel(score: score) }
         }

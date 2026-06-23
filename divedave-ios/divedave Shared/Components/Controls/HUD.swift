@@ -14,20 +14,18 @@ final class HUD {
     var highScoreLabel: SKLabelNode!
 
     @MainActor
-    init(view: SKView, camera: SKCameraNode, sceneSize: CGSize, scaleFactorHeight: CGFloat) {
+    init(view: SKView, camera: SKCameraNode, sceneSize: CGSize) {
         let jumpButtonY = -sceneSize.height * 0.425
-        let buttonScale = 0.65 * scaleFactorHeight
+        let buttonScale: CGFloat = 0.65
 
         let scaledButtonHeight = 512 * buttonScale
         let flipButtonY = jumpButtonY + scaledButtonHeight + 10
 
         let leftButtonX = -sceneSize.width * 0.35
-        // iPad's width would otherwise spread the movement pair apart; anchor the
-        // right button to the left one at a fixed button-width gap so the spacing
-        // between them is the same regardless of viewport width.
-        let rightButtonX = GameState.shared.isPad
-            ? leftButtonX + scaledButtonHeight + 10
-            : -sceneSize.width * 0.1
+        // Anchor the right button one button-width (+gap) from the left so the
+        // movement pair keeps a fixed gap independent of viewport width — the
+        // fixed-gap parity web gets from its absolute 175/450 placement.
+        let rightButtonX = leftButtonX + scaledButtonHeight + 25
         let jumpButtonX = sceneSize.width * 0.35
         let flipButtonX = jumpButtonX
 
@@ -44,16 +42,27 @@ final class HUD {
         goalLabel = SKLabelNode(text: "GOAL:")
         goalLabel.fontName = "Arial"
         goalLabel.fontColor = SKColor(red: 0/255, green: 128/255, blue: 0/255, alpha: 1.0)
-        goalLabel.fontSize = 65 * scaleFactorHeight
+        goalLabel.fontSize = 65
         goalLabel.position = CGPoint(x: (4*sceneSize.width/2)/5, y: (4*sceneSize.height/2)/5)
         goalLabel.horizontalAlignmentMode = .right
         goalLabel.zPosition = 20
         camera.addChild(goalLabel)
 
+        // iOS uses the tall "sign-xl" (256×512: board + a long downward post).
+        // Rotated π, the post hangs up behind the status bar / notch while the
+        // readable board drops below it — clear of the iOS clock. Shown at 1.5×
+        // web's size (deliberate native bump); board, fonts, offsets and the menu
+        // button all scale together via signScale.
+        let signScale: CGFloat = 1.5
+        // Keep the board's left edge tucked ~3 units off-screen (web's look) as it
+        // scales: half-board (128·signScale) minus 3, in camera-space (origin centre).
+        let hudX = 128 * signScale - 3 - sceneSize.width / 2
+        let boardCenterY = sceneSize.height / 2 - 260
+        // Board centre sits ~141·signScale below the sprite's centre in the frame.
+        let boardOffsetInSprite: CGFloat = 141 * signScale
         sign = SKSpriteNode(imageNamed: "sign-xl")
-        sign.setScale(scaleFactorHeight * 2)
-        let signPosition = CGPoint(x: (sign.size.width / 1.5) - (sceneSize.width / 2), y: (sceneSize.height / 2) - (sign.size.height / 8))
-        sign.position = signPosition
+        sign.setScale(signScale)
+        sign.position = CGPoint(x: hudX, y: boardCenterY + boardOffsetInSprite)
         sign.zRotation = .pi
         sign.zPosition = 20
         camera.addChild(sign)
@@ -69,9 +78,9 @@ final class HUD {
                 spacing: 0,
                 frameIndex: 1
             ),
-            scale: scaleFactorHeight * 2
+            scale: signScale
         )
-        menuButton.position = CGPoint(x: sign.position.x, y: (sceneSize.height / 2) - (4 * sign.size.height / 5))
+        menuButton.position = CGPoint(x: hudX, y: boardCenterY - 205 * signScale)
 
         menuButton.defineAnimation(name: "clicked", frameIndices: [1, 2, 3, 4, 4, 3, 2, 1, 0, 1], timePerFrame: 0.125, repeatForever: false)
 
@@ -83,13 +92,13 @@ final class HUD {
         }
         camera.addChild(menuButton)
 
-        runningScoreLabel = createLabel(text: "score: \(GameState.shared.totalScore)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) + (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
+        runningScoreLabel = createLabel(text: "score: \(GameState.shared.totalScore)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY + 35 * signScale), zPosition: 21, fontColor: .black, align: .center)
         camera.addChild(runningScoreLabel)
 
-        runningStreakLabel = createLabel(text: "streak: \(GameState.shared.streak)", fontSize: 30 * scaleFactorHeight * 2, position: CGPoint(x: signPosition.x, y: signPosition.y - (sign.size.height/4) - (30 * scaleFactorHeight)), zPosition: 21, fontColor: .black, align: .center)
+        runningStreakLabel = createLabel(text: "streak: \(GameState.shared.streak)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY - 35 * signScale), zPosition: 21, fontColor: .black, align: .center)
         camera.addChild(runningStreakLabel)
 
-        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50 * scaleFactorHeight * 2, position: CGPoint(x: 0, y: -(GameState.shared.metrics.height / 4)), zPosition: 20, fontColor: Game.customGreen)
+        highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50, position: CGPoint(x: 0, y: sceneSize.height / 2 - 150), zPosition: 20, fontColor: Game.customGreen)
         highScoreLabel.horizontalAlignmentMode = .center
         highScoreLabel.isHidden = true
         camera.addChild(highScoreLabel)

@@ -77,11 +77,11 @@ final class Atmosphere {
     }
 
     private static func defaultLayers(sceneHeight: CGFloat, middleY: CGFloat, endY: CGFloat) -> [AtmosphereLayer] {
-        let segment = 1000 * GameState.shared.metrics.scaleFactorHeight
-        let cloudBandStart: CGFloat = 500 * GameState.shared.metrics.scaleFactorHeight
+        let segment: CGFloat = 1000
+        let cloudBandStart: CGFloat = 500
         let cloudBandEnd: CGFloat = sceneHeight + segment
         let birdBandStart: CGFloat = 0
-        let birdBandEnd: CGFloat = sceneHeight - 500 * GameState.shared.metrics.scaleFactorHeight
+        let birdBandEnd: CGFloat = sceneHeight - 500
 
         // Skip any layer whose computed yRange is empty — for short scenes some
         // (lower, upper) pairs invert, which would crash ClosedRange.
@@ -121,7 +121,7 @@ final class Atmosphere {
                 countRange: Game.minClouds...Game.maxClouds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 256 * GameState.shared.metrics.scaleFactorHeight,
+                xPadding: 256,
                 zPosition: 0,
                 scaleRange: 0.75...1.5,
                 animationStartDelayRange: 0.0...0.0,
@@ -143,7 +143,7 @@ final class Atmosphere {
                 countRange: Game.minBirds...Game.maxBirds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 128 * GameState.shared.metrics.scaleFactorHeight,
+                xPadding: 128,
                 zPosition: 0,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.75,
@@ -161,7 +161,7 @@ final class Atmosphere {
                 countRange: Game.minBirds...Game.maxBirds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 128 * GameState.shared.metrics.scaleFactorHeight,
+                xPadding: 128,
                 zPosition: 1,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
@@ -179,7 +179,7 @@ final class Atmosphere {
                 countRange: Game.minBirds...Game.maxBirds,
                 yRange: range,
                 segmentSize: segment,
-                xPadding: 128 * GameState.shared.metrics.scaleFactorHeight,
+                xPadding: 128,
                 zPosition: 2,
                 scaleRange: 1.0...1.0,
                 animationStartDelayRange: 0.0...0.0,
@@ -222,14 +222,14 @@ final class Atmosphere {
         let node: SKSpriteNode
         switch layer.kind {
         case let .randomFrameSprite(sheet, fw, fh):
-            let scale = GameState.shared.metrics.scaleFactorHeight * CGFloat.random(in: layer.scaleRange)
+            let scale = CGFloat.random(in: layer.scaleRange)
             let s = AnimatedSprite(spritesheetName: sheet, frameWidth: fw, frameHeight: fh, scale: scale)
             s.texture = s.frames.randomElement()
             attachDriftPhysics(to: s, motion: layer.motion)
             node = s
 
         case let .animatedSprite(sheet, fw, fh, animName, frameIndices, tpf):
-            let scale = GameState.shared.metrics.scaleFactorHeight * CGFloat.random(in: layer.scaleRange)
+            let scale = CGFloat.random(in: layer.scaleRange)
             let s = AnimatedSprite(spritesheetName: sheet, frameWidth: fw, frameHeight: fh, scale: scale)
             s.defineAnimation(name: animName, frameIndices: frameIndices, timePerFrame: tpf)
             let delay = Double.random(in: layer.animationStartDelayRange)
@@ -245,7 +245,7 @@ final class Atmosphere {
 
         case let .staticSprite(imageName):
             let s = SKSpriteNode(imageNamed: imageName)
-            s.setScale(GameState.shared.metrics.scaleFactorHeight * CGFloat.random(in: layer.scaleRange))
+            s.setScale(CGFloat.random(in: layer.scaleRange))
             attachDriftPhysics(to: s, motion: layer.motion)
             node = s
         }

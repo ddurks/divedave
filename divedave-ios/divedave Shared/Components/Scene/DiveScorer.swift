@@ -71,9 +71,22 @@ enum DiveScorer {
         return 2
     }
 
-    static func heightInMeters(springboardY: CGFloat, waterY: CGFloat, scaleFactorHeight: CGFloat) -> Double {
+    static func heightInMeters(springboardY: CGFloat, waterY: CGFloat) -> Double {
         let heightDifference = springboardY - waterY
-        let inMeters = heightDifference / (200.0 * scaleFactorHeight)
+        let inMeters = heightDifference / 200.0
         return round(Double(inMeters) * 10) / 10
+    }
+
+    // Dive height (metres) → number of half-flips the goal may ask for. A tuning
+    // heuristic, not real physics; computed in reference-screen space so the goal
+    // is device-independent. Mirrors divedave-web goalHalfFlips (parity-tested).
+    static func goalHalfFlips(heightMeters: Double) -> Int {
+        let referenceScale = Double(Game.referenceScreenHeight) / Double(Game.defaultHeight)
+        let diveHeight = heightMeters * 200.0 * referenceScale
+        let waterLevel = 256.0 * referenceScale / 2.0 + 1.0
+        let distance = max(0.0, diveHeight - waterLevel)
+        let time = sqrt(distance) / 10.0
+        let totalRotation = time * Double(Game.maxSpinVelocity) * 0.70
+        return Int((totalRotation / (2.0 * .pi)) * 2.0)
     }
 }

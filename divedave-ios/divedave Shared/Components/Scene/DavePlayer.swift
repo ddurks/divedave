@@ -50,8 +50,7 @@ final class DavePlayer {
                                frameWidth: Game.defaultDaveHeight,
                                frameHeight: Game.defaultDaveHeight,
                                margin: 1,
-                               spacing: 2,
-                               scale: GameState.shared.metrics.scaleFactorHeight)
+                               spacing: 2)
         d.position = CGPoint(x: springboard.frame.minX + springboard.frame.width / 4,
                              y: springboard.position.y + 100)
         d.zPosition = 5
@@ -142,10 +141,9 @@ final class DavePlayer {
         let quickness = abs(Self.msBetween(landedAt, GameState.shared.jumpReleasedAt))
         let timing = DiveScorer.classifyBoostTiming(quicknessMs: quickness)
         switch timing {
-        case .perfect: boost = Game.maxBoost
-        case .good:    boost = Game.maxBoost - 50
-        case .ok:      boost = Game.maxBoost - 100
-        case .miss:    boost = 0
+        case .perfect:   boost = Game.maxBoost
+        case .good:      boost = Game.maxBoost / 2
+        case .ok, .miss: boost = 0
         }
 
         let daveBoardDist = dave.position.x - (springboard.position.x - springboard.size.width / 2)
