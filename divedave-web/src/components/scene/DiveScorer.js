@@ -2,6 +2,7 @@ import {
   BOOST_GOOD_MS,
   BOOST_OK_MS,
   BOOST_PERFECT_MS,
+  MAX_SPIN_VELOCITY,
 } from "../../util/Constants.js";
 import { getRandomIntInclusive } from "../../util/Utilities.js";
 
@@ -67,4 +68,18 @@ export function heightInMeters(springboardY, waterY) {
   const heightDifference = waterY - springboardY;
   const inMeters = heightDifference / 200.0;
   return Math.round(inMeters * 10) / 10;
+}
+
+// Dive height (metres) → number of half-flips the goal may ask for. A tuning
+// heuristic, not real physics; computed in iOS's reference-screen space (852/3000)
+// so the curve is identical to native. Mirrors DiveScorer.swift goalHalfFlips
+// (parity-tested); the 852/3000 must track iOS Game.referenceScreenHeight.
+export function goalHalfFlips(heightMeters) {
+  const referenceScale = 852 / 3000;
+  const diveHeight = heightMeters * 200 * referenceScale;
+  const waterLevel = (256 * referenceScale) / 2 + 1;
+  const distance = Math.max(0, diveHeight - waterLevel);
+  const time = Math.sqrt(distance) / 10;
+  const totalRotation = (time * MAX_SPIN_VELOCITY * 0.7 * Math.PI) / 180;
+  return Math.floor((totalRotation / (2 * Math.PI)) * 2);
 }

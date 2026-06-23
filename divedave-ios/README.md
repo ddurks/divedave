@@ -48,7 +48,7 @@ Both `divedave iOS` and `divedave Messages` compile every file under `divedave S
 
 ### Scene components (`divedave Shared/Components/Scene/`)
 - `DavePlayer.swift` — player state machine (`grounded`/`launching`/`airborne`/`diving`/`splashed`), boost-window timing, sprite animation.
-- `DiveScorer.swift` — pure scoring function from goal rotations, actual rotations, angle, and tuck count.
+- `DiveScorer.swift` — pure scoring from goal rotations, actual rotations, angle, and tuck count; also `goalHalfFlips` (dive height → number of flips the goal may ask for). Shared, parity-tested with the web build.
 - `RotationTracker.swift` — accumulates rotations and tracks tuck count from angular state each frame.
 - `CameraController.swift` — vertical follow camera clamped to scene bounds, with screen shake.
 - `Atmosphere.swift` — declarative layer system for clouds, birds, planes, UFOs (static, drift, or animated).
@@ -87,6 +87,12 @@ How a round works:
 4. The recipient taps the bubble → same flow, but with `incomingState` populated — `responder` is filled and the bubble updates to show both scores plus a "Get divedave" App Store link.
 
 The challenge-round URL payload is ~140 chars (base64url JSON) for a finished round, well under Apple's recommended `MSMessage.url` budget. Goal-rotation math uses a phone-reference scale factor so the goal is achievable on the smallest target devices regardless of who's playing.
+
+## Cross-device physics (parity-critical)
+
+The scene runs in a **fixed 1250-wide reference world** — `SceneMetrics` is `width = 1250`, `height = max(1500, round(1250 · deviceAspect))`, presented with SpriteKit `.aspectFit`, mirroring the web build. Every position, sprite scale, and velocity is a plain fixed number in that world; there is no per-device scaling (the old `scaleFactorHeight` / `physicsScale` multipliers are gone). Launch/walk/boost velocities are therefore byte-identical to web (the `Constants` shared block); `Game.gravity` is the lone SpriteKit-specific physics value — its integrator differs from Phaser's, so it is *not* web's `1083`. Goal-rotation math (`DiveScorer.goalHalfFlips`) is computed from dive height in metres and shared with web; the iMessage duel uses the same function so duels and the main game agree.
+
+> **Footgun:** author new geometry and velocities as fixed numbers in the 1250-wide world — don't reintroduce device-dependent scaling. Angular values (spin, angular drag) are scale-invariant. `Game.defaultHeight` (3000) and `Game.referenceScreenHeight` (852) now survive **only** as the ratio inside `goalHalfFlips`; the parity harness compiles `DiveScorer` + `Constants` standalone, so keep them free of scene/SpriteKit types.
 
 ## Assets
 

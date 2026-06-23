@@ -26,7 +26,7 @@ final class MainMenuScene: SKScene {
 
         startArcadeButton = MenuButton(imageNamed: "arcade",
                                        position: CGPoint(x: self.size.width / 2 + self.size.width / 5, y: self.size.height * 0.22),
-                                       scale: 0.75 * GameState.shared.metrics.scaleFactorHeight,
+                                       scale: 0.75,
                                        name: "startArcade") { [weak self] in
             self?.startGame(challengeMode: false)
         }
@@ -34,7 +34,7 @@ final class MainMenuScene: SKScene {
 
         startChallengeButton = MenuButton(imageNamed: "challenge",
                                           position: CGPoint(x: self.size.width / 2 - self.size.width / 5, y: self.size.height * 0.22),
-                                          scale: 0.75 * GameState.shared.metrics.scaleFactorHeight,
+                                          scale: 0.75,
                                           name: "startChallenge") { [weak self] in
             self?.startGame(challengeMode: true)
         }
@@ -53,7 +53,7 @@ final class MainMenuScene: SKScene {
     }
 
     private func setupMenuDave() {
-        let scale = GameState.shared.metrics.scaleFactorHeight
+        let scale: CGFloat = 1.0
         // Feet sit at the frame's bottom edge, so a half-frame above the floor
         // puts his bottom edge flush with the bottom of the screen.
         let y = (Game.defaultDaveHeight * scale) / 2
@@ -61,7 +61,7 @@ final class MainMenuScene: SKScene {
                             y: y,
                             leftBound: self.size.width * 0.15,
                             rightBound: self.size.width * 0.85,
-                            speed: 120 * GameState.shared.metrics.scaleFactorHeight,
+                            speed: 120,
                             scale: scale)
     }
 
@@ -83,8 +83,7 @@ final class MainMenuScene: SKScene {
                                     frameWidth: Game.defaultDaveHeight,
                                     frameHeight: Game.defaultDaveHeight,
                                     margin: 1,
-                                    spacing: 2,
-                                    scale: GameState.shared.metrics.scaleFactorHeight)
+                                    spacing: 2)
         crouch.texture = crouch.frames[10]
         loadingDave = crouch
         loadingDave.position = CGPoint(x: loadingLabel.position.x, y: loadingLabel.position.y + loadingDave.size.height)
@@ -99,7 +98,7 @@ final class MainMenuScene: SKScene {
         let cornerMargin: CGFloat = 10
         instructionsButton = MenuButton(imageNamed: "controls-help",
                                         position: .zero,
-                                        scale: 0.75 * GameState.shared.metrics.scaleFactorHeight,
+                                        scale: 0.75,
                                         name: "instructionsButton") { [weak self] in
             self?.showInstructions()
         }
@@ -175,16 +174,16 @@ final class MainMenuScene: SKScene {
 
     private func displayMetaStats() {
         let sign = SKSpriteNode(imageNamed: "sign-xl")
-        sign.setScale(GameState.shared.metrics.scaleFactorHeight * 2)
+        sign.setScale(2)
         let signBottom = GameState.shared.metrics.height - (5 * sign.size.height / 8)
         let baseX = sign.size.width / 1.5
-        let baseY = signBottom - (40 * GameState.shared.metrics.scaleFactorHeight * 2)
-        let lineSpacing: CGFloat = 28 * GameState.shared.metrics.scaleFactorHeight * 2
+        let baseY = signBottom - 80
+        let lineSpacing: CGFloat = 56
 
         let streakLabel = SKLabelNode(fontNamed: "Arial")
         streakLabel.text = "LONGEST STREAK: \(StatsStore.longestStreak)"
         streakLabel.fontColor = .black
-        streakLabel.fontSize = 18 * GameState.shared.metrics.scaleFactorHeight * 2
+        streakLabel.fontSize = 36
         streakLabel.position = CGPoint(x: baseX, y: baseY)
         streakLabel.zPosition = 24
         streakLabel.horizontalAlignmentMode = .center
@@ -193,7 +192,7 @@ final class MainMenuScene: SKScene {
         let divesLabel = SKLabelNode(fontNamed: "Arial")
         divesLabel.text = "TOTAL DIVES: \(StatsStore.totalDives)"
         divesLabel.fontColor = .black
-        divesLabel.fontSize = 18 * GameState.shared.metrics.scaleFactorHeight * 2
+        divesLabel.fontSize = 36
         divesLabel.position = CGPoint(x: baseX, y: baseY - lineSpacing)
         divesLabel.zPosition = 24
         divesLabel.horizontalAlignmentMode = .center
@@ -202,10 +201,16 @@ final class MainMenuScene: SKScene {
 
     private func displayHighScore(_ highScore: Int) {
         logger.debug("highScore: \(highScore)")
+        // Same hanging "sign-xl" treatment as the in-game HUD, shown 1.5× web's
+        // size (board, fonts and offsets scale together via signScale); dropped
+        // below the status bar / notch with the post behind it.
+        let signScale: CGFloat = 1.5
+        // Keep the board's left edge tucked ~3 units off-screen (web's look) as it scales.
+        let signX: CGFloat = 128 * signScale - 3
+        let boardCenterY = GameState.shared.metrics.height - 290
         let sign = SKSpriteNode(imageNamed: "sign-xl")
-        sign.setScale(GameState.shared.metrics.scaleFactorHeight * 2)
-        let signPosition = CGPoint(x: (sign.size.width / 1.5), y: GameState.shared.metrics.height - (sign.size.height / 8))
-        sign.position = signPosition
+        sign.setScale(signScale)
+        sign.position = CGPoint(x: signX, y: boardCenterY + 141 * signScale)
         sign.zRotation = .pi
         sign.zPosition = 20
         addChild(sign)
@@ -213,8 +218,8 @@ final class MainMenuScene: SKScene {
         let challengeLabel = SKLabelNode(fontNamed: "Arial")
         challengeLabel.text = "YOUR CHALLENGE"
         challengeLabel.fontColor = .black
-        challengeLabel.fontSize = 20 * GameState.shared.metrics.scaleFactorHeight * 2
-        challengeLabel.position = CGPoint(x: (sign.size.width / 1.5), y: GameState.shared.metrics.height - (sign.size.height / 5) - (60 * GameState.shared.metrics.scaleFactorHeight * 2))
+        challengeLabel.fontSize = 20 * signScale
+        challengeLabel.position = CGPoint(x: signX, y: boardCenterY + 55 * signScale)
         challengeLabel.zPosition = 24
         challengeLabel.horizontalAlignmentMode = .center
         addChild(challengeLabel)
@@ -222,8 +227,8 @@ final class MainMenuScene: SKScene {
         let highScoreLabel = SKLabelNode(fontNamed: "Arial")
         highScoreLabel.text = "HIGH SCORE"
         highScoreLabel.fontColor = .black
-        highScoreLabel.fontSize = 30 * GameState.shared.metrics.scaleFactorHeight * 2
-        highScoreLabel.position = CGPoint(x: (sign.size.width / 1.5), y: GameState.shared.metrics.height - (sign.size.height / 5) - (90 * GameState.shared.metrics.scaleFactorHeight * 2))
+        highScoreLabel.fontSize = 30 * signScale
+        highScoreLabel.position = CGPoint(x: signX, y: boardCenterY + 20 * signScale)
         highScoreLabel.zPosition = 24
         highScoreLabel.horizontalAlignmentMode = .center
         addChild(highScoreLabel)
@@ -231,8 +236,8 @@ final class MainMenuScene: SKScene {
         let scoreLabel = SKLabelNode(fontNamed: "Arial")
         scoreLabel.text = "\(highScore)"
         scoreLabel.fontColor = .black
-        scoreLabel.fontSize = 50 * GameState.shared.metrics.scaleFactorHeight * 2
-        scoreLabel.position = CGPoint(x: (sign.size.width / 1.5), y: GameState.shared.metrics.height - (sign.size.height / 5) - (150 * GameState.shared.metrics.scaleFactorHeight * 2))
+        scoreLabel.fontSize = 50 * signScale
+        scoreLabel.position = CGPoint(x: signX, y: boardCenterY - 45 * signScale)
         scoreLabel.zPosition = 24
         scoreLabel.horizontalAlignmentMode = .center
         addChild(scoreLabel)

@@ -10,11 +10,10 @@ class GameViewController: UIViewController {
         super.viewDidLoad()
 
         if let skView = self.view as? SKView {
-            GameState.shared.metrics = SceneMetrics(viewBounds: skView.bounds.size)
-            GameState.shared.isPad = UIDevice.current.userInterfaceIdiom == .pad
+            GameState.shared.metrics = SceneMetrics(deviceBounds: skView.bounds.size)
             let m = GameState.shared.metrics
 
-            logger.debug("WIDTH: \(m.width), HEIGHT: \(m.height), scaleFactorHeight: \(m.scaleFactorHeight), scaleFactorWidth: \(m.scaleFactorWidth)")
+            logger.debug("scene: \(m.width) x \(m.height)")
 
             preloadAllAssets {
                 DispatchQueue.main.async {
@@ -48,9 +47,10 @@ class GameViewController: UIViewController {
     }
 
     func prepareAndPresentMainMenuScene(skView: SKView) {
-        let mainMenuScene = MainMenuScene(size: skView.bounds.size)
+        let m = GameState.shared.metrics
+        let mainMenuScene = MainMenuScene(size: CGSize(width: m.width, height: m.height))
         mainMenuScene.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
-        mainMenuScene.scaleMode = .aspectFill
+        mainMenuScene.scaleMode = .aspectFit
         mainMenuScene.setupMenu()
         skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }

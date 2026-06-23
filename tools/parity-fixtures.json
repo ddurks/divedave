@@ -96,5 +96,15 @@
       "expectedResult": "success",
       "expectedEmotionFrame": -1
     }
+  ],
+
+  "goalHalfFlips": [
+    { "heightMeters": 0.1, "expected": 0 },
+    { "heightMeters": 3, "expected": 2 },
+    { "heightMeters": 10, "expected": 4 },
+    { "heightMeters": 25, "expected": 7 },
+    { "heightMeters": 50, "expected": 11 },
+    { "heightMeters": 75, "expected": 13 },
+    { "heightMeters": 100, "expected": 16 }
   ]
 }

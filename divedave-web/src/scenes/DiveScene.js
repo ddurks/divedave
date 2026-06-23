@@ -3,7 +3,8 @@ import {
   END_COLOR,
   GRAVITY,
   HEIGHT,
-  MAX_SPIN_VELOCITY,
+  JUMP_VELOCITY,
+  MAX_BOOST,
   MIDDLE_COLOR,
   PLATFORM_SECTION_START_Y,
   PLATFORM_TOP_Y,
@@ -34,6 +35,7 @@ import { DavePlayer, DaveState } from "../components/scene/DavePlayer.js";
 import {
   BoostTiming,
   DiveResult,
+  goalHalfFlips,
   heightInMeters,
   scoreDive,
 } from "../components/scene/DiveScorer.js";
@@ -381,10 +383,20 @@ export class DiveScene extends Phaser.Scene {
 
     this.camera = new CameraController(this);
     this.camera.follow(this.player.sprite);
-    // Anchor short worlds to the bottom so the pool sits at the viewport's
-    // bottom edge instead of floating above empty background.
-    const camHeight = Math.max(this.sceneHeight, HEIGHT);
-    this.camera.setBounds(0, this.sceneHeight - camHeight, WIDTH, camHeight);
+    // Bottom: anchor short worlds so the pool sits at the viewport's bottom edge.
+    // Top: headroom above the board for the biggest possible jump, so the camera
+    // follows Dave up (keeping him centred) instead of clamping at the world
+    // top — matches iOS, which has the same headroom.
+    const maxJump = (JUMP_VELOCITY + MAX_BOOST) ** 2 / (2 * GRAVITY);
+    const anchorTop = this.sceneHeight - Math.max(this.sceneHeight, HEIGHT);
+    const jumpTop = BOARD_Y - maxJump - HEIGHT / 2;
+    this.cameraBoundsTop = Math.min(anchorTop, jumpTop);
+    this.camera.setBounds(
+      0,
+      this.cameraBoundsTop,
+      WIDTH,
+      this.sceneHeight - this.cameraBoundsTop,
+    );
 
     this.physics.add.collider(this.player.sprite, GameState.springboard, () => {
       this.player.noteBoardLanded();
@@ -526,9 +538,8 @@ export class DiveScene extends Phaser.Scene {
   // high-refresh displays it mis-predicts the camera and the parallax jitters.
   // (lerp 1, no deadzone/offset, so it matches preRender exactly.)
   cameraScrollForFrame(cam) {
-    const camHeight = Math.max(this.sceneHeight, HEIGHT);
-    const boundsY = this.sceneHeight - camHeight;
-    const maxScrollY = Math.max(boundsY + camHeight - cam.height, boundsY);
+    const boundsY = this.cameraBoundsTop;
+    const maxScrollY = Math.max(this.sceneHeight - cam.height, boundsY);
     const body = this.player.sprite.body;
     const frameDeltaY = body ? body.position.y - body.prevFrame.y : 0;
     const renderY = this.player.sprite.y + frameDeltaY;
@@ -732,32 +743,10 @@ export class DiveScene extends Phaser.Scene {
     this.countRotations();
   }
 
-  approximateFallTime(startY, endY, gravity, frameRate = 60) {
-    let velocity = 0;
-    let currentY = startY;
-    let time = 0;
-    const timeStep = 1 / frameRate;
-    while (currentY < endY) {
-      velocity += gravity * timeStep;
-      currentY += velocity * timeStep;
-      time += timeStep;
-      if (time > 10) break;
-    }
-    return time;
-  }
-
   calculateGameLogic() {
-    const springboard = GameState.springboard;
-    const fallTime = this.approximateFallTime(
-      springboard.y,
-      GameState.waterLevel,
-      GRAVITY,
+    const halfFlips = goalHalfFlips(
+      heightInMeters(PLATFORM_TOP_Y, GameState.waterLevel),
     );
-
-    const spinVelocityRadPerSec = Phaser.Math.DegToRad(MAX_SPIN_VELOCITY * 0.7);
-    const totalRotation = fallTime * spinVelocityRadPerSec;
-    const maxFlips = totalRotation / (2 * Math.PI);
-    const halfFlips = Math.floor(maxFlips * 2);
 
     if (halfFlips < 1) {
       this.goalRotations = 0.5;
