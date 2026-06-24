@@ -29,7 +29,7 @@ export function diff(a, b) {
 // can position, scale, tween, or toggle the label and its shadow as one unit.
 export function makeShadowedBitmapText(scene, x, y, font, text, size, offset = 4) {
   const shadow = scene.add
-    .bitmapText(offset, offset, "black-arial", text, size)
+    .bitmapText(offset, offset, "drawvid-handwriting-black", text, size)
     .setOrigin(0.5);
   const main = scene.add.bitmapText(0, 0, font, text, size).setOrigin(0.5);
   return scene.add.container(x, y, [shadow, main]);

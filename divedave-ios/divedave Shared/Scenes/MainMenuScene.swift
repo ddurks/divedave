@@ -46,7 +46,6 @@ final class MainMenuScene: SKScene {
         let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, GameState.shared.highScore)
         if bestScore > 0 {
             displayHighScore(bestScore)
-            displayMetaStats()
         }
 
         setupMenuDave()
@@ -71,7 +70,7 @@ final class MainMenuScene: SKScene {
 
     func setUpLoadingStuff() {
         loadingLabel = SKLabelNode(text: "loading...")
-        loadingLabel.fontName = "Arial-BoldMT"
+        loadingLabel.fontName = "DrawvidHand-Regular"
         loadingLabel.fontSize = 30
         loadingLabel.fontColor = .white
         loadingLabel.position = CGPoint(x: self.size.width / 2, y: startArcadeButton.position.y)
@@ -172,33 +171,6 @@ final class MainMenuScene: SKScene {
         }
     }
 
-    private func displayMetaStats() {
-        let sign = SKSpriteNode(imageNamed: "sign-xl")
-        sign.setScale(2)
-        let signBottom = GameState.shared.metrics.height - (5 * sign.size.height / 8)
-        let baseX = sign.size.width / 1.5
-        let baseY = signBottom - 80
-        let lineSpacing: CGFloat = 56
-
-        let streakLabel = SKLabelNode(fontNamed: "Arial")
-        streakLabel.text = "LONGEST STREAK: \(StatsStore.longestStreak)"
-        streakLabel.fontColor = .black
-        streakLabel.fontSize = 36
-        streakLabel.position = CGPoint(x: baseX, y: baseY)
-        streakLabel.zPosition = 24
-        streakLabel.horizontalAlignmentMode = .center
-        addChild(streakLabel)
-
-        let divesLabel = SKLabelNode(fontNamed: "Arial")
-        divesLabel.text = "TOTAL DIVES: \(StatsStore.totalDives)"
-        divesLabel.fontColor = .black
-        divesLabel.fontSize = 36
-        divesLabel.position = CGPoint(x: baseX, y: baseY - lineSpacing)
-        divesLabel.zPosition = 24
-        divesLabel.horizontalAlignmentMode = .center
-        addChild(divesLabel)
-    }
-
     private func displayHighScore(_ highScore: Int) {
         logger.debug("highScore: \(highScore)")
         // Same hanging "sign-xl" treatment as the in-game HUD, shown 1.5× web's
@@ -215,7 +187,7 @@ final class MainMenuScene: SKScene {
         sign.zPosition = 20
         addChild(sign)
 
-        let challengeLabel = SKLabelNode(fontNamed: "Arial")
+        let challengeLabel = SKLabelNode(fontNamed: "DrawvidHand-Regular")
         challengeLabel.text = "YOUR CHALLENGE"
         challengeLabel.fontColor = .black
         challengeLabel.fontSize = 20 * signScale
@@ -224,7 +196,7 @@ final class MainMenuScene: SKScene {
         challengeLabel.horizontalAlignmentMode = .center
         addChild(challengeLabel)
 
-        let highScoreLabel = SKLabelNode(fontNamed: "Arial")
+        let highScoreLabel = SKLabelNode(fontNamed: "DrawvidHand-Regular")
         highScoreLabel.text = "HIGH SCORE"
         highScoreLabel.fontColor = .black
         highScoreLabel.fontSize = 30 * signScale
@@ -233,7 +205,7 @@ final class MainMenuScene: SKScene {
         highScoreLabel.horizontalAlignmentMode = .center
         addChild(highScoreLabel)
 
-        let scoreLabel = SKLabelNode(fontNamed: "Arial")
+        let scoreLabel = SKLabelNode(fontNamed: "DrawvidHand-Regular")
         scoreLabel.text = "\(highScore)"
         scoreLabel.fontColor = .black
         scoreLabel.fontSize = 50 * signScale

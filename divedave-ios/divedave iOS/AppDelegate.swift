@@ -1,4 +1,5 @@
 import UIKit
+import CoreText
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,6 +8,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        if let url = Bundle.main.url(forResource: "DrawvidHandwriting", withExtension: "ttf") {
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        }
         return true
     }
 

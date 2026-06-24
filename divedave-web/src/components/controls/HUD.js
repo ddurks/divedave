@@ -21,8 +21,8 @@ export class HUD {
       scene,
       MOVE_HINT_X,
       MOVE_HINT_Y,
-      "red-arial",
-      "[A] [D]  or  [<] [>]  to walk",
+      "drawvid-handwriting-red",
+      "AD: walk  SPACE: jump  R: spin",
       40,
       3,
     )

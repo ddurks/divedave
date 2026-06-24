@@ -23,9 +23,9 @@ export class MainMenuScene extends Phaser.Scene {
     this.load.image("challenge", "assets/challenge.png");
     this.load.image("sign", "assets/sign.png");
     this.load.bitmapFont(
-      "black-arial",
-      "assets/fonts/black-arial.png",
-      "assets/fonts/black-arial.xml"
+      "drawvid-handwriting-black",
+      "assets/fonts/drawvid-handwriting-black.png",
+      "assets/fonts/drawvid-handwriting-black.xml"
     );
   }
 
@@ -97,19 +97,19 @@ export class MainMenuScene extends Phaser.Scene {
         .setDepth(23)
         .setScrollFactor(0);
       this.add
-        .bitmapText(125, 60, "black-arial", "YOUR CHALLENGE", 20)
+        .bitmapText(125, 60, "drawvid-handwriting-black", "YOUR CHALLENGE", 20)
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(24)
         .setActive(false);
       this.add
-        .bitmapText(125, 90, "black-arial", "HIGH SCORE", 30)
+        .bitmapText(125, 90, "drawvid-handwriting-black", "HIGH SCORE", 30)
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(24)
         .setActive(false);
       this.add
-        .bitmapText(125, 150, "black-arial", GameState.highScore, 50)
+        .bitmapText(125, 150, "drawvid-handwriting-black", GameState.highScore, 50)
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(24)

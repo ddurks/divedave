@@ -8,9 +8,9 @@ func createLabel(text: String, fontSize: CGFloat, position: CGPoint, zPosition: 
     label.fontColor = fontColor
     label.horizontalAlignmentMode = align
     if (bold) {
-        label.fontName = "Arial-BoldMT"
+        label.fontName = "DrawvidHand-Regular"
     } else {
-        label.fontName = "Arial"
+        label.fontName = "DrawvidHand-Regular"
     }
     return label
 }

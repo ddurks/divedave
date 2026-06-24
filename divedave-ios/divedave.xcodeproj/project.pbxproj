@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0F351D6FF9AC054D6797C50D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 879FAE512CD1474C00F4A8E1 /* Assets.xcassets */; };
 		47F71B763F45E71CB49FE602 /* ChallengeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA495B8AD2A2483075BB1BE /* ChallengeState.swift */; };
+		78887A9FA6788F86F55A9501 /* DrawvidHandwriting.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AC725EC3387761D4086CE682 /* DrawvidHandwriting.ttf */; };
 		872F9B552FE6559C00240407 /* DavePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0AD012CDD30A70036B65E /* DavePlayer.swift */; };
 		872F9B562FE6559C00240407 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FAE702CD1543800F4A8E1 /* Constants.swift */; };
 		872F9B572FE6559C00240407 /* SeededRandom.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0D0D0D0D0D0D0D0D0D0D01 /* SeededRandom.swift */; };
@@ -109,6 +110,7 @@
 		87DF85AC2FE6538900592EFD /* Messages.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Messages.framework; path = Library/Frameworks/Messages.framework; sourceTree = DEVELOPER_DIR; };
 		87E10A002D10000100E10A01 /* SceneMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneMetrics.swift; sourceTree = "<group>"; };
 		87E10A022D10000300E10A01 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		AC725EC3387761D4086CE682 /* DrawvidHandwriting.ttf */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = DrawvidHandwriting.ttf; path = "divedave iOS/DrawvidHandwriting.ttf"; sourceTree = "<group>"; };
 		DD0D0D0D0D0D0D0D0D0D0D01 /* SeededRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededRandom.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -238,6 +240,7 @@
 				87DF85AB2FE6538900592EFD /* Frameworks */,
 				879FAE572CD1474C00F4A8E1 /* Products */,
 				213337E2F1F712538D418465 /* divedave Messages */,
+				AC725EC3387761D4086CE682 /* DrawvidHandwriting.ttf */,
 			);
 			sourceTree = "<group>";
 		};
@@ -367,6 +370,7 @@
 				879FAE5F2CD1474C00F4A8E1 /* Base in Resources */,
 				879FAE622CD1474C00F4A8E1 /* Base in Resources */,
 				879FAE662CD1474C00F4A8E1 /* Assets.xcassets in Resources */,
+				78887A9FA6788F86F55A9501 /* DrawvidHandwriting.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
