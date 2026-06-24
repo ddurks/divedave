@@ -40,7 +40,7 @@ final class HUD {
         camera.addChild(flipButton)
 
         goalLabel = SKLabelNode(text: "GOAL:")
-        goalLabel.fontName = "Arial"
+        goalLabel.fontName = "DrawvidHand-Regular"
         goalLabel.fontColor = SKColor(red: 0/255, green: 128/255, blue: 0/255, alpha: 1.0)
         goalLabel.fontSize = 65
         goalLabel.position = CGPoint(x: (4*sceneSize.width/2)/5, y: (4*sceneSize.height/2)/5)
@@ -64,7 +64,10 @@ final class HUD {
         sign.setScale(signScale)
         sign.position = CGPoint(x: hudX, y: boardCenterY + boardOffsetInSprite)
         sign.zRotation = .pi
-        sign.zPosition = 20
+        // Above the atmosphere (≤ z2) but below Dave (z5), so Dave stays visible
+        // when his dive arc overlaps the sign/menu. Score/streak labels sit at z4 —
+        // just above the board, still under Dave.
+        sign.zPosition = 3
         camera.addChild(sign)
 
         menuButton = ControlButton(
@@ -81,6 +84,7 @@ final class HUD {
             scale: signScale
         )
         menuButton.position = CGPoint(x: hudX, y: boardCenterY - 205 * signScale)
+        menuButton.zPosition = 3
 
         menuButton.defineAnimation(name: "clicked", frameIndices: [1, 2, 3, 4, 4, 3, 2, 1, 0, 1], timePerFrame: 0.125, repeatForever: false)
 
@@ -92,14 +96,22 @@ final class HUD {
         }
         camera.addChild(menuButton)
 
-        runningScoreLabel = createLabel(text: "score: \(GameState.shared.totalScore)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY + 35 * signScale), zPosition: 21, fontColor: .black, align: .center)
+        runningScoreLabel = createLabel(text: "score: \(GameState.shared.totalScore)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY + 35 * signScale), zPosition: 4, fontColor: .black, align: .center)
         camera.addChild(runningScoreLabel)
 
-        runningStreakLabel = createLabel(text: "streak: \(GameState.shared.streak)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY - 35 * signScale), zPosition: 21, fontColor: .black, align: .center)
+        runningStreakLabel = createLabel(text: "streak: \(GameState.shared.streak)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY - 35 * signScale), zPosition: 4, fontColor: .black, align: .center)
         camera.addChild(runningStreakLabel)
 
         highScoreLabel = createLabel(text: "NEW HIGH SCORE!", fontSize: 50, position: CGPoint(x: 0, y: sceneSize.height / 2 - 150), zPosition: 20, fontColor: Game.customGreen)
         highScoreLabel.horizontalAlignmentMode = .center
+        let highScoreShadow = SKLabelNode(fontNamed: "DrawvidHand-Regular")
+        highScoreShadow.text = "NEW HIGH SCORE!"
+        highScoreShadow.fontSize = 50
+        highScoreShadow.fontColor = .black
+        highScoreShadow.horizontalAlignmentMode = .center
+        highScoreShadow.position = CGPoint(x: 4, y: -4)
+        highScoreShadow.zPosition = -1
+        highScoreLabel.addChild(highScoreShadow)
         highScoreLabel.isHidden = true
         camera.addChild(highScoreLabel)
     }

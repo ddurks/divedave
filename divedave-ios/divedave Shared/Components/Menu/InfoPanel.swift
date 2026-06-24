@@ -49,7 +49,7 @@ final class InfoPanel {
         score3.isHidden = true
         scene.addChild(score3)
 
-        tryAgain = SKLabelNode(fontNamed: "Arial-BoldMT")
+        tryAgain = SKLabelNode(fontNamed: "DrawvidHand-Regular")
         tryAgain.text = "tap to dive again"
         tryAgain.fontSize = 65
         tryAgain.position = CGPoint(x: GameState.shared.metrics.width / 2, y: 75)
@@ -60,9 +60,12 @@ final class InfoPanel {
 
     func display(result: String, strings: [String], frame: Int, scores: [Int]?) {
         var height = GameState.shared.metrics.height / 2 + 5
-        let resultLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
+        let resultColor: SKColor = (result == "FAILED DIVE" || result == "GAME OVER") ? Game.customRed : Game.customGreen
+        tryAgain.fontColor = resultColor
+        let resultLabel = SKLabelNode(fontNamed: "DrawvidHand-Regular")
         resultLabel.text = result
         resultLabel.fontSize = 80
+        resultLabel.fontColor = resultColor
         resultLabel.position = CGPoint(x: GameState.shared.metrics.width / 2, y: height + 350)
         resultLabel.zPosition = baseDepth + 1
         scene.addChild(resultLabel)
@@ -70,7 +73,7 @@ final class InfoPanel {
         let lineSpacing: CGFloat = 75
         for string in strings {
             let color = (string.contains("rotations") && (result == "FAILED DIVE" || result == "GAME OVER")) ? SKColor.red : SKColor.black
-            let stringLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
+            let stringLabel = SKLabelNode(fontNamed: "DrawvidHand-Regular")
             stringLabel.text = string
             stringLabel.fontSize = 80
             stringLabel.fontColor = color
@@ -84,7 +87,7 @@ final class InfoPanel {
         if let scores = scores {
             var width = GameState.shared.metrics.width / 2 - scoreSpacing
             for score in scores {
-                let scoreLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
+                let scoreLabel = SKLabelNode(fontNamed: "DrawvidHand-Regular")
                 scoreLabel.text = "\(score)"
                 scoreLabel.fontSize = 100
                 scoreLabel.position = CGPoint(x: width, y: GameState.shared.metrics.height / 2 - 350)

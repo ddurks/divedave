@@ -43,17 +43,17 @@ import {
 const TIMING_FEEDBACK = {
   [BoostTiming.Perfect]: {
     label: "PERFECT!",
-    font: "green-arial",
+    font: "drawvid-handwriting-green",
     tint: TIMING_TINT_PERFECT,
   },
   [BoostTiming.Good]: {
     label: "GOOD",
-    font: "yellow-arial",
+    font: "drawvid-handwriting-yellow",
     tint: TIMING_TINT_GOOD,
   },
   [BoostTiming.Ok]: {
     label: "OK",
-    font: "red-arial",
+    font: "drawvid-handwriting-red",
     tint: TIMING_TINT_OK,
   },
 };
@@ -153,30 +153,30 @@ export class DiveScene extends Phaser.Scene {
     this.load.image("controls-flip", "assets/controls-flip.png");
     this.load.image("controls-jump", "assets/controls-jump.png");
     this.load.bitmapFont(
-      "Arial",
-      "assets/fonts/Arial20.png",
-      "assets/fonts/Arial20.xml",
+      "drawvid-handwriting-white",
+      "assets/fonts/drawvid-handwriting-white.png",
+      "assets/fonts/drawvid-handwriting-white.xml",
     );
     this.load.bitmapFont(
-      "green-arial",
-      "assets/fonts/green-arial.png",
-      "assets/fonts/green-arial.xml",
+      "drawvid-handwriting-green",
+      "assets/fonts/drawvid-handwriting-green.png",
+      "assets/fonts/drawvid-handwriting-green.xml",
     );
     this.load.bitmapFont(
-      "yellow-arial",
-      "assets/fonts/yellow-arial.png",
-      "assets/fonts/yellow-arial.xml",
+      "drawvid-handwriting-yellow",
+      "assets/fonts/drawvid-handwriting-yellow.png",
+      "assets/fonts/drawvid-handwriting-yellow.xml",
     );
     this.load.bitmapFont(
-      "red-arial",
-      "assets/fonts/red-arial.png",
-      "assets/fonts/red-arial.xml",
+      "drawvid-handwriting-red",
+      "assets/fonts/drawvid-handwriting-red.png",
+      "assets/fonts/drawvid-handwriting-red.xml",
     );
     this.load.spritesheet("springboard", "assets/board.png", {
       frameWidth: 440,
       frameHeight: 64,
-      margin: 0,
-      spacing: 0,
+      margin: 1,
+      spacing: 2,
     });
     this.load.spritesheet("water", "assets/water.png", {
       frameWidth: 1250,
@@ -269,13 +269,13 @@ export class DiveScene extends Phaser.Scene {
       .setDepth(14)
       .setScrollFactor(0);
     this.runningStreak = this.add
-      .bitmapText(125, 135, "black-arial", "streak: " + GameState.streak, 30)
+      .bitmapText(125, 135, "drawvid-handwriting-black", "streak: " + GameState.streak, 30)
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(14)
       .setActive(false);
     this.runningScore = this.add
-      .bitmapText(125, 75, "black-arial", "score: " + GameState.totalScore, 30)
+      .bitmapText(125, 75, "drawvid-handwriting-black", "score: " + GameState.totalScore, 30)
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(14)
@@ -285,10 +285,10 @@ export class DiveScene extends Phaser.Scene {
     let heightFromWater = GameState.waterLevel - PLATFORM_TOP_Y;
     heightFromWater--;
     for (let i = PLATFORM_TOP_Y + 1; i < GameState.waterLevel; i++) {
-      let labelColor = "red-arial";
+      let labelColor = "drawvid-handwriting-red";
       const currHeight = heightFromWater / 2 / 100;
-      if (currHeight < 25) labelColor = "yellow-arial";
-      if (currHeight < 10) labelColor = "green-arial";
+      if (currHeight < 25) labelColor = "drawvid-handwriting-yellow";
+      if (currHeight < 10) labelColor = "drawvid-handwriting-green";
       if (heightFromWater % 200 === 0) {
         this.add
           .bitmapText(WIDTH - 250, i, labelColor, "- " + currHeight + "m", 64)
@@ -303,8 +303,8 @@ export class DiveScene extends Phaser.Scene {
       heightFromWater--;
     }
 
-    // Springboard must exist before registerAnimations() so the "flex"
-    // animation can resolve the sprite key.
+    // Springboard must exist before registerAnimations() so the bounce
+    // animations can resolve the sprite key.
     GameState.springboard = this.physics.add
       .sprite(WIDTH / 4, BOARD_Y, "springboard")
       .setDepth(11);
@@ -342,9 +342,14 @@ export class DiveScene extends Phaser.Scene {
 
     this.info = new InfoPanel(this, 20);
     this.highScorePanel = new InfoPanel(this, 24);
-    this.highScoreText = this.add
-      .bitmapText(WIDTH / 2, 150, "green-arial", "NEW HIGH SCORE!", 50)
-      .setOrigin(0.5)
+    this.highScoreText = makeShadowedBitmapText(
+      this,
+      WIDTH / 2,
+      150,
+      "drawvid-handwriting-green",
+      "NEW HIGH SCORE!",
+      50,
+    )
       .setScrollFactor(0)
       .setDepth(24)
       .setActive(false)
@@ -428,6 +433,7 @@ export class DiveScene extends Phaser.Scene {
     GameState.controls.cursors.up.on("up", () =>
       this.player.noteJumpReleased(),
     );
+    GameState.controls.space.on("up", () => this.player.noteJumpReleased());
     this.input.on("pointerup", () => this.player.noteJumpReleased());
   }
 
@@ -484,14 +490,22 @@ export class DiveScene extends Phaser.Scene {
       }),
       repeat: -1,
     });
-    this.anims.create({
-      key: "flex",
-      frameRate: 4,
-      frames: this.anims.generateFrameNumbers("springboard", {
-        frames: [0, 1, 0],
-      }),
-      repeat: 0,
-    });
+    // Board bounce frames keyed to boost timing (1 = OK, 2 = GOOD, 3 = PERFECT);
+    // a non-notable (miss) bounce leaves the board at rest (frame 0). Mirrors divedave-ios.
+    for (const [key, frame] of [
+      ["bounceOk", 1],
+      ["bounceGood", 2],
+      ["bouncePerfect", 3],
+    ]) {
+      this.anims.create({
+        key,
+        frameRate: 4,
+        frames: this.anims.generateFrameNumbers("springboard", {
+          frames: [frame, 0],
+        }),
+        repeat: 0,
+      });
+    }
     this.anims.create({
       key: "fly",
       frameRate: 12,
@@ -763,7 +777,7 @@ export class DiveScene extends Phaser.Scene {
       .bitmapText(
         WIDTH - 25,
         25,
-        "green-arial",
+        "drawvid-handwriting-green",
         "GOAL: " +
           this.goalRotations +
           (this.goalRotations < 1.5 ? " FLIP" : " FLIPS"),
@@ -798,7 +812,7 @@ export class DiveScene extends Phaser.Scene {
           this,
           dave.x,
           dave.y,
-          roundedRotations > this.goalRotations ? "red-arial" : "green-arial",
+          roundedRotations > this.goalRotations ? "drawvid-handwriting-red" : "drawvid-handwriting-green",
           roundedRotations,
           150,
           5,

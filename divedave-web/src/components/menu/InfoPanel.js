@@ -39,7 +39,7 @@ export class InfoPanel extends Phaser.GameObjects.Group {
       .bitmapText(
         125,
         75,
-        "red-arial",
+        "drawvid-handwriting-red",
         (IS_MOBILE ? "tap" : "click") + " to dive again",
         65
       )
@@ -51,16 +51,13 @@ export class InfoPanel extends Phaser.GameObjects.Group {
 
   display(scene, result, strings, frame, scores) {
     let height = HEIGHT / 2 + 5;
+    const resultFont =
+      result === "FAILED DIVE" || result === "GAME OVER"
+        ? "drawvid-handwriting-red"
+        : "drawvid-handwriting-green";
+    this.tryAgain.setFont(resultFont);
     scene.add
-      .bitmapText(
-        WIDTH / 2,
-        height - 375,
-        result === "FAILED DIVE" || result === "GAME OVER"
-          ? "red-arial"
-          : "green-arial",
-        result,
-        80
-      )
+      .bitmapText(WIDTH / 2, height - 375, resultFont, result, 80)
       .setOrigin(0.5)
       .setDepth(this.baseDepth + 1)
       .setScrollFactor(0);
@@ -71,8 +68,8 @@ export class InfoPanel extends Phaser.GameObjects.Group {
           height,
           string.includes("rotations") &&
             (result === "FAILED DIVE" || result === "GAME OVER")
-            ? "red-arial"
-            : "black-arial",
+            ? "drawvid-handwriting-red"
+            : "drawvid-handwriting-black",
           string,
           80
         )
@@ -101,7 +98,7 @@ export class InfoPanel extends Phaser.GameObjects.Group {
         .bitmapText(
           WIDTH / 2 - 275 + i * 275,
           HEIGHT / 2 + 325,
-          "red-arial",
+          "drawvid-handwriting-red",
           score,
           100
         )
