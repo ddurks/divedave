@@ -123,16 +123,29 @@ final class DavePlayer {
         onJumpStarted?()
 
         setFacing(left: false)
-        springboard.playAnimation(name: "flex") {
-            springboard.clearCurrentAnimation()
-        }
         dave.playAnimation(name: "jump") { [weak self] in
             guard let self = self else { return }
             let timing = self.calculateBoost(springboard: springboard)
+            self.playBoardBounce(springboard: springboard, timing: timing)
             self.landedAt = 0
             self.dave.physicsBody?.velocity.dy = Game.jumpVelocity + self.boost
             self.transition(to: .airborne)
             onJumpCompleted?(timing)
+        }
+    }
+
+    // Flex the board to this jump's timing frame (1 = OK, 2 = GOOD, 3 = PERFECT);
+    // a non-notable (miss) bounce leaves it at rest. Mirrors divedave-web.
+    private func playBoardBounce(springboard: AnimatedSprite, timing: BoostTiming) {
+        let bounce: String
+        switch timing {
+        case .perfect: bounce = "bouncePerfect"
+        case .good:    bounce = "bounceGood"
+        case .ok:      bounce = "bounceOk"
+        case .miss:    return
+        }
+        springboard.playAnimation(name: bounce) {
+            springboard.clearCurrentAnimation()
         }
     }
 

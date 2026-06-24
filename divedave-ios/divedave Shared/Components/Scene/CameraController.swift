@@ -4,6 +4,8 @@ import SpriteKit
 final class CameraController {
     let node: SKCameraNode
 
+    var maxFollowY: CGFloat?
+
     private var shakeIntensity: CGFloat = 0
     private var shakeDecay: CGFloat = 0
     private var lastShakeTime: TimeInterval = 0
@@ -20,7 +22,8 @@ final class CameraController {
         let sceneHeight = GameState.shared.sceneHeight
 
         let minY = viewHeight / 2
-        let maxY = sceneHeight - viewHeight / 2
+        let sceneMaxY = sceneHeight - viewHeight / 2
+        let maxY = max(sceneMaxY, maxFollowY ?? sceneMaxY)
         let clamped = max(minY, min(targetY, maxY))
 
         let (offsetX, offsetY) = consumeShakeOffset()

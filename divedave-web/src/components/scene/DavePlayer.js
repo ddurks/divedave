@@ -83,6 +83,7 @@ export class DavePlayer {
     sprite.on(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
       if (!anim || anim.key !== "jump") return;
       const timing = this.calculateBoost();
+      this.playBoardBounce(timing);
       this.landedAt = null;
       sprite.setVelocityY(-JUMP_VELOCITY - this.boost);
       this.transition(DaveState.Airborne);
@@ -140,9 +141,19 @@ export class DavePlayer {
     if (this.sprite.anims.getName() === "jump") return false;
     if (!this.transition(DaveState.Launching)) return false;
     this.sprite.setFlipX(false);
-    this.springboard.anims.play("flex", true);
     this.sprite.anims.play("jump", true);
     return true;
+  }
+
+  // Flex the board to this jump's timing frame (1 = OK, 2 = GOOD, 3 = PERFECT);
+  // a non-notable (miss) bounce leaves it at rest. Mirrors divedave-ios.
+  playBoardBounce(timing) {
+    const anim = {
+      [BoostTiming.Perfect]: "bouncePerfect",
+      [BoostTiming.Good]: "bounceGood",
+      [BoostTiming.Ok]: "bounceOk",
+    }[timing];
+    if (anim) this.springboard.anims.play(anim, true);
   }
 
   applyTuck() {
