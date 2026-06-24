@@ -138,7 +138,6 @@ export class DavePlayer {
 
   tryJump() {
     if (this.state !== DaveState.Grounded) return false;
-    if (this.sprite.anims.getName() === "jump") return false;
     if (!this.transition(DaveState.Launching)) return false;
     this.sprite.setFlipX(false);
     this.sprite.anims.play("jump", true);
