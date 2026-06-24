@@ -7,6 +7,9 @@ promo/*.mov
 # General macOS files
 *.DS_Store
 
+# Python bytecode (fontgen tooling)
+**/__pycache__/
+
 # Xcode-specific files
 *.pbxuser
 *.mode1v3
