@@ -279,7 +279,8 @@ export class DiveScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(14)
-      .setActive(false);
+      .setActive(false)
+      .setVisible(GameState.challengeMode);
 
     GameState.waterLevel = this.sceneHeight - 100;
     let heightFromWater = GameState.waterLevel - PLATFORM_TOP_Y;

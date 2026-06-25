@@ -54,4 +54,43 @@ class GameViewController: UIViewController {
         mainMenuScene.setupMenu()
         skView.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
+
+    // Hardware-keyboard support: UIPress events reach the responder chain (the
+    // view controller), not the SKScene directly, so receive them here and
+    // forward to the live DiveScene. Lets the game be played from a keyboard in
+    // the Simulator, and on iPads with a keyboard attached.
+    override var canBecomeFirstResponder: Bool { true }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        becomeFirstResponder()
+    }
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if !forwardKeys(presses, pressed: true) {
+            super.pressesBegan(presses, with: event)
+        }
+    }
+
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if !forwardKeys(presses, pressed: false) {
+            super.pressesEnded(presses, with: event)
+        }
+    }
+
+    override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        if !forwardKeys(presses, pressed: false) {
+            super.pressesCancelled(presses, with: event)
+        }
+    }
+
+    private func forwardKeys(_ presses: Set<UIPress>, pressed: Bool) -> Bool {
+        guard let scene = (view as? SKView)?.scene as? DiveScene else { return false }
+        var handled = false
+        for press in presses {
+            guard let keyCode = press.key?.keyCode else { continue }
+            if scene.handleKey(keyCode, pressed: pressed) { handled = true }
+        }
+        return handled
+    }
 }

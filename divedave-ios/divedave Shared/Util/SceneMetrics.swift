@@ -23,4 +23,12 @@ struct SceneMetrics {
         self.width = Game.defaultWidth
         self.height = max(Game.refHeight, (Game.defaultWidth * aspect).rounded())
     }
+
+    // The fixed-width world renders physically larger on wide/short iPad-class
+    // viewports, so chrome (HUD + menu) sized in world units comes out oversized.
+    // Phones sit at aspect ≥ ~1.78, iPads at ≤ ~1.52, so 1.6 cleanly splits them.
+    var isWideViewport: Bool { height / width < 1.6 }
+    // One factor the HUD and menu chrome multiply by, so both shrink together on
+    // iPad and stay byte-identical on phones.
+    var hudScale: CGFloat { isWideViewport ? 0.69 : 1.0 }
 }

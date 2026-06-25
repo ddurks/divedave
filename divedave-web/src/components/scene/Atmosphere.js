@@ -17,6 +17,7 @@ import {
 import { getRandomInt } from "../../util/Utilities.js";
 
 const SEGMENT = 1000;
+const FADE_MARGIN = 500;
 
 const Motion = {
   Stationary: "stationary",
@@ -27,9 +28,10 @@ const Motion = {
 // Mirrors divedave-ios Atmosphere. Three levels, going up: clouds/birds at the
 // ground, planes in the middle, stars/ufos in space, split at middleY and endY
 // (the same pin points as old-web and iOS). Each level's sprites are kept
-// inside their world-Y band by wrapping, so a level is simply on screen while
-// the camera overlaps its band and crisply absent otherwise — no fade, no
-// lingering into a neighbouring level. Parallax comes from offsetting each
+// inside their world-Y band by wrapping, so a level is on screen while the
+// camera overlaps its band and absent otherwise; sprites fade within
+// FADE_MARGIN of a band edge so the wrap teleport stays hidden rather than
+// popping "behind an invisible wall." Parallax comes from offsetting each
 // level against the camera by (1 - parallaxFactor); deeper levels track the
 // camera more and so drift slower.
 export class Atmosphere {
@@ -194,14 +196,21 @@ export class Atmosphere {
     for (const layer of this.layers) {
       const offset = cameraDelta * (1 - layer.parallax);
       const bandHeight = layer.bandHigh - layer.bandLow;
+      // Fade sprites out as they near a band edge so the modulo wrap (the
+      // teleport that keeps them inside the band) lands while they're invisible
+      // — otherwise they pop "behind an invisible wall" at the edge.
+      const fade = Math.min(FADE_MARGIN, bandHeight / 2);
 
       for (const entity of layer.sprites) {
         if (layer.motion !== Motion.Stationary) {
           entity.sprite.x += entity.vx * dt;
           this.recycleHorizontal(layer, entity, scrollY, offset, viewHeight);
         }
-        entity.sprite.y =
+        const y =
           layer.bandLow + Atmosphere.mod(entity.anchorY + offset - layer.bandLow, bandHeight);
+        entity.sprite.y = y;
+        const edgeDist = Math.min(y - layer.bandLow, layer.bandHigh - y);
+        entity.sprite.alpha = Math.min(1, edgeDist / fade);
       }
     }
   }

@@ -24,6 +24,7 @@ private enum GetOut {
     static let turnFrameDuration: TimeInterval = 0.07
     static let climbX: CGFloat = 28
     static let climbSpeed: CGFloat = 200
+    static let climbOffsetX: CGFloat = 25
     static let ladderOverlapPx: CGFloat = 70
 }
 
@@ -99,6 +100,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         // Band boundaries at 30 m and 60 m above water (×200 units/m), matching
         // web's plane/star altitudes: clouds/birds below, planes 30–60 m, stars/ufos above.
         atmosphere = Atmosphere(scene: self, sceneHeight: GameState.shared.sceneHeight, startY: landscapeHeight, middleY: waterLevel + 6000, endY: waterLevel + 12000)
+
+        // Seat the camera on Dave before the first frame; otherwise it renders
+        // once at the scene origin and snaps upward on the first update().
+        cameraController.follow(targetY: dave.position.y)
     }
 
     func setupHUD(view: SKView, camera: SKCameraNode) {
@@ -736,6 +741,37 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         }
     }
 
+    // Drive the on-screen HUD buttons from a hardware keyboard (handy in the
+    // Simulator, and for iPad keyboards). Keys mirror divedave-web: A/← left,
+    // D/→ right, Space/W/↑ jump, R/↓ flip, Enter advances after a dive, Esc
+    // returns to the menu. Forwarded from GameViewController; returns true when
+    // the key was consumed.
+    @discardableResult
+    func handleKey(_ keyCode: UIKeyboardHIDUsage, pressed: Bool) -> Bool {
+        switch keyCode {
+        case .keyboardReturnOrEnter, .keypadEnter:
+            if pressed, diveComplete { resetScene() }
+            return true
+        case .keyboardEscape:
+            if pressed { prepareAndPresentMainMenuScene() }
+            return true
+        default:
+            guard let button = hudButton(for: keyCode) else { return false }
+            if pressed { button.press() } else { button.release() }
+            return true
+        }
+    }
+
+    private func hudButton(for keyCode: UIKeyboardHIDUsage) -> ControlButton? {
+        switch keyCode {
+        case .keyboardA, .keyboardLeftArrow:                   return hud?.leftButton
+        case .keyboardD, .keyboardRightArrow:                  return hud?.rightButton
+        case .keyboardSpacebar, .keyboardW, .keyboardUpArrow:  return hud?.jumpButton
+        case .keyboardR, .keyboardDownArrow:                   return hud?.flipButton
+        default:                                               return nil
+        }
+    }
+
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
 
     }
@@ -830,7 +866,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 goState = .climb
                 climbdave.stopAnimation()
                 climbdave.xScale = 1.0
-                climbdave.position.x = climbTargetX
+                climbdave.position.x = climbTargetX - GetOut.climbOffsetX
                 climbdave.playAnimation(name: "climb")
             }
             return

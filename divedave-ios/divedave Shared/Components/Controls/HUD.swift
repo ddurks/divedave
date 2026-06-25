@@ -15,8 +15,13 @@ final class HUD {
 
     @MainActor
     init(view: SKView, camera: SKCameraNode, sceneSize: CGSize) {
-        let jumpButtonY = -sceneSize.height * 0.425
-        let buttonScale: CGFloat = 0.65
+        // iPad-class viewports render the fixed-width HUD oversized and low;
+        // scale the whole HUD by one shared factor and lift the controls there.
+        // Phones keep their tuned look (hudScale == 1, isWideViewport == false).
+        let isWideViewport = GameState.shared.metrics.isWideViewport
+        let hudScale = GameState.shared.metrics.hudScale
+        let buttonScale: CGFloat = 0.65 * hudScale
+        let jumpButtonY = -sceneSize.height * (isWideViewport ? 0.40 : 0.425)
 
         let scaledButtonHeight = 512 * buttonScale
         let flipButtonY = jumpButtonY + scaledButtonHeight + 10
@@ -42,7 +47,7 @@ final class HUD {
         goalLabel = SKLabelNode(text: "GOAL:")
         goalLabel.fontName = "DrawvidHand-Regular"
         goalLabel.fontColor = SKColor(red: 0/255, green: 128/255, blue: 0/255, alpha: 1.0)
-        goalLabel.fontSize = 65
+        goalLabel.fontSize = 65 * hudScale
         goalLabel.position = CGPoint(x: (4*sceneSize.width/2)/5, y: (4*sceneSize.height/2)/5)
         goalLabel.horizontalAlignmentMode = .right
         goalLabel.zPosition = 20
@@ -53,7 +58,7 @@ final class HUD {
         // readable board drops below it — clear of the iOS clock. Shown at 1.5×
         // web's size (deliberate native bump); board, fonts, offsets and the menu
         // button all scale together via signScale.
-        let signScale: CGFloat = 1.5
+        let signScale: CGFloat = 1.5 * hudScale
         // Keep the board's left edge tucked ~3 units off-screen (web's look) as it
         // scales: half-board (128·signScale) minus 3, in camera-space (origin centre).
         let hudX = 128 * signScale - 3 - sceneSize.width / 2
@@ -97,6 +102,7 @@ final class HUD {
         camera.addChild(menuButton)
 
         runningScoreLabel = createLabel(text: "score: \(GameState.shared.totalScore)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY + 35 * signScale), zPosition: 4, fontColor: .black, align: .center)
+        runningScoreLabel.isHidden = !GameState.shared.challengeMode
         camera.addChild(runningScoreLabel)
 
         runningStreakLabel = createLabel(text: "streak: \(GameState.shared.streak)", fontSize: 30 * signScale, position: CGPoint(x: hudX, y: boardCenterY - 35 * signScale), zPosition: 4, fontColor: .black, align: .center)

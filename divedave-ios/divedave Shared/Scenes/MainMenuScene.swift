@@ -16,6 +16,9 @@ final class MainMenuScene: SKScene {
     private var loadingDave: SKSpriteNode!
     private var menuDave: MenuDave?
 
+    // Shrink the menu chrome on iPad to match the in-game HUD; 1.0 on phones.
+    private var hudScale: CGFloat { GameState.shared.metrics.hudScale }
+
     func setupMenu() {
         coverImage = SKSpriteNode(imageNamed: "cover")
         coverImage.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.55)
@@ -26,7 +29,7 @@ final class MainMenuScene: SKScene {
 
         startArcadeButton = MenuButton(imageNamed: "arcade",
                                        position: CGPoint(x: self.size.width / 2 + self.size.width / 5, y: self.size.height * 0.22),
-                                       scale: 0.75,
+                                       scale: 0.75 * hudScale,
                                        name: "startArcade") { [weak self] in
             self?.startGame(challengeMode: false)
         }
@@ -34,7 +37,7 @@ final class MainMenuScene: SKScene {
 
         startChallengeButton = MenuButton(imageNamed: "challenge",
                                           position: CGPoint(x: self.size.width / 2 - self.size.width / 5, y: self.size.height * 0.22),
-                                          scale: 0.75,
+                                          scale: 0.75 * hudScale,
                                           name: "startChallenge") { [weak self] in
             self?.startGame(challengeMode: true)
         }
@@ -97,7 +100,7 @@ final class MainMenuScene: SKScene {
         let cornerMargin: CGFloat = 10
         instructionsButton = MenuButton(imageNamed: "controls-help",
                                         position: .zero,
-                                        scale: 0.75,
+                                        scale: 0.75 * hudScale,
                                         name: "instructionsButton") { [weak self] in
             self?.showInstructions()
         }
@@ -176,7 +179,7 @@ final class MainMenuScene: SKScene {
         // Same hanging "sign-xl" treatment as the in-game HUD, shown 1.5× web's
         // size (board, fonts and offsets scale together via signScale); dropped
         // below the status bar / notch with the post behind it.
-        let signScale: CGFloat = 1.5
+        let signScale: CGFloat = 1.5 * hudScale
         // Keep the board's left edge tucked ~3 units off-screen (web's look) as it scales.
         let signX: CGFloat = 128 * signScale - 3
         let boardCenterY = GameState.shared.metrics.height - 290

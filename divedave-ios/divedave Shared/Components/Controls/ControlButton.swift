@@ -59,32 +59,32 @@ final class ControlButton: SKNode {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        press()
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        release()
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        release()
+    }
+
+    // Shared by touches and the keyboard handler (Simulator / iPad keyboard) so
+    // both drive isDown, the press scale, and the jump-release timing alike.
+    func press() {
+        guard !isDown else { return }
         isDown = true
-        switch spriteType {
-        case .staticSprite:
+        if case .staticSprite = spriteType {
             spriteNode.setScale(self.scale * 1.25)
-        case .animatedSprite:
-            break
         }
         onPressed?()
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        switch spriteType {
-        case .staticSprite:
+    func release() {
+        guard isDown else { return }
+        if case .staticSprite = spriteType {
             spriteNode.setScale(self.scale)
-        case .animatedSprite:
-            break
-        }
-        pointerUp()
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        switch spriteType {
-        case .staticSprite:
-            spriteNode.setScale(self.scale)
-        case .animatedSprite:
-            break
         }
         pointerUp()
     }

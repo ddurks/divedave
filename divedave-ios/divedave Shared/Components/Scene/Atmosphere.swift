@@ -49,6 +49,7 @@ final class Atmosphere {
     private static let startColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
     private static let middleColor = SKColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0)
     private static let endColor = SKColor.black
+    private static let fadeMargin: CGFloat = 500
 
     private let scene: SKScene
     private let sceneHeight: CGFloat
@@ -295,10 +296,18 @@ final class Atmosphere {
         for (layerIndex, layer) in layers.enumerated() {
             let trackingFactor = 1.0 - layer.parallaxFactor
             let offset = cameraDelta * trackingFactor
+            let bandHeight = layer.yRange.upperBound - layer.yRange.lowerBound
+            // Fade sprites out near a band edge so the wrap teleport that keeps
+            // them inside the band lands while they're invisible — otherwise
+            // they pop "behind an invisible wall" at the edge.
+            let fade = min(Atmosphere.fadeMargin, bandHeight / 2)
 
             for entity in entitiesByLayer[layerIndex] {
                 entity.node.position.y = Atmosphere.wrap(entity.anchorY + offset, in: layer.yRange)
                 recycle(entity: entity, layer: layer, offset: offset)
+                let y = entity.node.position.y
+                let edgeDist = min(y - layer.yRange.lowerBound, layer.yRange.upperBound - y)
+                entity.node.alpha = min(1.0, edgeDist / fade)
             }
         }
     }
