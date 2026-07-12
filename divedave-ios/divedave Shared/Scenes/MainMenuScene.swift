@@ -46,9 +46,11 @@ final class MainMenuScene: SKScene {
         setUpLoadingStuff()
         setupInstructions()
 
-        let bestScore = max(StatsStore.arcadeHigh, StatsStore.challengeHigh, GameState.shared.highScore)
-        if bestScore > 0 {
-            displayHighScore(bestScore)
+        // Challenge is the only mode with a high score (arcade is streak-only,
+        // matching web). GameState.highScore is the persisted challenge best.
+        let highScore = GameState.shared.highScore
+        if highScore > 0 {
+            displayHighScore(highScore)
         }
 
         setupMenuDave()

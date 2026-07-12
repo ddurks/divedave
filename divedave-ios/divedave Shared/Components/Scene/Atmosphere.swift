@@ -47,8 +47,10 @@ private final class AtmosphereEntity {
 @MainActor
 final class Atmosphere {
     private static let startColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
-    private static let middleColor = SKColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0)
-    private static let endColor = SKColor.black
+    // Mirror web's sky gradient (MIDDLE_COLOR 0x7da8e8 → END_COLOR 0x201f4b) so
+    // both builds fade through the same blues into deep indigo.
+    private static let middleColor = SKColor(red: 125.0/255.0, green: 168.0/255.0, blue: 232.0/255.0, alpha: 1.0)
+    private static let endColor = SKColor(red: 32.0/255.0, green: 31.0/255.0, blue: 75.0/255.0, alpha: 1.0)
     private static let fadeMargin: CGFloat = 500
 
     private let scene: SKScene

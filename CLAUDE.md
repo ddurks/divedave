@@ -82,7 +82,7 @@ When you change behavior in one, check whether the other needs the same change. 
 
 **The game is silent on purpose.** No SFX, no music, ever. Do not propose adding audio. Haptics on iOS are fine.
 
-**High scores** persist via `StatsStore` (localStorage on web, UserDefaults on iOS). Key: `highScore`.
+**High scores** persist via `StatsStore` (cookie on web, UserDefaults on iOS). Key: `highScore`.
 
 **Cross-platform tooling.** Values that must be byte-identical between the two builds live at the top of each `Constants` file under a `=== Shared with ... ===` block — change one side, mirror it on the other. `tools/run-parity.sh` exercises `DiveScorer` on both sides against `tools/parity-fixtures.json` (covers scoring and boost-window classification); run it after touching scoring or boost-window logic.
 

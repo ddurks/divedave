@@ -108,7 +108,8 @@ final class DavePlayer {
         // tiny floating-point noise (~4e-12) at the instant didBegin fires.
         // A strict check would reject real landings as "ascending".
         let notLaunching = body.velocity.dy < 50
-        let lowSpin = abs(body.angularVelocity) < 0.5
+        // 30°/s in radians — matches web's Phaser angularVelocity gate (deg/s).
+        let lowSpin = abs(body.angularVelocity) < 30.0 * .pi / 180.0
         return notLaunching && lowSpin
     }
 

@@ -81,6 +81,6 @@ Output is one line per side (`[js] N passed, M failed` / `[swift] ...`). Non-zer
 - `chooseEmotionFrame` — angle-to-frame staircase, boundary-heavy.
 - `classifyBoostTiming` — quickness-ms-to-tier, which transitively asserts the three boost-window constants match between platforms.
 - `scoreDive` — the deterministic outputs (`result` and `emotionFrame`). The three judge scores include a per-tier random component and are not asserted across runs.
-- `goalHalfFlips` — dive height (m) → half-flips, the goal-difficulty curve shared by the main game and the iMessage duel.
+- `goalHalfFlips` — dive height (m) → half-flips, the goal-difficulty curve for the main game.
 
 If you change scoring or the boost windows on one side, update the fixtures and confirm both sides still pass before committing.

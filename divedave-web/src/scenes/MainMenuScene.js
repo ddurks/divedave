@@ -1,6 +1,6 @@
 import { HEIGHT, WIDTH } from "../util/Constants.js";
 import { GameState } from "../util/GameState.js";
-import { fadeOutScene, getRandomInt } from "../util/Utilities.js";
+import { fadeOutScene } from "../util/Utilities.js";
 import { MenuDave } from "../components/menu/MenuDave.js";
 
 export class MainMenuScene extends Phaser.Scene {
@@ -60,6 +60,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create() {
+    this.starting = false;
     this.input.keyboard.on("keydown", this.handleKey, this);
     const cover = this.add.image(WIDTH / 2, HEIGHT / 2 - 250, "cover");
     cover.setScale(1.5);
@@ -131,7 +132,10 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   handleKey(e) {
-    if (e.code === "Enter") this.clickStart(this);
+    if (e.code === "Enter") {
+      GameState.challengeMode = true;
+      this.clickStart(this);
+    }
   }
 
   pressButton(button, action) {
@@ -147,10 +151,10 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   clickStart(scene) {
-    if (GameState.challengeMode) {
-      fadeOutScene("DiveScene", scene, 1500);
-    } else {
-      fadeOutScene("DiveScene", scene, getRandomInt(1500, 10000));
-    }
+    if (this.starting) return;
+    this.starting = true;
+    // First dive of either mode is a fixed 3 m opener (matches iOS). Arcade then
+    // randomises height on each subsequent dive (resetScene); challenge ramps.
+    fadeOutScene("DiveScene", scene, 1500);
   }
 }

@@ -9,11 +9,10 @@ final class GameState {
     var metrics: SceneMetrics = .default
 
     var challengeMode: Bool = true
-    var duelSeed: String? = nil
 
     var streak: Int = 0
     var totalScore: Int = 0
-    var platformHeight: CGFloat = 703
+    var platformHeight: CGFloat = 600
 
     var sceneHeight: CGFloat = 0
     var jumpReleasedAt: CFTimeInterval = 0

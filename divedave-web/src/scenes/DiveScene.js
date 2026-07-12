@@ -283,25 +283,26 @@ export class DiveScene extends Phaser.Scene {
       .setVisible(GameState.challengeMode);
 
     GameState.waterLevel = this.sceneHeight - 100;
-    let heightFromWater = GameState.waterLevel - PLATFORM_TOP_Y;
-    heightFromWater--;
-    for (let i = PLATFORM_TOP_Y + 1; i < GameState.waterLevel; i++) {
-      let labelColor = "drawvid-handwriting-red";
+    // Height markers: a "- Nm" label every whole metre (200 units) and a "-"
+    // tick every 0.1 m (20 units). Step by the tick spacing instead of scanning
+    // every pixel — a 100 m dive spans 20k units, and the old per-pixel scan was
+    // a visible hitch on scene.restart(). Placement is unchanged: a marker sits
+    // at world-y = waterLevel − heightFromWater.
+    const topHeightFromWater = GameState.waterLevel - PLATFORM_TOP_Y - 1;
+    for (
+      let heightFromWater = topHeightFromWater - (topHeightFromWater % 20);
+      heightFromWater > 0;
+      heightFromWater -= 20
+    ) {
       const currHeight = heightFromWater / 2 / 100;
+      let labelColor = "drawvid-handwriting-red";
       if (currHeight < 25) labelColor = "drawvid-handwriting-yellow";
       if (currHeight < 10) labelColor = "drawvid-handwriting-green";
-      if (heightFromWater % 200 === 0) {
-        this.add
-          .bitmapText(WIDTH - 250, i, labelColor, "- " + currHeight + "m", 64)
-          .setDepth(14)
-          .setActive(false);
-      } else if (heightFromWater % 20 === 0) {
-        this.add
-          .bitmapText(WIDTH - 250, i, labelColor, "-", 64)
-          .setDepth(14)
-          .setActive(false);
-      }
-      heightFromWater--;
+      const text = heightFromWater % 200 === 0 ? "- " + currHeight + "m" : "-";
+      this.add
+        .bitmapText(WIDTH - 250, GameState.waterLevel - heightFromWater, labelColor, text, 64)
+        .setDepth(14)
+        .setActive(false);
     }
 
     // Springboard must exist before registerAnimations() so the bounce
@@ -750,10 +751,10 @@ export class DiveScene extends Phaser.Scene {
       splash.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
         splash.destroy();
       });
-      setTimeout(() => {
+      this.time.delayedCall(1000, () => {
         this.readyForReset = true;
         this.startGettingOut();
-      }, 1000);
+      });
     }
     this.countRotations();
   }
@@ -881,12 +882,20 @@ export class DiveScene extends Phaser.Scene {
     } else if (GameState.totalScore === 0) {
       this.scene.restart({ height: 1500 });
     } else {
+      // Compound the offset-free dive height (sceneHeight minus the constant
+      // board+water offset), then re-add the offset — so the streak ramp scales
+      // the same quantity iOS scales (its platformHeight). Multiplying
+      // sceneHeight directly would also scale the fixed offset every dive,
+      // drifting from iOS's difficulty curve over a streak.
+      const offset = PLATFORM_TOP_Y + 100;
+      const diveHeight = this.sceneHeight - offset;
       const streakFactor = 2 * GameState.streak;
       const denominator = streakFactor + 100;
       const streakMultiplier = 1 + streakFactor / denominator;
       const randomHeightIncrease = getRandomInt(0, 500);
-      const newPlatformHeight = this.sceneHeight + randomHeightIncrease;
-      const finalHeight = Math.round(newPlatformHeight * streakMultiplier);
+      const finalHeight = Math.round(
+        (diveHeight + randomHeightIncrease) * streakMultiplier + offset,
+      );
       this.sceneHeight = finalHeight;
       this.scene.restart({ height: finalHeight });
     }

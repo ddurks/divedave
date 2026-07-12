@@ -32,8 +32,6 @@ private enum GetOutState { case idle, emerge, turn1, walk, turn2, climb, done }
 
 final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var readyForReset = false
-    var onDuelComplete: ((Int) -> Void)?
-    private var duelGoalRotations: Double?
     var hud: HUD!
     var waterLevel: CGFloat = 0
     var diveComplete = false
@@ -69,13 +67,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.contactDelegate = self
         self.backgroundColor = SKColor(red: 0.74, green: 0.84, blue: 1.0, alpha: 1.0)
         diveComplete = false
-        if let seed = GameState.shared.duelSeed {
-            let params = DiveScene.duelParams(seed: seed)
-            GameState.shared.platformHeight = CGFloat(params.platformHeight)
-            GameState.shared.totalScore = 0
-            GameState.shared.streak = 0
-            duelGoalRotations = params.goalRotations
-        }
         let buffer = GameState.shared.metrics.height/2
         if (GameState.shared.platformHeight < GameState.shared.metrics.height - buffer) {
             GameState.shared.sceneHeight = GameState.shared.metrics.height
@@ -113,12 +104,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func calculateGameLogic() {
-        if let seeded = duelGoalRotations {
-            goalRotations = seeded
-            hud.setGoalFlips(flips: goalRotations)
-            return
-        }
-
         let halfFlips = DiveScorer.goalHalfFlips(heightMeters: Double(GameState.shared.platformHeight) / 200.0)
 
         guard halfFlips >= 1 else {
@@ -136,18 +121,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         hud.setGoalFlips(flips: goalRotations)
 
         logger.debug("Half-Flips: \(halfFlips), Streak: \(streak), Min Half-Flips: \(minHalfFlips), Goal Rotations: \(self.goalRotations)")
-    }
-
-    static func duelParams(seed: String) -> (platformHeight: Double, boardHeightMeters: Double, goalRotations: Double) {
-        var rng = SeededRandom(seed: seed)
-        // 3–100 m dive (platformHeight / 200 = metres), matching the rest of the
-        // game and web.
-        let platformHeight = rng.nextDouble(in: 600...20000)
-        let boardHeightMeters = round(platformHeight / 200.0 * 10) / 10
-
-        let halfFlips = DiveScorer.goalHalfFlips(heightMeters: platformHeight / 200.0)
-        let goal = halfFlips >= 1 ? Double(rng.nextInt(in: 1...halfFlips)) / 2.0 : 0.5
-        return (platformHeight, boardHeightMeters, goal)
     }
 
     func setupScene() {
@@ -236,7 +209,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func resetScene() {
-        if GameState.shared.duelSeed != nil { return }
         if (self.diveComplete && self.readyForReset) {
             if (!GameState.shared.challengeMode) {
                 // 3–100 m dive (platformHeight / 200 = metres); static so the
@@ -550,9 +522,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
                 logger.debug("stats: \(String(describing: GameState.shared.stats))")
 
                 let result = scoreDive()
-                if GameState.shared.duelSeed != nil {
-                    onDuelComplete?(GameState.shared.totalScore)
-                }
                 hud.setRunningStreak(streak: GameState.shared.streak)
                 hud.setRunningScore(score: GameState.shared.totalScore)
                 let displayStrings = [
@@ -700,8 +669,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
             if GameState.shared.challengeMode {
                 StatsStore.challengeHigh = max(StatsStore.challengeHigh, GameState.shared.totalScore)
-            } else {
-                StatsStore.arcadeHigh = max(StatsStore.arcadeHigh, GameState.shared.totalScore)
             }
 
             if GameState.shared.challengeMode && GameState.shared.totalScore > GameState.shared.highScore {
@@ -917,6 +884,6 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
         self.readyForReset = true
         GameState.shared.totalScore = 0
         GameState.shared.platformHeight = 600
-        self.view!.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
+        self.view?.presentScene(mainMenuScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 }

@@ -59,15 +59,14 @@ One-liners:
 - `src/components/controls/HUD.js` — score, streak, and high-score display.
 - `src/util/Constants.js` — gravity, viewport size, jump/spin tuning, boost-window timings, color constants. Single source of truth for gameplay numbers.
 - `src/util/GameState.js` — small mutable singleton holding the current run's state (streak, score, references to live actors).
-- `src/util/StatsStore.js` — `localStorage` wrapper for the high score.
-- `src/util/Haptics.js` — Vibration API wrapper used on mobile.
+- `src/util/StatsStore.js` — cookie wrapper for the high score.
 
 ## Assets
 
 Everything is under `assets/`:
 
 - `assets/*.png` — backgrounds, props, and grid-frame spritesheets. Spritesheets are loaded via `this.load.spritesheet(..., { frameWidth, frameHeight })`; there are no JSON texture atlases.
-- `assets/fonts/*.png` + `assets/fonts/*.xml` — BMFont bitmap fonts (`black-arial`, `green-arial`, `red-arial`, `yellow-arial`, `Arial20`).
+- `assets/fonts/*.png` + `assets/fonts/*.xml` — BMFont bitmap fonts (`drawvid-handwriting-black`, `-green`, `-red`, `-white`, `-yellow`).
 - `assets/daveicon.ico` — favicon.
 
 ## See also
