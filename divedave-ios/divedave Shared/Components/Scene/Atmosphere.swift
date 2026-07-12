@@ -301,8 +301,11 @@ final class Atmosphere {
             let bandHeight = layer.yRange.upperBound - layer.yRange.lowerBound
             // Fade sprites out near a band edge so the wrap teleport that keeps
             // them inside the band lands while they're invisible — otherwise
-            // they pop "behind an invisible wall" at the edge.
-            let fade = min(Atmosphere.fadeMargin, bandHeight / 2)
+            // they pop "behind an invisible wall" at the edge. Scale the margin
+            // to the band (× 0.1, capped at fadeMargin) so short scenes — where
+            // the band clamps to the whole small scene — get a thin sliver at
+            // the true edges instead of washing sprites out across the screen.
+            let fade = min(Atmosphere.fadeMargin, bandHeight * 0.1)
 
             for entity in entitiesByLayer[layerIndex] {
                 entity.node.position.y = Atmosphere.wrap(entity.anchorY + offset, in: layer.yRange)

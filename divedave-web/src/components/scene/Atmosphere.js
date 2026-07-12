@@ -198,8 +198,11 @@ export class Atmosphere {
       const bandHeight = layer.bandHigh - layer.bandLow;
       // Fade sprites out as they near a band edge so the modulo wrap (the
       // teleport that keeps them inside the band) lands while they're invisible
-      // — otherwise they pop "behind an invisible wall" at the edge.
-      const fade = Math.min(FADE_MARGIN, bandHeight / 2);
+      // — otherwise they pop "behind an invisible wall" at the edge. Scale the
+      // margin to the band (× 0.1, capped at FADE_MARGIN) so short scenes —
+      // where the band clamps to the whole small scene — get a thin sliver at
+      // the true edges instead of washing sprites out across the screen.
+      const fade = Math.min(FADE_MARGIN, bandHeight * 0.1);
 
       for (const entity of layer.sprites) {
         if (layer.motion !== Motion.Stationary) {
