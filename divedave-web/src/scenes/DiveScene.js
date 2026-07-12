@@ -893,9 +893,14 @@ export class DiveScene extends Phaser.Scene {
       const denominator = streakFactor + 100;
       const streakMultiplier = 1 + streakFactor / denominator;
       const randomHeightIncrease = getRandomInt(0, 500);
-      const finalHeight = Math.round(
-        (diveHeight + randomHeightIncrease) * streakMultiplier + offset,
+      // Cap dive height at 500 m (× 200 units/m) — matches iOS. Uncapped, the
+      // streak multiplier compounds without bound (a scene-build hitch here, a
+      // jetsam OOM from iOS's per-label SKLabelNode textures).
+      const grownDiveHeight = Math.min(
+        (diveHeight + randomHeightIncrease) * streakMultiplier,
+        100000,
       );
+      const finalHeight = Math.round(grownDiveHeight + offset);
       this.sceneHeight = finalHeight;
       this.scene.restart({ height: finalHeight });
     }

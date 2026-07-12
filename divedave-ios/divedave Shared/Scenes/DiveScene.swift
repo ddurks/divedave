@@ -49,6 +49,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     private var atmosphere: Atmosphere!
     private var cameraController: CameraController!
     private var davePlayer: DavePlayer!
+    private var heightLabelMaxY: CGFloat = 0
+    private var heightLabelMarkerX: CGFloat = 0
+    private var activeHeightLabels: [Int: SKLabelNode] = [:]
+    private var heightLabelPool: [SKLabelNode] = []
     private let boardContact = BoardContact()
     private let rotationTracker = RotationTracker()
     private var poolLadder: SKSpriteNode!
@@ -100,7 +104,10 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     func setupHUD(view: SKView, camera: SKCameraNode) {
         logger.debug("self.size: \(self.size.debugDescription)")
         hud = HUD(view: view, camera: camera, sceneSize: self.size)
-        hud.onMenuPressed = self.prepareAndPresentMainMenuScene
+        // [weak self]: a bare bound-method reference captures a strong self, and
+        // scene -> hud -> onMenuPressed -> scene is a retain cycle that keeps every
+        // old DiveScene (and its whole node tree) resident forever.
+        hud.onMenuPressed = { [weak self] in self?.prepareAndPresentMainMenuScene() }
     }
 
     func calculateGameLogic() {
@@ -163,48 +170,52 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func setupHeightLabels() {
-        logger.debug("water level: \(self.waterLevel)")
+        heightLabelMaxY = springboard.position.y
+        heightLabelMarkerX = 5 * GameState.shared.metrics.width / 6
+    }
 
-        var y = waterLevel
-        var currentMeter = 1
-        let majorSpacing = 200.0
-        let minorSpacing = 20.0
-        let maxY = springboard.position.y
-        let markerX = 5 * GameState.shared.metrics.width / 6
+    // Height markers ("- Nm" every metre, "-" every 0.1 m) are virtualized:
+    // only the ~one-screen-height's worth around the camera exists at a time,
+    // recycled from a pool as the camera pans. Building one SKLabelNode per 20
+    // units of the whole tower up-front was the memory/scene-build cost behind
+    // the jetsam OOM — each SKLabelNode rasterizes its own texture. Marker at
+    // index k sits at world-y = waterLevel + k·20; k divisible by 10 is a metre.
+    private func updateHeightLabels() {
+        let spacing = 20.0
+        let base = Double(waterLevel)
+        let camY = Double(cameraController.node.position.y)
+        let half = Double(GameState.shared.metrics.height) / 2
+        let margin = 120.0
+        let bandBottom = camY - half - margin
+        let bandTop = min(camY + half + margin, Double(heightLabelMaxY))
 
-        var majorCounter = 0.0
-        var minorCounter = 0.0
+        let loK = max(1, Int((bandBottom - base) / spacing) + 1)
+        let hiK = Int((bandTop - base) / spacing)
 
-        while y < maxY {
-            var labelColor: SKColor = Game.customRed
-            if currentMeter < 25 {
-                labelColor = Game.customYellow
-            }
-            if currentMeter < 10 {
-                labelColor = Game.customGreen
-            }
+        // Collect-then-remove: mutating the dictionary mid-iteration is unsafe.
+        for (k, node) in activeHeightLabels.filter({ $0.key < loK || $0.key > hiK }) {
+            node.removeFromParent()
+            heightLabelPool.append(node)
+            activeHeightLabels.removeValue(forKey: k)
+        }
 
-            let labelPosition = CGPoint(x: markerX, y: CGFloat(y))
-            let formattedHeight = String(currentMeter)
+        guard loK <= hiK else { return }
+        for k in loK...hiK where activeHeightLabels[k] == nil {
+            let meter = (k + 9) / 10
+            var color: SKColor = Game.customRed
+            if meter < 25 { color = Game.customYellow }
+            if meter < 10 { color = Game.customGreen }
 
-            if majorCounter >= majorSpacing {
-                let label = createLabel(text: "- \(formattedHeight)m", fontSize: 70, position: labelPosition, zPosition: 10, fontColor: labelColor, bold: true)
-                label.isHidden = false
-                addChild(label)
-                majorCounter = 0.0
-                currentMeter += 1
-            }
-            else if minorCounter >= minorSpacing {
-                let marker = createLabel(text: "-", fontSize: 70, position: labelPosition, zPosition: 10, fontColor: labelColor)
-                marker.isHidden = false
-                addChild(marker)
-                minorCounter = 0.0
-            }
-
-            y += 1
-
-            majorCounter += 1
-            minorCounter += 1
+            let node = heightLabelPool.popLast() ?? SKLabelNode()
+            node.fontName = "DrawvidHand-Regular"
+            node.fontSize = 70
+            node.zPosition = 10
+            node.horizontalAlignmentMode = .left
+            node.fontColor = color
+            node.text = k % 10 == 0 ? "- \(k / 10)m" : "-"
+            node.position = CGPoint(x: heightLabelMarkerX, y: CGFloat(base + Double(k) * spacing))
+            addChild(node)
+            activeHeightLabels[k] = node
         }
     }
 
@@ -226,7 +237,11 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
 
                     let randomHeightIncrease = Double.random(in: 0...500)
                     let newPlatformHeight = GameState.shared.platformHeight + randomHeightIncrease
-                    GameState.shared.platformHeight = newPlatformHeight * streakMultiplier
+                    // Cap dive height at 500 m (× 200 units/m). Uncapped, the streak
+                    // multiplier compounds super-exponentially and the per-height-unit
+                    // tower nodes (height labels, platform sections) exhaust memory —
+                    // an on-device jetsam OOM after a long streak.
+                    GameState.shared.platformHeight = min(newPlatformHeight * streakMultiplier, 100_000)
 
                     restartScene()
                 }
@@ -753,6 +768,7 @@ final class DiveScene: SKScene, SKPhysicsContactDelegate {
             atmosphere.updateBackgroundColor(for: cameraController.node.position.y)
         }
         atmosphere.update()
+        updateHeightLabels()
     }
 
     // Once Dave has dropped past the board entirely, drop board collisions
