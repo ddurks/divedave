@@ -17,8 +17,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Sync assets (long cache)
-        run: aws s3 sync divedave-web s3://divedave.drawvid.com --delete --exclude "*.html" --exclude "node_modules/*" --exclude ".git/*" --exclude ".DS_Store" --cache-control "public, max-age=31536000, immutable"
+        run: aws s3 sync divedave-web s3://divedave.drawvid.com --delete --exclude "*.html" --exclude "node_modules/*" --exclude ".git/*" --exclude "*.DS_Store" --cache-control "public, max-age=31536000, immutable"
       - name: Sync HTML (short cache)
-        run: aws s3 sync divedave-web s3://divedave.drawvid.com --exclude "*" --include "*.html" --cache-control "public, max-age=3600"
+        run: aws s3 sync divedave-web s3://divedave.drawvid.com --exclude "*" --include "*.html" --exclude "node_modules/*" --cache-control "public, max-age=3600"
       - name: Invalidate CloudFront
         run: aws cloudfront create-invalidation --distribution-id E19FEOYHE02U7G --paths "/*"

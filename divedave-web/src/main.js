@@ -1,7 +1,9 @@
 import { GRAVITY, HEIGHT, WIDTH } from "./util/Constants.js";
 import { GameState } from "./util/GameState.js";
 import { StatsStore } from "./util/StatsStore.js";
-import { MainMenuScene } from "./scenes/MainMenuScene.js";
+// Query param busts the year-long immutable cache — bump it (with the one in
+// index.html) whenever this scene file changes.
+import { MainMenuScene } from "./scenes/MainMenuScene.js?v=4.2.1";
 import { DiveScene } from "./scenes/DiveScene.js";
 
 GameState.highScore = StatsStore.loadHighScore();

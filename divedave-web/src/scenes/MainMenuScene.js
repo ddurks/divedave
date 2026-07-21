@@ -3,6 +3,8 @@ import { GameState } from "../util/GameState.js";
 import { fadeOutScene } from "../util/Utilities.js";
 import { MenuDave } from "../components/menu/MenuDave.js";
 
+const APP_STORE_URL = "https://apps.apple.com/us/app/dive-dave/id6781949245";
+
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
     super("MainMenu");
@@ -22,6 +24,7 @@ export class MainMenuScene extends Phaser.Scene {
     this.load.image("arcade", "assets/arcade.png");
     this.load.image("challenge", "assets/challenge.png");
     this.load.image("sign", "assets/sign.png");
+    this.load.svg("appstore-badge", "assets/appstore-badge.svg", { scale: 8 });
     this.load.bitmapFont(
       "drawvid-handwriting-black",
       "assets/fonts/drawvid-handwriting-black.png",
@@ -116,6 +119,18 @@ export class MainMenuScene extends Phaser.Scene {
         .setDepth(24)
         .setActive(false);
     }
+
+    const appStoreBadge = this.add
+      .image(WIDTH / 2, HEIGHT - 130, "appstore-badge")
+      .setScale(0.5);
+    appStoreBadge.setInteractive({ useHandCursor: true }).on("pointerup", () => {
+      // pointerup, not pointerdown: iOS Safari only grants the user activation
+      // window.open needs on touchend. And no "noopener" feature string — it
+      // would make window.open return null even on success, breaking the
+      // blocked-popup fallback below.
+      const appStoreTab = window.open(APP_STORE_URL, "_blank");
+      if (!appStoreTab) window.location.href = APP_STORE_URL;
+    });
 
     this.menuDave = new MenuDave(this, {
       // Feet sit at the frame's bottom edge; a half-frame (128 at scale 1) up

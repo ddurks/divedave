@@ -26,7 +26,7 @@ aws s3 sync "$SRC" "s3://$BUCKET" \
   --exclude "*.html" \
   --exclude "node_modules/*" \
   --exclude ".git/*" \
-  --exclude ".DS_Store" \
+  --exclude "*.DS_Store" \
   --cache-control "public, max-age=31536000, immutable"
 
 echo "Syncing HTML (short cache) from $SRC ..."
@@ -34,6 +34,7 @@ aws s3 sync "$SRC" "s3://$BUCKET" \
   --region "$REGION" \
   --exclude "*" \
   --include "*.html" \
+  --exclude "node_modules/*" \
   --cache-control "public, max-age=3600"
 
 echo "Invalidating CloudFront distribution $DISTRIBUTION_ID ..."
