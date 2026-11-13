@@ -8,13 +8,16 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Keyless: GitHub's OIDC token assumes the divedave-deploy role (no stored keys).
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::593615615124:role/divedave-deploy
           aws-region: us-east-1
       - name: Sync assets (long cache)
         run: aws s3 sync divedave-web s3://divedave.drawvid.com --delete --exclude "*.html" --exclude "node_modules/*" --exclude ".git/*" --exclude "*.DS_Store" --cache-control "public, max-age=31536000, immutable"
