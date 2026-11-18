@@ -14,6 +14,17 @@
             /* Prevent iOS Safari rubber-band scrolling from yanking the
                canvas around when the player taps near the edge. */
             overscroll-behavior: none;
+            /* No long-press text selection, callout menu or tap flash (iOS/Android). */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        input,
+        textarea {
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         /* Pin the Phaser container to the dynamic viewport (dvh handles
